@@ -1,0 +1,425 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>报告生成 - 健康核查后台</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;font-size:14px;}
+body{padding:0;max-width:1200px;margin:0 auto;background:#f5f7fa;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Microsoft YaHei",sans-serif;}
+.container{padding:20px;}
+.header{background:linear-gradient(135deg,#2c3e50 0%,#34495e 100%);color:#fff;padding:20px 24px;border-radius:12px;margin-bottom:20px;box-shadow:0 4px 12px rgba(44,62,80,0.3);display:flex;justify-content:space-between;align-items:center;}
+.header h1{margin:0;font-size:22px;}
+.breadcrumb{font-size:13px;opacity:0.85;margin-top:6px;}
+.breadcrumb a{color:#fff;text-decoration:none;margin:0 6px;}
+.back-btn{background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:8px 18px;border-radius:6px;font-size:13px;cursor:pointer;text-decoration:none;}
+.back-btn:hover{background:rgba(255,255,255,0.35);}
+.filter-bar{display:flex;gap:15px;flex-wrap:wrap;align-items:center;padding:15px;background:#fff;border-radius:8px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+.filter-bar label{font-weight:500;color:#555;}
+.filter-bar select{padding:8px 12px;border:1px solid #ddd;border-radius:6px;min-width:120px;}
+.btn{padding:9px 20px;border:none;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;}
+.btn-primary{background:#3498db;color:#fff;}
+.btn-primary:hover{background:#2980b9;}
+.btn-success{background:#27ae60;color:#fff;}
+.btn-success:hover{background:#219a52;}
+.btn-outline{background:#fff;color:#666;border:1px solid #ddd;}
+.report-paper{background:#fff;padding:50px 60px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);min-height:600px;line-height:2;}
+.report-paper h1{text-align:center;font-size:26px;color:#2c3e50;margin-bottom:30px;letter-spacing:2px;}
+.report-paper h2{text-align:center;font-size:20px;color:#2c3e50;margin:30px 0 20px 0;}
+.report-paper h3{color:#2c3e50;font-size:16px;margin:20px 0 10px 0;font-weight:600;}
+.report-paper h4{color:#34495e;font-size:14px;margin:15px 0 8px 0;font-weight:600;}
+.report-paper p{color:#333;font-size:14px;margin:6px 0;text-indent:2em;}
+.report-paper .no-indent{text-indent:0;}
+.report-paper strong{color:#2c3e50;font-weight:600;}
+.report-paper .sign{text-align:right;color:#666;margin-top:40px;font-size:13px;}
+.report-paper .empty{color:#999;text-align:center;padding:60px;}
+.report-paper .highlight{background:#e8f4f8;padding:2px 6px;border-radius:3px;}
+.report-paper table{width:100%;border-collapse:collapse;margin:15px 0;font-size:13px;}
+.report-paper th,td{border:1px solid #ddd;padding:8px 10px;text-align:center;}
+.report-paper th{background:#f5f7fa;font-weight:600;color:#2c3e50;}
+.report-paper td{text-align:left;}
+.report-paper td.center{text-align:center;}
+@media print{
+  body{background:#fff;}
+  .header,.filter-bar{display:none;}
+  .report-paper{padding:30px 40px;box-shadow:none;}
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <div>
+    <h1>📄 报告生成</h1>
+    <div class="breadcrumb"><a href="admin.html">后台首页</a> / 报告生成</div>
+  </div>
+  <a href="admin.html" class="back-btn">返回后台</a>
+</div>
+
+<div class="filter-bar">
+  <label>年度：</label>
+  <select id="docYear"><option value="">选择年度</option></select>
+  <label>季度：</label>
+  <select id="docQuarter">
+    <option value="">全部季度</option>
+    <option value="Q1">一季度</option>
+    <option value="Q2">二季度</option>
+    <option value="Q3">三季度</option>
+    <option value="Q4">四季度</option>
+  </select>
+  <label>对比季度：</label>
+  <select id="compareQuarter">
+    <option value="">不对比</option>
+    <option value="Q1">一季度</option>
+    <option value="Q2">二季度</option>
+    <option value="Q3">三季度</option>
+    <option value="Q4">四季度</option>
+  </select>
+  <button class="btn btn-primary" onclick="generateReport()">生成报告</button>
+  <button class="btn btn-success" onclick="exportReport()">导出Word</button>
+  <button class="btn btn-outline" onclick="window.print()">打印</button>
+</div>
+
+<div id="reportContent" class="report-paper">
+  <p class="empty">请选择年度和季度生成报告</p>
+</div>
+
+</div>
+
+<script>
+const projects = {
+  '居民': 'residentCheckRecords',
+  '老年人': 'elderlyCheckRecords',
+  '高血压': 'hypertensionCheckRecords',
+  '糖尿病': 'diabetesCheckRecords',
+  '慢阻肺': 'copdCheckRecords'
+};
+
+function getRecords(project){
+  try {
+    return JSON.parse(localStorage.getItem(projects[project]) || '[]');
+  } catch(e) {
+    return [];
+  }
+}
+
+function formatQuarter(q){
+  const map = {Q1:'一季度',Q2:'二季度',Q3:'三季度',Q4:'四季度'};
+  return map[q] || q || '';
+}
+
+function loadYearOptions(){
+  const years = new Set();
+  Object.keys(projects).forEach(p => {
+    getRecords(p).forEach(r => { if(r.year) years.add(String(r.year)); });
+  });
+  const sorted = [...years].sort().reverse();
+  const sel = document.getElementById('docYear');
+  sel.innerHTML = '<option value="">选择年度</option>';
+  sorted.forEach(y => sel.innerHTML += '<option value="' + y + '">' + y + '</option>');
+}
+
+function calcProjectStats(records){
+  const stats = {
+    total: records.length,
+    valid: 0, invalid: 0, lost: 0, telError: 0,
+    match: 0, unmatch: 0,
+    standard: 0, unstandard: 0,
+    fake: 0,
+    controlOk: 0, controlNotOk: 0,
+    lostReasons: [],
+    telErrorReasons: [],
+    unmatchReasons: [],
+    unstandardReasons: []
+  };
+
+  records.forEach(r => {
+    const reply = r.replyCode || r.reply || '';
+    
+    if(reply === '1' || reply === '2'){
+      stats.valid++;
+    } else {
+      stats.invalid++;
+      if(['3','4','5','6'].includes(reply)){
+        stats.lost++;
+        if(reply === '3') stats.lostReasons.push('家属不了解情况');
+        else if(reply === '4') stats.lostReasons.push('无法接通');
+        else if(reply === '5') stats.lostReasons.push('拒绝调查');
+        else if(reply === '6') stats.lostReasons.push('本人记不清情况');
+      } else if(['7','8','9'].includes(reply)){
+        stats.telError++;
+        if(reply === '7') stats.telErrorReasons.push('电话空号');
+        else if(reply === '8') stats.telErrorReasons.push('电话错号');
+        else if(reply === '9') stats.telErrorReasons.push('电话为村医、村干号码');
+      }
+    }
+
+    const matchResult = r.matchResult || r.judgeMatch || '';
+    const fake = r.fake || r.fakeCode || '0';
+    const isUnmatch = matchResult.includes('不符合') || fake !== '0';
+
+    if(stats.valid > 0 && (reply === '1' || reply === '2')){
+      if(isUnmatch){
+        stats.unmatch++;
+        if(fake !== '0'){
+          stats.fake++;
+          if(fake === '1') stats.unmatchReasons.push('已死亡仍有服务记录');
+          else if(fake === '2') stats.unmatchReasons.push('不在本地居住却有本地服务记录');
+          else if(fake === '3') stats.unmatchReasons.push('复制往次服务记录');
+        } else {
+          stats.unmatchReasons.push(matchResult);
+        }
+      } else {
+        stats.match++;
+      }
+
+      const normResult = r.normResult || r.judgeNorm || '';
+      if(isUnmatch){
+        stats.unstandard++;
+        stats.unstandardReasons.push('因不符合判定为不规范');
+      } else if(normResult.includes('不规范')){
+        stats.unstandard++;
+        stats.unstandardReasons.push(normResult);
+      } else {
+        stats.standard++;
+      }
+
+      if(r.projectName === '高血压' || r.projectName === '糖尿病'){
+        const control = r.controlSatisfied || r.judgeControl || '';
+        if(control === '满意') stats.controlOk++;
+        else if(control === '不满意') stats.controlNotOk++;
+      }
+    }
+  });
+
+  return stats;
+}
+
+function getUniqueReasons(reasons){
+  const counts = {};
+  reasons.forEach(r => {
+    const key = r.split('——')[0].trim();
+    counts[key] = (counts[key] || 0) + 1;
+  });
+  return Object.entries(counts).sort((a,b) => b[1]-a[1]).map(([k,v]) => k + (v>1?'('+v+'份)':''));
+}
+
+function generateReport(){
+  const year = document.getElementById('docYear').value;
+  const quarter = document.getElementById('docQuarter').value;
+  const compareQuarter = document.getElementById('compareQuarter').value;
+  
+  if(!year){ alert('请选择年度'); return; }
+  
+  const projectData = {};
+  Object.keys(projects).forEach(p => {
+    let recs = getRecords(p).filter(r => String(r.year) === year);
+    if(quarter) recs = recs.filter(r => r.quarter === quarter);
+    recs.forEach(r => r.projectName = p);
+    projectData[p] = calcProjectStats(recs);
+  });
+
+  const compareData = {};
+  if(compareQuarter){
+    Object.keys(projects).forEach(p => {
+      let recs = getRecords(p).filter(r => String(r.year) === year && r.quarter === compareQuarter);
+      recs.forEach(r => r.projectName = p);
+      compareData[p] = calcProjectStats(recs);
+    });
+  }
+
+  const period = quarter ? formatQuarter(quarter) : '全年';
+  const comparePeriod = compareQuarter ? formatQuarter(compareQuarter) : '';
+
+  let html = '<h1>' + year + '年' + period + '健康核查工作报告</h1>';
+  
+  // 一、核查概况
+  html += '<h2>一、核查概况</h2>';
+  const totalAll = Object.values(projectData).reduce((a,b) => a + b.total, 0);
+  const orgCount = new Set();
+  Object.keys(projects).forEach(p => {
+    getRecords(p).filter(r => String(r.year) === year && (quarter ? r.quarter === quarter : true))
+      .forEach(r => orgCount.add(r.org));
+  });
+  html += '<p>' + year + '年' + period + '质控全县<strong>' + orgCount.size + '</strong>家医疗卫生机构共抽查健康档案<strong>' + totalAll + '</strong>份，其中居民健康档案' + projectData['居民'].total + '份、老年人健康档案' + projectData['老年人'].total + '份、高血压健康档案' + projectData['高血压'].total + '份、糖尿病健康档案' + projectData['糖尿病'].total + '份、慢阻肺健康档案' + projectData['慢阻肺'].total + '份。</p>';
+
+  // 二、指标定义
+  html += '<h2>二、指标定义</h2>';
+  html += '<h3>1.有效应答</h3>';
+  html += '<p>应答人为本人或了解情况的家属、亲戚等，能根据访谈内容做出较完整回答，判定为有效应答。有效应答率=有效应答份数/抽查总份数×100%。</p>';
+  html += '<h3>2.无效应答</h3>';
+  html += '<p>因各种原因无法完成电话访谈，判定为无效。根据无效应答原因可分为失访和电话异常两种。无效应答率=无效应答份数/抽查总份数×100%。</p>';
+  html += '<h3>3.电话异常</h3>';
+  html += '<p>因以下原因导致无法完成电话访谈者，判定为电话异常：（1）电话号码为空号或停机；（2）错号：电话号码不存在，或与调查对象无任何关联；（3）电话号码为村医、村干号码者。电话异常率=电话异常份数/抽查总份数×100%。</p>';
+  html += '<h3>4.失访</h3>';
+  html += '<p>因以下原因导致无法完成电话访谈者，判定为失访：（1）应答人为家属、亲戚等，不了解核查对象具体情况者；（2）不同时间拨打三次，电话均无法接通者；（3）拒绝调查：接听电话后不配合调查，中途退出；（4）本人记不清情况。失访率=失访份数/抽查总份数×100%。</p>';
+  html += '<h3>5.符合</h3>';
+  html += '<p>根据各类人群核查表判定为符合或不符合。符合率=符合档案份数/有效应答份数×100%。</p>';
+  html += '<h3>6.规范</h3>';
+  html += '<p>根据各类人群核查表判定为规范或不规范。规范率=规范档案份数/有效应答份数×100%。</p>';
+  html += '<h3>7.涉嫌造假</h3>';
+  html += '<p>访谈中发现以下情形，判定为涉嫌造假，并纳入不符合档案处理：（1）已死亡仍有服务记录；（2）不在本地居住却有本地服务记录；（3）复制往次服务记录。涉嫌造假率=涉嫌造假档案份数/有效应答份数×100%。</p>';
+
+  // 三、质控结果
+  html += '<h2>三、质控结果</h2>';
+
+  // 居民健康档案管理
+  html += '<h3>（一）居民健康档案管理</h3>';
+  const res = projectData['居民'];
+  const resValidRate = res.total > 0 ? (res.valid/res.total*100).toFixed(2) : '0';
+  const resLostRate = res.total > 0 ? (res.lost/res.total*100).toFixed(2) : '0';
+  const resTelRate = res.total > 0 ? (res.telError/res.total*100).toFixed(2) : '0';
+  const resMatchRate = res.valid > 0 ? (res.match/res.valid*100).toFixed(2) : '0';
+  const resStandardRate = res.valid > 0 ? (res.standard/res.valid*100).toFixed(2) : '0';
+  html += '<p>' + year + '年' + period + '质控全县居民健康档案共抽查<strong>' + res.total + '</strong>份，其中有效核查<strong>' + res.valid + '</strong>份，有效应答率为<strong>' + resValidRate + '%</strong>；无效核查<strong>' + res.invalid + '</strong>份，其中失访<strong>' + res.lost + '</strong>份，失访率为<strong>' + resLostRate + '%</strong>' + (res.lostReasons.length>0?'，失访主要原因：' + getUniqueReasons(res.lostReasons).slice(0,2).join('、'):'') + '；电话异常<strong>' + res.telError + '</strong>份，电话异常率为<strong>' + resTelRate + '%</strong>' + (res.telErrorReasons.length>0?'，电话异常原因：' + getUniqueReasons(res.telErrorReasons).slice(0,2).join('、'):'') + '。</p>';
+  html += '<p>在<strong>' + res.valid + '</strong>份有效应答档案中，符合档案<strong>' + res.match + '</strong>份，符合率为<strong>' + resMatchRate + '%</strong>；不符合档案<strong>' + res.unmatch + '</strong>份' + (res.fake>0?'，其中涉嫌造假<strong>' + res.fake + '</strong>份':'') + '。</p>';
+  html += '<p>规范档案<strong>' + res.standard + '</strong>份，规范率为<strong>' + resStandardRate + '%</strong>' + (compareQuarter && compareData['居民']?'，较' + comparePeriod + compareData['居民'].valid>0?(compareData['居民'].standard/compareData['居民'].valid*100).toFixed(2):'0' + '%有所' + (parseFloat(resStandardRate) > parseFloat(compareData['居民'].valid>0?(compareData['居民'].standard/compareData['居民'].valid*100).toFixed(2):'0')?'提升':'降低'):'') + '。</p>';
+
+  // 老年人健康档案
+  html += '<h3>（二）老年人健康档案</h3>';
+  const elder = projectData['老年人'];
+  const elderValidRate = elder.total > 0 ? (elder.valid/elder.total*100).toFixed(2) : '0';
+  const elderLostRate = elder.total > 0 ? (elder.lost/elder.total*100).toFixed(2) : '0';
+  const elderTelRate = elder.total > 0 ? (elder.telError/elder.total*100).toFixed(2) : '0';
+  const elderMatchRate = elder.valid > 0 ? (elder.match/elder.valid*100).toFixed(2) : '0';
+  const elderStandardRate = elder.valid > 0 ? (elder.standard/elder.valid*100).toFixed(2) : '0';
+  html += '<p>' + year + '年' + period + '质控全县老年人共抽取了<strong>' + elder.total + '</strong>份电子健康档案，其中有效应答档案<strong>' + elder.valid + '</strong>份，有效应答率为<strong>' + elderValidRate + '%</strong>' + (compareQuarter && compareData['老年人']?'，较' + comparePeriod + (compareData['老年人'].total>0?(compareData['老年人'].valid/compareData['老年人'].total*100).toFixed(2):'0') + '%有所' + (parseFloat(elderValidRate) > parseFloat(compareData['老年人'].total>0?(compareData['老年人'].valid/compareData['老年人'].total*100).toFixed(2):'0')?'提升':'降低'):'') + '；失访<strong>' + elder.lost + '</strong>份，失访率为<strong>' + elderLostRate + '%</strong>' + (elder.lostReasons.length>0?'，失访主要原因：' + getUniqueReasons(elder.lostReasons).slice(0,2).join('、'):'') + '；电话异常<strong>' + elder.telError + '</strong>份，电话异常率为<strong>' + elderTelRate + '%</strong>' + (elder.telErrorReasons.length>0?'，电话异常原因：' + getUniqueReasons(elder.telErrorReasons).slice(0,2).join('、'):'') + '。</p>';
+  html += '<h4>1.符合性</h4>';
+  html += '<p>' + elder.valid + '份有效应答档案中，符合档案<strong>' + elder.match + '</strong>份，符合率为<strong>' + elderMatchRate + '%</strong>' + (compareQuarter && compareData['老年人']?'，较' + comparePeriod + (compareData['老年人'].valid>0?(compareData['老年人'].match/compareData['老年人'].valid*100).toFixed(2):'0') + '%有所' + (parseFloat(elderMatchRate) > parseFloat(compareData['老年人'].valid>0?(compareData['老年人'].match/compareData['老年人'].valid*100).toFixed(2):'0')?'提升':'降低'):'') + '；不符合档案<strong>' + elder.unmatch + '</strong>份，不符合率为<strong>' + (elder.valid>0?(elder.unmatch/elder.valid*100).toFixed(2):'0') + '%</strong>' + (elder.unmatchReasons.length>0?'，不符合主要原因：' + getUniqueReasons(elder.unmatchReasons).slice(0,3).join('、'):'') + '。</p>';
+  html += '<h4>2.规范性</h4>';
+  html += '<p>在' + elder.valid + '份有效应答档案中，规范档案<strong>' + elder.standard + '</strong>份，规范率为<strong>' + elderStandardRate + '%</strong>' + (compareQuarter && compareData['老年人']?'，较' + comparePeriod + (compareData['老年人'].valid>0?(compareData['老年人'].standard/compareData['老年人'].valid*100).toFixed(2):'0') + '%有所' + (parseFloat(elderStandardRate) > parseFloat(compareData['老年人'].valid>0?(compareData['老年人'].standard/compareData['老年人'].valid*100).toFixed(2):'0')?'提升':'降低'):'') + '。不规范档案<strong>' + elder.unstandard + '</strong>份' + (elder.unstandardReasons.length>0?'，不规范主要原因：' + getUniqueReasons(elder.unstandardReasons).slice(0,3).join('、'):'') + '。</p>';
+
+  // 高血压健康档案
+  html += '<h3>（三）高血压健康档案</h3>';
+  const hyp = projectData['高血压'];
+  const hypValidRate = hyp.total > 0 ? (hyp.valid/hyp.total*100).toFixed(2) : '0';
+  const hypLostRate = hyp.total > 0 ? (hyp.lost/hyp.total*100).toFixed(2) : '0';
+  const hypTelRate = hyp.total > 0 ? (hyp.telError/hyp.total*100).toFixed(2) : '0';
+  const hypMatchRate = hyp.valid > 0 ? (hyp.match/hyp.valid*100).toFixed(2) : '0';
+  const hypStandardRate = hyp.valid > 0 ? (hyp.standard/hyp.valid*100).toFixed(2) : '0';
+  const hypControlRate = hyp.valid > 0 ? (hyp.controlOk/hyp.valid*100).toFixed(2) : '0';
+  html += '<p>' + year + '年' + period + '质控全县高血压共抽取了<strong>' + hyp.total + '</strong>份电子健康档案，其中有效应答档案<strong>' + hyp.valid + '</strong>份，有效应答率为<strong>' + hypValidRate + '%</strong>' + (compareQuarter && compareData['高血压']?'，较' + comparePeriod + (compareData['高血压'].total>0?(compareData['高血压'].valid/compareData['高血压'].total*100).toFixed(2):'0') + '%有所' + (parseFloat(hypValidRate) > parseFloat(compareData['高血压'].total>0?(compareData['高血压'].valid/compareData['高血压'].total*100).toFixed(2):'0')?'提升':'降低'):'') + '；失访<strong>' + hyp.lost + '</strong>份，失访率为<strong>' + hypLostRate + '%</strong>' + (hyp.lostReasons.length>0?'，失访主要原因：' + getUniqueReasons(hyp.lostReasons).slice(0,2).join('、'):'') + '；电话异常<strong>' + hyp.telError + '</strong>份，电话异常率为<strong>' + hypTelRate + '%</strong>' + (hyp.telErrorReasons.length>0?'，电话异常原因：' + getUniqueReasons(hyp.telErrorReasons).slice(0,2).join('、'):'') + '。</p>';
+  html += '<h4>1.符合性</h4>';
+  html += '<p>' + hyp.valid + '份有效应答档案中，符合档案<strong>' + hyp.match + '</strong>份，符合率为<strong>' + hypMatchRate + '%</strong>' + (compareQuarter && compareData['高血压']?'，较' + comparePeriod + (compareData['高血压'].valid>0?(compareData['高血压'].match/compareData['高血压'].valid*100).toFixed(2):'0') + '%有所' + (parseFloat(hypMatchRate) > parseFloat(compareData['高血压'].valid>0?(compareData['高血压'].match/compareData['高血压'].valid*100).toFixed(2):'0')?'提升':'降低'):'') + '；不符合档案<strong>' + hyp.unmatch + '</strong>份，不符合率为<strong>' + (hyp.valid>0?(hyp.unmatch/hyp.valid*100).toFixed(2):'0') + '%</strong>' + (hyp.unmatchReasons.length>0?'，不符合主要原因：' + getUniqueReasons(hyp.unmatchReasons).slice(0,3).join('、'):'') + '。</p>';
+  html += '<h4>2.规范性</h4>';
+  html += '<p>在' + hyp.valid + '份有效应答档案中，规范档案<strong>' + hyp.standard + '</strong>份，规范率为<strong>' + hypStandardRate + '%</strong>' + (compareQuarter && compareData['高血压']?'，较' + comparePeriod + (compareData['高血压'].valid>0?(compareData['高血压'].standard/compareData['高血压'].valid*100).toFixed(2):'0') + '%有所' + (parseFloat(hypStandardRate) > parseFloat(compareData['高血压'].valid>0?(compareData['高血压'].standard/compareData['高血压'].valid*100).toFixed(2):'0')?'提升':'降低'):'') + '。不规范档案<strong>' + hyp.unstandard + '</strong>份' + (hyp.unstandardReasons.length>0?'，不规范主要原因：' + getUniqueReasons(hyp.unstandardReasons).slice(0,3).join('、'):'') + '。</p>';
+  html += '<h4>3.控制率</h4>';
+  html += '<p>在' + hyp.valid + '份有效应答档案中，血压控制满意<strong>' + hyp.controlOk + '</strong>份，控制率为<strong>' + hypControlRate + '%</strong>' + (compareQuarter && compareData['高血压']?'，较' + comparePeriod + (compareData['高血压'].valid>0?(compareData['高血压'].controlOk/compareData['高血压'].valid*100).toFixed(2):'0') + '%有所' + (parseFloat(hypControlRate) > parseFloat(compareData['高血压'].valid>0?(compareData['高血压'].controlOk/compareData['高血压'].valid*100).toFixed(2):'0')?'提升':'降低'):'') + '。</p>';
+
+  // 糖尿病健康档案
+  html += '<h3>（四）糖尿病健康档案</h3>';
+  const dm = projectData['糖尿病'];
+  const dmValidRate = dm.total > 0 ? (dm.valid/dm.total*100).toFixed(2) : '0';
+  const dmLostRate = dm.total > 0 ? (dm.lost/dm.total*100).toFixed(2) : '0';
+  const dmTelRate = dm.total > 0 ? (dm.telError/dm.total*100).toFixed(2) : '0';
+  const dmMatchRate = dm.valid > 0 ? (dm.match/dm.valid*100).toFixed(2) : '0';
+  const dmStandardRate = dm.valid > 0 ? (dm.standard/dm.valid*100).toFixed(2) : '0';
+  const dmControlRate = dm.valid > 0 ? (dm.controlOk/dm.valid*100).toFixed(2) : '0';
+  html += '<p>' + year + '年' + period + '质控全县糖尿病共抽取了<strong>' + dm.total + '</strong>份电子健康档案，其中有效应答档案<strong>' + dm.valid + '</strong>份，有效应答率为<strong>' + dmValidRate + '%</strong>' + (compareQuarter && compareData['糖尿病']?'，较' + comparePeriod + (compareData['糖尿病'].total>0?(compareData['糖尿病'].valid/compareData['糖尿病'].total*100).toFixed(2):'0') + '%有所' + (parseFloat(dmValidRate) > parseFloat(compareData['糖尿病'].total>0?(compareData['糖尿病'].valid/compareData['糖尿病'].total*100).toFixed(2):'0')?'提升':'降低'):'') + '；失访<strong>' + dm.lost + '</strong>份，失访率为<strong>' + dmLostRate + '%</strong>' + (dm.lostReasons.length>0?'，失访主要原因：' + getUniqueReasons(dm.lostReasons).slice(0,2).join('、'):'') + '；电话异常<strong>' + dm.telError + '</strong>份，电话异常率为<strong>' + dmTelRate + '%</strong>' + (dm.telErrorReasons.length>0?'，电话异常原因：' + getUniqueReasons(dm.telErrorReasons).slice(0,2).join('、'):'') + '。</p>';
+  html += '<h4>1.符合性</h4>';
+  html += '<p>' + dm.valid + '份有效应答档案中，符合档案<strong>' + dm.match + '</strong>份，符合率为<strong>' + dmMatchRate + '%</strong>' + (compareQuarter && compareData['糖尿病']?'，较' + comparePeriod + (compareData['糖尿病'].valid>0?(compareData['糖尿病'].match/compareData['糖尿病'].valid*100).toFixed(2):'0') + '%有所' + (parseFloat(dmMatchRate) > parseFloat(compareData['糖尿病'].valid>0?(compareData['糖尿病'].match/compareData['糖尿病'].valid*100).toFixed(2):'0')?'提升':'降低'):'') + '；不符合档案<strong>' + dm.unmatch + '</strong>份，不符合率为<strong>' + (dm.valid>0?(dm.unmatch/dm.valid*100).toFixed(2):'0') + '%</strong>' + (dm.unmatchReasons.length>0?'，不符合主要原因：' + getUniqueReasons(dm.unmatchReasons).slice(0,3).join('、'):'') + '。</p>';
+  html += '<h4>2.规范性</h4>';
+  html += '<p>在' + dm.valid + '份有效应答档案中，规范档案<strong>' + dm.standard + '</strong>份，规范率为<strong>' + dmStandardRate + '%</strong>' + (compareQuarter && compareData['糖尿病']?'，较' + comparePeriod + (compareData['糖尿病'].valid>0?(compareData['糖尿病'].standard/compareData['糖尿病'].valid*100).toFixed(2):'0') + '%有所' + (parseFloat(dmStandardRate) > parseFloat(compareData['糖尿病'].valid>0?(compareData['糖尿病'].standard/compareData['糖尿病'].valid*100).toFixed(2):'0')?'提升':'降低'):'') + '。不规范档案<strong>' + dm.unstandard + '</strong>份' + (dm.unstandardReasons.length>0?'，不规范主要原因：' + getUniqueReasons(dm.unstandardReasons).slice(0,3).join('、'):'') + '。</p>';
+  html += '<h4>3.控制率</h4>';
+  html += '<p>在' + dm.valid + '份有效应答档案中，血糖控制满意<strong>' + dm.controlOk + '</strong>份，控制率为<strong>' + dmControlRate + '%</strong>' + (compareQuarter && compareData['糖尿病']?'，较' + comparePeriod + (compareData['糖尿病'].valid>0?(compareData['糖尿病'].controlOk/compareData['糖尿病'].valid*100).toFixed(2):'0') + '%有所' + (parseFloat(dmControlRate) > parseFloat(compareData['糖尿病'].valid>0?(compareData['糖尿病'].controlOk/compareData['糖尿病'].valid*100).toFixed(2):'0')?'提升':'降低'):'') + '。</p>';
+
+  // 慢阻肺健康档案
+  html += '<h3>（五）慢阻肺健康档案</h3>';
+  const copd = projectData['慢阻肺'];
+  const copdValidRate = copd.total > 0 ? (copd.valid/copd.total*100).toFixed(2) : '0';
+  const copdLostRate = copd.total > 0 ? (copd.lost/copd.total*100).toFixed(2) : '0';
+  const copdTelRate = copd.total > 0 ? (copd.telError/copd.total*100).toFixed(2) : '0';
+  const copdMatchRate = copd.valid > 0 ? (copd.match/copd.valid*100).toFixed(2) : '0';
+  const copdStandardRate = copd.valid > 0 ? (copd.standard/copd.valid*100).toFixed(2) : '0';
+  html += '<p>' + year + '年' + period + '质控全县慢阻肺共抽取了<strong>' + copd.total + '</strong>份电子健康档案，其中有效应答档案<strong>' + copd.valid + '</strong>份，有效应答率为<strong>' + copdValidRate + '%</strong>' + (compareQuarter && compareData['慢阻肺']?'，较' + comparePeriod + (compareData['慢阻肺'].total>0?(compareData['慢阻肺'].valid/compareData['慢阻肺'].total*100).toFixed(2):'0') + '%有所' + (parseFloat(copdValidRate) > parseFloat(compareData['慢阻肺'].total>0?(compareData['慢阻肺'].valid/compareData['慢阻肺'].total*100).toFixed(2):'0')?'提升':'降低'):'') + '；失访<strong>' + copd.lost + '</strong>份，失访率为<strong>' + copdLostRate + '%</strong>' + (copd.lostReasons.length>0?'，失访主要原因：' + getUniqueReasons(copd.lostReasons).slice(0,2).join('、'):'') + '；电话异常<strong>' + copd.telError + '</strong>份，电话异常率为<strong>' + copdTelRate + '%</strong>' + (copd.telErrorReasons.length>0?'，电话异常原因：' + getUniqueReasons(copd.telErrorReasons).slice(0,2).join('、'):'') + '。</p>';
+  html += '<h4>1.符合性</h4>';
+  html += '<p>' + copd.valid + '份有效应答档案中，符合档案<strong>' + copd.match + '</strong>份，符合率为<strong>' + copdMatchRate + '%</strong>' + (compareQuarter && compareData['慢阻肺']?'，较' + comparePeriod + (compareData['慢阻肺'].valid>0?(compareData['慢阻肺'].match/compareData['慢阻肺'].valid*100).toFixed(2):'0') + '%有所' + (parseFloat(copdMatchRate) > parseFloat(compareData['慢阻肺'].valid>0?(compareData['慢阻肺'].match/compareData['慢阻肺'].valid*100).toFixed(2):'0')?'提升':'降低'):'') + '；不符合档案<strong>' + copd.unmatch + '</strong>份，不符合率为<strong>' + (copd.valid>0?(copd.unmatch/copd.valid*100).toFixed(2):'0') + '%</strong>' + (copd.unmatchReasons.length>0?'，不符合主要原因：' + getUniqueReasons(copd.unmatchReasons).slice(0,3).join('、'):'') + '。</p>';
+  html += '<h4>2.规范性</h4>';
+  html += '<p>在' + copd.valid + '份有效应答档案中，规范档案<strong>' + copd.standard + '</strong>份，规范率为<strong>' + copdStandardRate + '%</strong>' + (compareQuarter && compareData['慢阻肺']?'，较' + comparePeriod + (compareData['慢阻肺'].valid>0?(compareData['慢阻肺'].standard/compareData['慢阻肺'].valid*100).toFixed(2):'0') + '%有所' + (parseFloat(copdStandardRate) > parseFloat(compareData['慢阻肺'].valid>0?(compareData['慢阻肺'].standard/compareData['慢阻肺'].valid*100).toFixed(2):'0')?'提升':'降低'):'') + '。不规范档案<strong>' + copd.unstandard + '</strong>份' + (copd.unstandardReasons.length>0?'，不规范主要原因：' + getUniqueReasons(copd.unstandardReasons).slice(0,3).join('、'):'') + '。</p>';
+
+  // 四、主要问题
+  html += '<h2>四、主要问题</h2>';
+  
+  // 汇总问题
+  const allUnmatchReasons = [];
+  const allUnstandardReasons = [];
+  Object.keys(projects).forEach(p => {
+    projectData[p].unmatchReasons.forEach(r => allUnmatchReasons.push(p + ':' + r));
+    projectData[p].unstandardReasons.forEach(r => allUnstandardReasons.push(p + ':' + r));
+  });
+
+  html += '<h3>（一）居民健康档案</h3>';
+  html += '<p>居民健康档案规范率为<strong>' + resStandardRate + '%</strong>' + (compareQuarter?'，较' + comparePeriod + '有所' + (parseFloat(resStandardRate) > parseFloat(compareData['居民'].valid>0?(compareData['居民'].standard/compareData['居民'].valid*100).toFixed(2):'0')?'提升':'降低'):'') + '。</p>';
+  if(res.unstandardReasons.length > 0){
+    html += '<p>主要问题：' + getUniqueReasons(res.unstandardReasons).slice(0,5).join('；') + '。</p>';
+  }
+
+  html += '<h3>（二）老年人健康档案</h3>';
+  html += '<p>老年人健康档案有效应答率为<strong>' + elderValidRate + '%</strong>，符合率为<strong>' + elderMatchRate + '%</strong>，规范率为<strong>' + elderStandardRate + '%</strong>' + (compareQuarter?'，各项指标较' + comparePeriod + '均有所改善':'') + '。</p>';
+  if(elder.unstandardReasons.length > 0){
+    html += '<p>主要问题：' + getUniqueReasons(elder.unstandardReasons).slice(0,5).join('；') + '。</p>';
+  }
+
+  html += '<h3>（三）高血压健康档案</h3>';
+  html += '<p>高血压健康档案有效应答率为<strong>' + hypValidRate + '%</strong>，符合率为<strong>' + hypMatchRate + '%</strong>，规范率为<strong>' + hypStandardRate + '%</strong>，控制率为<strong>' + hypControlRate + '%</strong>' + (compareQuarter?'，总体指标稳步向好':'') + '。</p>';
+  if(hyp.unstandardReasons.length > 0){
+    html += '<p>主要问题：' + getUniqueReasons(hyp.unstandardReasons).slice(0,5).join('；') + '。</p>';
+  }
+
+  html += '<h3>（四）糖尿病健康档案</h3>';
+  html += '<p>糖尿病健康档案有效应答率为<strong>' + dmValidRate + '%</strong>，符合率为<strong>' + dmMatchRate + '%</strong>，规范率为<strong>' + dmStandardRate + '%</strong>，控制率为<strong>' + dmControlRate + '%</strong>' + (compareQuarter && parseFloat(dmValidRate) < parseFloat(compareData['糖尿病'].total>0?(compareData['糖尿病'].valid/compareData['糖尿病'].total*100).toFixed(2):'0')?'，核心指标呈下滑态势，需及时排查问题根源':'') + '。</p>';
+  if(dm.unstandardReasons.length > 0){
+    html += '<p>主要问题：' + getUniqueReasons(dm.unstandardReasons).slice(0,5).join('；') + '。</p>';
+  }
+
+  html += '<h3>（五）慢阻肺健康档案</h3>';
+  html += '<p>慢阻肺健康档案有效应答率为<strong>' + copdValidRate + '%</strong>，符合率为<strong>' + copdMatchRate + '%</strong>，规范率为<strong>' + copdStandardRate + '%</strong>' + (compareQuarter?'，管理工作稳步向好':'') + '。</p>';
+  if(copd.unstandardReasons.length > 0){
+    html += '<p>主要问题：' + getUniqueReasons(copd.unstandardReasons).slice(0,5).join('；') + '。</p>';
+  }
+
+  // 五、建议措施
+  html += '<h2>五、建议措施</h2>';
+  html += '<p>1.加强档案填写规范性培训，定期开展业务指导，提高医务人员档案填写质量。</p>';
+  html += '<p>2.完善问题台账管理制度，落实整改责任人，确保问题档案及时整改到位。</p>';
+  html += '<p>3.建立长效督查机制，定期通报核查情况，对规范率较低的单位重点督导。</p>';
+  html += '<p>4.对涉嫌造假行为严肃问责，确保数据真实可靠，杜绝档案造假现象。</p>';
+  html += '<p>5.加强电话号码核实工作，降低电话异常率和失访率，提高有效应答率。</p>';
+
+  html += '<div class="sign">报告生成时间：' + new Date().toLocaleString() + '</div>';
+
+  document.getElementById('reportContent').innerHTML = html;
+}
+
+function exportReport(){
+  const year = document.getElementById('docYear').value;
+  const quarter = document.getElementById('docQuarter').value;
+  const content = document.getElementById('reportContent');
+  
+  if(content.innerText.includes('请选择')){ alert('请先生成报告'); return; }
+
+  // 获取HTML内容并转换为文本格式
+  const htmlContent = content.innerHTML;
+  const textContent = content.innerText;
+
+  // 创建Word文档格式的数据
+  const data = [
+    ['报告内容'],
+    [textContent.replace(/\n/g, '\r\n')]
+  ];
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch: 100}];
+  XLSX.utils.book_append_sheet(wb, ws, '工作报告');
+
+  const period = quarter ? formatQuarter(quarter) : '全年';
+  XLSX.writeFile(wb, year + '年' + period + '健康核查工作报告_' + new Date().toLocaleDateString().replace(/\//g,'-') + '.xlsx');
+}
+
+loadYearOptions();
+</script>
+</body>
+</html>
