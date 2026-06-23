@@ -1,0 +1,561 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>单位评分 - 健康核查后台</title>
+<style>
+*{box-sizing:border-box;font-size:14px;}
+body{padding:0;max-width:1400px;margin:0 auto;background:#f5f7fa;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Microsoft YaHei",sans-serif;}
+.container{padding:20px;}
+.header{background:linear-gradient(135deg,#2c3e50 0%,#34495e 100%);color:#fff;padding:20px 24px;border-radius:12px;margin-bottom:20px;box-shadow:0 4px 12px rgba(44,62,80,0.3);display:flex;justify-content:space-between;align-items:center;}
+.header h1{margin:0;font-size:22px;}
+.breadcrumb{font-size:13px;opacity:0.85;margin-top:6px;}
+.breadcrumb a{color:#fff;text-decoration:none;margin:0 6px;}
+.back-btn{background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:8px 18px;border-radius:6px;font-size:13px;cursor:pointer;text-decoration:none;}
+.back-btn:hover{background:rgba(255,255,255,0.35);}
+.filter-bar{display:flex;gap:15px;flex-wrap:wrap;align-items:center;padding:15px;background:#fff;border-radius:8px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+.filter-bar label{font-weight:500;color:#555;}
+.filter-bar select{padding:8px 12px;border:1px solid #ddd;border-radius:6px;min-width:120px;}
+.btn{padding:9px 20px;border:none;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s;}
+.btn-primary{background:#3498db;color:#fff;}
+.btn-primary:hover{background:#2980b9;}
+.btn-success{background:#27ae60;color:#fff;}
+.btn-success:hover{background:#219a52;}
+.btn-outline{background:#fff;color:#666;border:1px solid #ddd;}
+.btn-outline:hover{background:#f8f9fa;}
+.section{background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:20px;}
+.section h3{margin:0 0 20px 0;color:#333;font-size:16px;border-left:4px solid #e67e22;padding-left:12px;}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px;}
+th,td{border:1px solid #ddd;padding:10px 8px;text-align:center;vertical-align:middle;}
+th{background:#f8fafc;font-weight:600;color:#333;}
+tr:hover{background:#f8fafc;}
+.rank-1{background:#fff3cd;}
+.rank-1 td:first-child{color:#f39c12;font-weight:700;font-size:16px;}
+.rank-2 td:first-child{color:#95a5a6;font-weight:700;font-size:15px;}
+.rank-3 td:first-child{color:#8b4513;font-weight:700;font-size:15px;}
+.score-high{color:#27ae60;font-weight:600;font-size:16px;}
+.score-medium{color:#f39c12;font-weight:600;font-size:16px;}
+.score-low{color:#e74c3c;font-weight:600;font-size:16px;}
+.no-data{text-align:center;color:#999;padding:40px;}
+.score-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px;margin-bottom:20px;}
+.score-card{background:#fff;border-radius:10px;padding:16px;border-top:4px solid #e67e22;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.score-card h4{margin:0 0 12px 0;font-size:14px;color:#333;font-weight:600;}
+.score-card .form-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.score-card .form-row label{font-size:12px;color:#666;width:100px;text-align:right;}
+.score-card .form-row input{width:60px;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px;text-align:center;}
+.score-card .form-row input:focus{outline:none;border-color:#3498db;}
+.score-card .form-row .unit{font-size:12px;color:#999;}
+.score-card.green{border-top-color:#27ae60;}
+.score-card.red{border-top-color:#e74c3c;}
+.score-card.blue{border-top-color:#3498db;}
+.score-card.orange{border-top-color:#f39c12;}
+.score-card.purple{border-top-color:#9b59b6;}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <div>
+    <h1>🏆 单位评分</h1>
+    <div class="breadcrumb"><a href="admin.html">后台首页</a> / 单位评分</div>
+  </div>
+  <a href="admin.html" class="back-btn">返回后台</a>
+</div>
+
+<div class="filter-bar">
+  <label>年度：</label>
+  <select id="filterYear" onchange="generateScore()">
+    <option value="">全部年度</option>
+  </select>
+  <label>季度：</label>
+  <select id="filterQuarter" onchange="generateScore()">
+    <option value="">全部季度</option>
+    <option value="Q1">一季度</option>
+    <option value="Q2">二季度</option>
+    <option value="Q3">三季度</option>
+    <option value="Q4">四季度</option>
+  </select>
+  <label>项目：</label>
+  <select id="filterProject" onchange="generateScore()">
+    <option value="">全部项目</option>
+    <option value="居民">居民</option>
+    <option value="老年人">老年人</option>
+    <option value="高血压">高血压</option>
+    <option value="糖尿病">糖尿病</option>
+    <option value="慢阻肺">慢阻肺</option>
+  </select>
+  <button class="btn btn-primary" onclick="generateScore()">计算得分</button>
+  <button class="btn btn-success" onclick="exportExcel()">导出Excel</button>
+</div>
+
+<div class="section">
+  <h3>评分标准设置（点击数值可修改）</h3>
+  <div class="score-cards">
+    <div class="score-card">
+      <h4>👴 老年人评分标准</h4>
+      <div class="form-row"><label>基础分</label><input type="number" id="elderTotal" value="100" min="0"><span class="unit">分</span></div>
+      <div class="form-row"><label>失访一份扣</label><input type="number" id="elderLost" value="2" min="0" step="0.5"><span class="unit">分</span></div>
+      <div class="form-row"><label>电话异常扣</label><input type="number" id="elderTel" value="1" min="0" step="0.5"><span class="unit">分</span></div>
+      <div class="form-row"><label>不符合扣</label><input type="number" id="elderUnmatch" value="3" min="0" step="0.5"><span class="unit">分</span></div>
+      <div class="form-row"><label>规范率&lt;阈值扣</label><input type="number" id="elderStandardThreshold" value="90" min="0" max="100"><span class="unit">%</span><input type="number" id="elderStandardBonus" value="10" min="0" style="width:45px;"><span class="unit">分</span></div>
+    </div>
+    <div class="score-card green">
+      <h4>❤️ 高血压评分标准</h4>
+      <div class="form-row"><label>基础分</label><input type="number" id="hypTotal" value="100" min="0"><span class="unit">分</span></div>
+      <div class="form-row"><label>失访一份扣</label><input type="number" id="hypLost" value="2" min="0" step="0.5"><span class="unit">分</span></div>
+      <div class="form-row"><label>电话异常扣</label><input type="number" id="hypTel" value="1" min="0" step="0.5"><span class="unit">分</span></div>
+      <div class="form-row"><label>不符合扣</label><input type="number" id="hypUnmatch" value="3" min="0" step="0.5"><span class="unit">分</span></div>
+      <div class="form-row"><label>规范率&lt;阈值扣</label><input type="number" id="hypStandardThreshold" value="90" min="0" max="100"><span class="unit">%</span><input type="number" id="hypStandardBonus" value="10" min="0" style="width:45px;"><span class="unit">分</span></div>
+      <div class="form-row"><label>控制率&lt;阈值扣</label><input type="number" id="hypControlThreshold" value="60" min="0" max="100"><span class="unit">%</span><input type="number" id="hypControlBonus" value="10" min="0" style="width:45px;"><span class="unit">分</span></div>
+    </div>
+    <div class="score-card orange">
+      <h4>🩸 糖尿病评分标准</h4>
+      <div class="form-row"><label>基础分</label><input type="number" id="dmTotal" value="100" min="0"><span class="unit">分</span></div>
+      <div class="form-row"><label>失访一份扣</label><input type="number" id="dmLost" value="2" min="0" step="0.5"><span class="unit">分</span></div>
+      <div class="form-row"><label>电话异常扣</label><input type="number" id="dmTel" value="1" min="0" step="0.5"><span class="unit">分</span></div>
+      <div class="form-row"><label>不符合扣</label><input type="number" id="dmUnmatch" value="3" min="0" step="0.5"><span class="unit">分</span></div>
+      <div class="form-row"><label>规范率&lt;阈值扣</label><input type="number" id="dmStandardThreshold" value="90" min="0" max="100"><span class="unit">%</span><input type="number" id="dmStandardBonus" value="10" min="0" style="width:45px;"><span class="unit">分</span></div>
+      <div class="form-row"><label>控制率&lt;阈值扣</label><input type="number" id="dmControlThreshold" value="60" min="0" max="100"><span class="unit">%</span><input type="number" id="dmControlBonus" value="10" min="0" style="width:45px;"><span class="unit">分</span></div>
+    </div>
+    <div class="score-card blue">
+      <h4>🫁 慢阻肺评分标准</h4>
+      <div class="form-row"><label>基础分</label><input type="number" id="copdTotal" value="100" min="0"><span class="unit">分</span></div>
+      <div class="form-row"><label>失访一份扣</label><input type="number" id="copdLost" value="2" min="0" step="0.5"><span class="unit">分</span></div>
+      <div class="form-row"><label>电话异常扣</label><input type="number" id="copdTel" value="1" min="0" step="0.5"><span class="unit">分</span></div>
+      <div class="form-row"><label>不符合扣</label><input type="number" id="copdUnmatch" value="3" min="0" step="0.5"><span class="unit">分</span></div>
+      <div class="form-row"><label>规范率&lt;阈值扣</label><input type="number" id="copdStandardThreshold" value="90" min="0" max="100"><span class="unit">%</span><input type="number" id="copdStandardBonus" value="10" min="0" style="width:45px;"><span class="unit">分</span></div>
+    </div>
+    <div class="score-card purple">
+      <h4>👤 居民评分标准</h4>
+      <div class="form-row"><label>基础分</label><input type="number" id="residentTotal" value="100" min="0"><span class="unit">分</span></div>
+      <div class="form-row"><label>失访一份扣</label><input type="number" id="residentLost" value="2" min="0" step="0.5"><span class="unit">分</span></div>
+      <div class="form-row"><label>电话异常扣</label><input type="number" id="residentTel" value="1" min="0" step="0.5"><span class="unit">分</span></div>
+      <div class="form-row"><label>不符合扣</label><input type="number" id="residentUnmatch" value="3" min="0" step="0.5"><span class="unit">分</span></div>
+      <div class="form-row"><label>规范率&lt;阈值扣</label><input type="number" id="residentStandardThreshold" value="90" min="0" max="100"><span class="unit">%</span><input type="number" id="residentStandardBonus" value="10" min="0" style="width:45px;"><span class="unit">分</span></div>
+    </div>
+  </div>
+  <div style="text-align:right;">
+    <button class="btn btn-outline" onclick="resetScoreRules()">重置为默认值</button>
+  </div>
+</div>
+
+<div class="section">
+  <h3>📊 各单位考核得分表</h3>
+  <div id="scoreTable"></div>
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+const projects = {
+  '居民': { key: 'residentCheckRecords' },
+  '老年人': { key: 'elderlyCheckRecords' },
+  '高血压': { key: 'hypertensionCheckRecords' },
+  '糖尿病': { key: 'diabetesCheckRecords' },
+  '慢阻肺': { key: 'copdCheckRecords' }
+};
+
+function getScoreRules(){
+  return {
+    elderly: {
+      total: parseFloat(document.getElementById('elderTotal').value) || 100,
+      lostDeduct: parseFloat(document.getElementById('elderLost').value) || 2,
+      telDeduct: parseFloat(document.getElementById('elderTel').value) || 1,
+      unmatchDeduct: parseFloat(document.getElementById('elderUnmatch').value) || 3,
+      standardThreshold: parseFloat(document.getElementById('elderStandardThreshold').value) || 90,
+      standardBonus: parseFloat(document.getElementById('elderStandardBonus').value) || 10
+    },
+    hypertension: {
+      total: parseFloat(document.getElementById('hypTotal').value) || 100,
+      lostDeduct: parseFloat(document.getElementById('hypLost').value) || 2,
+      telDeduct: parseFloat(document.getElementById('hypTel').value) || 1,
+      unmatchDeduct: parseFloat(document.getElementById('hypUnmatch').value) || 3,
+      standardThreshold: parseFloat(document.getElementById('hypStandardThreshold').value) || 90,
+      standardBonus: parseFloat(document.getElementById('hypStandardBonus').value) || 10,
+      controlThreshold: parseFloat(document.getElementById('hypControlThreshold').value) || 60,
+      controlBonus: parseFloat(document.getElementById('hypControlBonus').value) || 10
+    },
+    diabetes: {
+      total: parseFloat(document.getElementById('dmTotal').value) || 100,
+      lostDeduct: parseFloat(document.getElementById('dmLost').value) || 2,
+      telDeduct: parseFloat(document.getElementById('dmTel').value) || 1,
+      unmatchDeduct: parseFloat(document.getElementById('dmUnmatch').value) || 3,
+      standardThreshold: parseFloat(document.getElementById('dmStandardThreshold').value) || 90,
+      standardBonus: parseFloat(document.getElementById('dmStandardBonus').value) || 10,
+      controlThreshold: parseFloat(document.getElementById('dmControlThreshold').value) || 60,
+      controlBonus: parseFloat(document.getElementById('dmControlBonus').value) || 10
+    },
+    copd: {
+      total: parseFloat(document.getElementById('copdTotal').value) || 100,
+      lostDeduct: parseFloat(document.getElementById('copdLost').value) || 2,
+      telDeduct: parseFloat(document.getElementById('copdTel').value) || 1,
+      unmatchDeduct: parseFloat(document.getElementById('copdUnmatch').value) || 3,
+      standardThreshold: parseFloat(document.getElementById('copdStandardThreshold').value) || 90,
+      standardBonus: parseFloat(document.getElementById('copdStandardBonus').value) || 10
+    },
+    resident: {
+      total: parseFloat(document.getElementById('residentTotal').value) || 100,
+      lostDeduct: parseFloat(document.getElementById('residentLost').value) || 2,
+      telDeduct: parseFloat(document.getElementById('residentTel').value) || 1,
+      unmatchDeduct: parseFloat(document.getElementById('residentUnmatch').value) || 3,
+      standardThreshold: parseFloat(document.getElementById('residentStandardThreshold').value) || 90,
+      standardBonus: parseFloat(document.getElementById('residentStandardBonus').value) || 10
+    }
+  };
+}
+
+function resetScoreRules(){
+  document.getElementById('elderTotal').value = 100;
+  document.getElementById('elderLost').value = 2;
+  document.getElementById('elderTel').value = 1;
+  document.getElementById('elderUnmatch').value = 3;
+  document.getElementById('elderStandardThreshold').value = 90;
+  document.getElementById('elderStandardBonus').value = 10;
+
+  document.getElementById('hypTotal').value = 100;
+  document.getElementById('hypLost').value = 2;
+  document.getElementById('hypTel').value = 1;
+  document.getElementById('hypUnmatch').value = 3;
+  document.getElementById('hypStandardThreshold').value = 90;
+  document.getElementById('hypStandardBonus').value = 10;
+  document.getElementById('hypControlThreshold').value = 60;
+  document.getElementById('hypControlBonus').value = 10;
+
+  document.getElementById('dmTotal').value = 100;
+  document.getElementById('dmLost').value = 2;
+  document.getElementById('dmTel').value = 1;
+  document.getElementById('dmUnmatch').value = 3;
+  document.getElementById('dmStandardThreshold').value = 90;
+  document.getElementById('dmStandardBonus').value = 10;
+  document.getElementById('dmControlThreshold').value = 60;
+  document.getElementById('dmControlBonus').value = 10;
+
+  document.getElementById('copdTotal').value = 100;
+  document.getElementById('copdLost').value = 2;
+  document.getElementById('copdTel').value = 1;
+  document.getElementById('copdUnmatch').value = 3;
+  document.getElementById('copdStandardThreshold').value = 90;
+  document.getElementById('copdStandardBonus').value = 10;
+
+  document.getElementById('residentTotal').value = 100;
+  document.getElementById('residentLost').value = 2;
+  document.getElementById('residentTel').value = 1;
+  document.getElementById('residentUnmatch').value = 3;
+  document.getElementById('residentStandardThreshold').value = 90;
+  document.getElementById('residentStandardBonus').value = 10;
+
+  generateScore();
+}
+
+function getRecords(key){
+  try {
+    return JSON.parse(localStorage.getItem(key) || '[]');
+  } catch(e) {
+    return [];
+  }
+}
+
+function loadYearOptions(){
+  const years = new Set();
+  Object.keys(projects).forEach(p => {
+    getRecords(projects[p].key).forEach(r => { if(r.year) years.add(String(r.year)); });
+  });
+  const sorted = [...years].sort().reverse();
+  const sel = document.getElementById('filterYear');
+  sel.innerHTML = '<option value="">全部年度</option>';
+  sorted.forEach(y => sel.innerHTML += '<option value="' + y + '">' + y + '</option>');
+}
+
+function generateScore(){
+  const year = document.getElementById('filterYear').value;
+  const quarter = document.getElementById('filterQuarter').value;
+  const projectFilter = document.getElementById('filterProject').value;
+  const rules = getScoreRules();
+
+  const orgStats = {};
+
+  Object.keys(projects).forEach(pName => {
+    if(projectFilter && pName !== projectFilter) return;
+    
+    const records = getRecords(projects[pName].key);
+    const filtered = records.filter(r => {
+      if(year && String(r.year) !== year) return false;
+      if(quarter && r.quarter !== quarter) return false;
+      return true;
+    });
+
+    filtered.forEach(r => {
+      const org = r.org || '未知单位';
+      const key = org + '|||' + pName;
+      
+      if(!orgStats[key]){
+        orgStats[key] = {
+          org, project: pName,
+          total: 0, valid: 0, lost: 0, telError: 0, 
+          match: 0, unmatch: 0, standard: 0,
+          controlOk: 0, controlNotOk: 0
+        };
+      }
+
+      orgStats[key].total++;
+      const reply = r.replyCode || r.reply || '';
+      
+      if(reply === '1' || reply === '2'){
+        orgStats[key].valid++;
+      } else if(['3','4','5','6'].includes(reply)){
+        orgStats[key].lost++;
+      } else if(['7','8','9'].includes(reply)){
+        orgStats[key].telError++;
+      }
+
+      const matchResult = r.matchResult || r.judgeMatch || '';
+      const fake = r.fake || r.fakeCode || '0';
+      const isUnmatch = matchResult.includes('不符合') || fake !== '0';
+
+      if(isUnmatch){
+        orgStats[key].unmatch++;
+      } else {
+        orgStats[key].match++;
+        if((reply === '1' || reply === '2') && fake === '0'){
+          orgStats[key].standard++;
+        }
+      }
+
+      if(pName === '高血压' || pName === '糖尿病'){
+        const control = r.controlSatisfied || r.judgeControl || '';
+        if(control === '满意'){
+          orgStats[key].controlOk++;
+        } else if(control === '不满意'){
+          orgStats[key].controlNotOk++;
+        }
+      }
+    });
+  });
+
+  const orgScores = [];
+  for(const key in orgStats){
+    const s = orgStats[key];
+    const projectKey = s.project.toLowerCase();
+    const projectRules = rules[projectKey] || rules.elderly;
+    
+    let score = projectRules.total;
+    score -= s.lost * projectRules.lostDeduct;
+    score -= s.telError * projectRules.telDeduct;
+    score -= s.unmatch * projectRules.unmatchDeduct;
+    
+    const standardRate = s.valid > 0 ? (s.standard / s.valid) * 100 : 0;
+    if(standardRate < projectRules.standardThreshold){
+      score -= projectRules.standardBonus;
+    }
+    
+    if(projectRules.controlThreshold !== undefined){
+      const controlRate = s.valid > 0 ? (s.controlOk / s.valid) * 100 : 0;
+      if(controlRate < projectRules.controlThreshold){
+        score -= projectRules.controlBonus;
+      }
+    }
+    
+    score = Math.max(0, Math.round(score * 10) / 10);
+    
+    orgScores.push({
+      org: s.org,
+      project: s.project,
+      total: s.total,
+      valid: s.valid,
+      lost: s.lost,
+      telError: s.telError,
+      match: s.match,
+      unmatch: s.unmatch,
+      standardRate: s.valid > 0 ? ((s.standard / s.valid) * 100).toFixed(1) : '0',
+      controlRate: (s.project === '高血压' || s.project === '糖尿病') && s.valid > 0 ? ((s.controlOk / s.valid) * 100).toFixed(1) : '-',
+      score
+    });
+  }
+
+  orgScores.sort((a, b) => b.score - a.score);
+
+  const container = document.getElementById('scoreTable');
+  if(orgScores.length === 0){
+    container.innerHTML = '<div class="no-data">暂无数据</div>';
+    return;
+  }
+
+  let html = '<table><thead><tr>';
+  html += '<th style="width:60px;">排名</th>';
+  html += '<th style="width:180px;text-align:left;">单位名称</th>';
+  html += '<th style="width:80px;">项目</th>';
+  html += '<th>录入数</th>';
+  html += '<th>有效数</th>';
+  html += '<th>失访数</th>';
+  html += '<th>电话异常</th>';
+  html += '<th>符合数</th>';
+  html += '<th>不符合数</th>';
+  html += '<th>规范率(%)</th>';
+  html += '<th>控制率(%)</th>';
+  html += '<th style="width:80px;">得分</th>';
+  html += '</tr></thead><tbody>';
+
+  orgScores.forEach((s, i) => {
+    const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
+    let scoreClass = 'score-high';
+    if(s.score < 80) scoreClass = 'score-low';
+    else if(s.score < 90) scoreClass = 'score-medium';
+    
+    html += '<tr class="' + rankClass + '">';
+    html += '<td>' + (i + 1) + '</td>';
+    html += '<td style="text-align:left;">' + s.org + '</td>';
+    html += '<td>' + s.project + '</td>';
+    html += '<td>' + s.total + '</td>';
+    html += '<td>' + s.valid + '</td>';
+    html += '<td>' + s.lost + '</td>';
+    html += '<td>' + s.telError + '</td>';
+    html += '<td>' + s.match + '</td>';
+    html += '<td>' + s.unmatch + '</td>';
+    html += '<td>' + s.standardRate + '</td>';
+    html += '<td>' + s.controlRate + '</td>';
+    html += '<td class="' + scoreClass + '">' + s.score + '</td>';
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function exportExcel(){
+  const year = document.getElementById('filterYear').value;
+  const quarter = document.getElementById('filterQuarter').value;
+  const projectFilter = document.getElementById('filterProject').value;
+  const rules = getScoreRules();
+
+  const orgStats = {};
+
+  Object.keys(projects).forEach(pName => {
+    if(projectFilter && pName !== projectFilter) return;
+    
+    const records = getRecords(projects[pName].key);
+    const filtered = records.filter(r => {
+      if(year && String(r.year) !== year) return false;
+      if(quarter && r.quarter !== quarter) return false;
+      return true;
+    });
+
+    filtered.forEach(r => {
+      const org = r.org || '未知单位';
+      const key = org + '|||' + pName;
+      
+      if(!orgStats[key]){
+        orgStats[key] = {
+          org, project: pName,
+          total: 0, valid: 0, lost: 0, telError: 0, 
+          match: 0, unmatch: 0, standard: 0,
+          controlOk: 0, controlNotOk: 0
+        };
+      }
+
+      orgStats[key].total++;
+      const reply = r.replyCode || r.reply || '';
+      
+      if(reply === '1' || reply === '2'){
+        orgStats[key].valid++;
+      } else if(['3','4','5','6'].includes(reply)){
+        orgStats[key].lost++;
+      } else if(['7','8','9'].includes(reply)){
+        orgStats[key].telError++;
+      }
+
+      const matchResult = r.matchResult || r.judgeMatch || '';
+      const fake = r.fake || r.fakeCode || '0';
+      const isUnmatch = matchResult.includes('不符合') || fake !== '0';
+
+      if(isUnmatch){
+        orgStats[key].unmatch++;
+      } else {
+        orgStats[key].match++;
+        if((reply === '1' || reply === '2') && fake === '0'){
+          orgStats[key].standard++;
+        }
+      }
+
+      if(pName === '高血压' || pName === '糖尿病'){
+        const control = r.controlSatisfied || r.judgeControl || '';
+        if(control === '满意'){
+          orgStats[key].controlOk++;
+        } else if(control === '不满意'){
+          orgStats[key].controlNotOk++;
+        }
+      }
+    });
+  });
+
+  const orgScores = [];
+  for(const key in orgStats){
+    const s = orgStats[key];
+    const projectKey = s.project.toLowerCase();
+    const projectRules = rules[projectKey] || rules.elderly;
+    
+    let score = projectRules.total;
+    score -= s.lost * projectRules.lostDeduct;
+    score -= s.telError * projectRules.telDeduct;
+    score -= s.unmatch * projectRules.unmatchDeduct;
+    
+    const standardRate = s.valid > 0 ? (s.standard / s.valid) * 100 : 0;
+    if(standardRate < projectRules.standardThreshold){
+      score -= projectRules.standardBonus;
+    }
+    
+    if(projectRules.controlThreshold !== undefined){
+      const controlRate = s.valid > 0 ? (s.controlOk / s.valid) * 100 : 0;
+      if(controlRate < projectRules.controlThreshold){
+        score -= projectRules.controlBonus;
+      }
+    }
+    
+    score = Math.max(0, Math.round(score * 10) / 10);
+    
+    orgScores.push({
+      org: s.org,
+      project: s.project,
+      total: s.total,
+      valid: s.valid,
+      lost: s.lost,
+      telError: s.telError,
+      match: s.match,
+      unmatch: s.unmatch,
+      standardRate: s.valid > 0 ? ((s.standard / s.valid) * 100).toFixed(1) : '0',
+      controlRate: (s.project === '高血压' || s.project === '糖尿病') && s.valid > 0 ? ((s.controlOk / s.valid) * 100).toFixed(1) : '-',
+      score
+    });
+  }
+
+  orgScores.sort((a, b) => b.score - a.score);
+
+  const data = [];
+  data.push(['排名', '单位名称', '项目', '录入数', '有效数', '失访数', '电话异常', '符合数', '不符合数', '规范率(%)', '控制率(%)', '得分']);
+  
+  orgScores.forEach((s, i) => {
+    data.push([i + 1, s.org, s.project, s.total, s.valid, s.lost, s.telError, s.match, s.unmatch, s.standardRate, s.controlRate, s.score]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '单位评分');
+
+  let fileName = '单位评分';
+  if(year) fileName += '_' + year;
+  if(quarter) fileName += '_' + quarter;
+  if(projectFilter) fileName += '_' + projectFilter;
+  fileName += '.xlsx';
+
+  XLSX.writeFile(wb, fileName);
+}
+
+window.onload = function(){
+  loadYearOptions();
+  generateScore();
+};
+</script>
+</body>
+</html>
