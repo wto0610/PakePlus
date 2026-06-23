@@ -1,0 +1,696 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>编辑老年人核查记录</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;font-size:14px;}
+body{padding:20px;max-width:1400px;margin:0 auto;background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}
+.container{padding:20px;}
+.header{background:linear-gradient(135deg,#27ae60 0%,#1e8449 100%);color:#fff;padding:20px 24px;border-radius:12px;margin-bottom:20px;box-shadow:0 4px 12px rgba(39,174,96,0.3);display:flex;justify-content:space-between;align-items:center;}
+.header h1{margin:0;font-size:22px;}
+.tip-red{background:#ffe8e8;color:#d00;padding:12px 16px;border-radius:8px;margin-bottom:14px;font-weight:500;display:none;border-left:4px solid #d00;}
+.tip-green{background:#e8ffe8;color:#060;padding:12px 16px;border-radius:8px;margin-bottom:14px;font-weight:500;display:none;border-left:4px solid #060;}
+.block{background:#fff;border-radius:10px;padding:24px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.block h3{margin:0 0 20px 0;color:#333;font-size:15px;border-left:4px solid #27ae60;padding-left:10px;}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;}
+.form-group{margin-bottom:18px;}
+.form-group label{display:block;min-width:90px;color:#555;font-weight:500;margin-bottom:6px;}
+input[type="text"],input[type="number"],select{padding:8px 12px;width:100%;border:1px solid #ddd;border-radius:6px;font-size:14px;transition:border-color 0.2s;}
+input:focus,select:focus{outline:none;border-color:#27ae60;box-shadow:0 0 0 3px rgba(39,174,96,0.1);}
+input[type="radio"],input[type="checkbox"]{width:16px;height:16px;cursor:pointer;accent-color:#27ae60;}
+.option-list{display:flex;flex-direction:column;gap:8px;}
+.option-item{display:flex;align-items:flex-start;padding:10px 14px;background:#f8fafc;border-radius:6px;transition:background 0.2s;}
+.option-item:hover{background:#eef6ff;}
+.option-item label{cursor:pointer;line-height:1.6;color:#444;margin:0;}
+.err-group{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;padding:12px;background:#f8fafc;border-radius:8px;margin-bottom:10px;}
+.err-group label{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#fff;border-radius:4px;cursor:pointer;font-size:13px;}
+.btn{padding:10px 20px;border:none;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s;}
+.btn-primary{background:#27ae60;color:#fff;}
+.btn-primary:hover{background:#219a52;}
+.btn-success{background:#3498db;color:#fff;}
+.btn-success:hover{background:#2980b9;}
+.btn-danger{background:#e74c3c;color:#fff;}
+.btn-danger:hover{background:#c0392b;}
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:16px 0;border-top:1px solid #eee;margin-top:20px;}
+.search-select{position:relative;width:100%;}
+.search-select-input{padding-right:32px;}
+.search-select-arrow{position:absolute;right:8px;top:50%;transform:translateY(-50%);pointer-events:none;color:#999;}
+.search-select-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #ddd;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.1);max-height:200px;overflow-y:auto;z-index:100;display:none;}
+.search-select-dropdown.show{display:block;}
+.search-select-option{padding:10px 12px;cursor:pointer;transition:background 0.2s;}
+.search-select-option:hover{background:#eef6ff;}
+.fake-options{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;}
+.rule-tip{padding:12px;background:#e8f5e9;border-radius:8px;font-size:13px;color:#2e7d32;margin-top:12px;}
+#otherInput{display:none;margin-top:8px;padding:8px 12px;width:100%;border:1px solid #ddd;border-radius:6px;}
+.form-tip{font-size:12px;color:#999;margin-left:8px;}
+.required{color:#e74c3c;}
+.hide-area{display:none;}
+.judge-right{position:fixed;top:50%;right:20px;transform:translateY(-50%);z-index:999;width:70px;}
+.judge-card{background:#fff;border-radius:8px;padding:8px;box-shadow:0 2px 12px rgba(0,0,0,0.1);text-align:center;}
+.judge-card h4{margin:0 0 6px 0;color:#333;font-size:10px;font-weight:600;}
+.judge-mini{display:flex;flex-direction:column;gap:6px;}
+.judge-mini-item{display:flex;flex-direction:column;gap:2px;padding:3px 4px;background:#f8fafc;border-radius:4px;font-size:9px;}
+.judge-mini-item label{color:#666;font-size:8px;}
+.judge-mini-item .value{font-weight:600;font-size:11px;}
+.judge-mini-total{margin-top:6px;padding:6px;background:#eef6ff;border-radius:4px;font-weight:600;color:#0066cc;font-size:10px;}
+.green{color:#27ae60;font-weight:600}
+.red{color:#e74c3c;font-weight:600}
+.orange{color:#f39c12;font-weight:600}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="main-content">
+
+<div class="header">
+  <h1>编辑老年人核查记录</h1>
+  <button class="btn btn-danger" onclick="window.close()">关闭</button>
+</div>
+
+<div class="tip-red" id="replyDisableTip">当前应答为无效应答，无需填写下方档案核查内容，可直接保存</div>
+<div class="tip-red" id="matchDisableTip">符合性判定为不符合，本次问卷结束，下方体检相关内容隐藏不可填写</div>
+<div class="tip-green" id="matchOkTip">符合性判定全部相符，可继续填写下方体检核查内容</div>
+
+<div class="block">
+<h3>一、基础信息</h3>
+<div class="form-grid">
+<div class="form-group"><label>核查单位<span class="required">*</span></label>
+<div class="search-select" id="orgSelect">
+<input type="text" id="orgInput" class="search-select-input" placeholder="请输入单位名称搜索">
+<span class="search-select-arrow">▼</span>
+<div class="search-select-dropdown" id="orgDropdown">
+<div class="search-select-option" data-value="">请选择单位</div>
+<div class="search-select-option" data-value="澄城社区卫生服务中心">澄城社区卫生服务中心</div>
+<div class="search-select-option" data-value="金江镇卫生院">金江镇卫生院</div>
+<div class="search-select-option" data-value="山口社区卫生服务中心">山口社区卫生服务中心</div>
+<div class="search-select-option" data-value="仁兴镇卫生院">仁兴镇卫生院</div>
+<div class="search-select-option" data-value="中兴镇卫生院">中兴镇卫生院</div>
+<div class="search-select-option" data-value="太平社区卫生服务中心">太平社区卫生服务中心</div>
+<div class="search-select-option" data-value="加乐镇中心卫生院">加乐镇中心卫生院</div>
+<div class="search-select-option" data-value="文儒镇卫生院">文儒镇卫生院</div>
+<div class="search-select-option" data-value="文儒镇卫生院石浮门诊部">文儒镇卫生院石浮门诊部</div>
+<div class="search-select-option" data-value="金江镇长安卫生院">金江镇长安卫生院</div>
+<div class="search-select-option" data-value="瑞溪镇中心卫生院">瑞溪镇中心卫生院</div>
+<div class="search-select-option" data-value="永发镇中心卫生院">永发镇中心卫生院</div>
+<div class="search-select-option" data-value="永发镇中心卫生院新吴门诊部">永发镇中心卫生院新吴门诊部</div>
+<div class="search-select-option" data-value="大丰镇卫生院">大丰镇卫生院</div>
+<div class="search-select-option" data-value="美亭社区卫生服务中心">美亭社区卫生服务中心</div>
+<div class="search-select-option" data-value="福山镇卫生院">福山镇卫生院</div>
+<div class="search-select-option" data-value="桥头镇卫生院">桥头镇卫生院</div>
+<div class="search-select-option" data-value="老城社区卫生服务中心">老城社区卫生服务中心</div>
+<div class="search-select-option" data-value="老城镇中心卫生院">老城镇中心卫生院</div>
+<div class="search-select-option" data-value="老城镇中心卫生院马村门诊部">老城镇中心卫生院马村门诊部</div>
+<div class="search-select-option" data-value="仁兴镇西达卫生院">仁兴镇西达卫生院</div>
+<div class="search-select-option" data-value="福山镇红光卫生院">福山镇红光卫生院</div>
+<div class="search-select-option" data-value="文儒镇红岗卫生院">文儒镇红岗卫生院</div>
+<div class="search-select-option" data-value="金安社区卫生服务中心">金安社区卫生服务中心</div>
+<div class="search-select-option" data-value="昆仑社区卫生服务中心">昆仑社区卫生服务中心</div>
+<div class="search-select-option" data-value="和岭社区卫生服务中心">和岭社区卫生服务中心</div>
+</div>
+<input type="hidden" id="org" name="org">
+</div></div>
+<div class="form-group"><label>年度<span class="required">*</span></label>
+<input type="number" id="year" placeholder="如2026，默认当前年度"></div>
+<div class="form-group"><label>季度<span class="required">*</span></label>
+<select id="quarter">
+<option value="">请选择季度</option>
+<option value="Q1">一季度</option>
+<option value="Q2">二季度</option>
+<option value="Q3">三季度</option>
+<option value="Q4">四季度</option>
+</select></div>
+<div class="form-group"><label>项目<span class="required">*</span></label>
+<select id="project">
+<option value="老年人" selected>老年人</option>
+</select>
+</div>
+<div class="form-group"><label>姓名<span class="required">*</span></label>
+<input type="text" id="name"></div>
+<div class="form-group"><label>性别</label>
+<div style="display:flex;gap:16px;padding-top:6px;">
+<label><input type="radio" name="sex" value="男"> 男</label>
+<label><input type="radio" name="sex" value="女"> 女</label>
+</div></div>
+<div class="form-group"><label>年龄</label>
+<input type="number" id="age" min="0" max="120"></div>
+<div class="form-group"><label>身份证号</label>
+<input type="text" id="idcard" maxlength="18"><span class="form-tip" id="idTip"></span></div>
+<div class="form-group"><label>联系电话</label>
+<input type="text" id="tel" maxlength="11"><span class="form-tip" id="telTip"></span></div>
+</div>
+</div>
+
+<div class="block">
+<h3>二、应答情况</h3>
+<div class="option-list">
+<div class="option-item"><label><input type="radio" name="reply" value="1"> ①本人应答</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="2"> ②应答人为家属、亲戚等，了解情况</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="3"> ③应答人为家属、亲戚等，不了解核查对象具体情况</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="4"> ④无法接通（不同时间拨打三次，包括关机、停机）</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="5"> ⑤拒绝调查：接听后不配合调查，中途退出</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="6"> ⑥空号</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="7"> ⑦错号</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="8"> ⑧电话为村医、村干和养老机构号码</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="9"> ⑨本人应答，记不清情况</label></div>
+</div>
+</div>
+
+<div id="matchArea" class="hide-area">
+<div class="block">
+<h3>三、访谈记录与健康档案比对 <span style="font-size:12px;color:#999;font-weight:normal;">（符合性核查，可多选）</span></h3>
+<div class="option-list">
+<div class="option-item"><label><input type="checkbox" id="matchAllOk" value="1"> （1）访谈情况与健康档案相符：姓名、查体（血压、体重、心肺听诊）和辅助检查记录均相符——判定为符合</label></div>
+<div class="option-item"><label><input type="checkbox" class="matchErr" value="2"> （2）访谈为未查体（血压、体重、心肺听诊），但档案中有查体记录——判定为不符合</label></div>
+<div class="option-item"><label><input type="checkbox" class="matchErr" value="3"> （3）访谈为未做心电图，但档案中有心电图记录——判定为不符合</label></div>
+<div class="option-item"><label><input type="checkbox" class="matchErr" value="4"> （4）访谈为未做B超，但档案中有B超记录——判定为不符合</label></div>
+<div class="option-item"><label><input type="checkbox" class="matchErr" value="5"> （5）访谈为未做健康体检，但档案中有体检记录——判定为不符合</label></div>
+<div class="option-item"><label><input type="checkbox" class="matchErr" value="6"> （6）访谈为未做抽血，但档案中有抽血（血脂、肝功能等）记录——判定为不符合</label></div>
+<div class="option-item"><label><input type="checkbox" class="matchErr" value="7"> （7）档案涉嫌造假：死亡仍体检/异地体检/复制往年记录/3项及以上填0或拒绝——判定不符合</label></div>
+</div>
+<div class="rule-tip"><strong>符合性判定规则：</strong>选择"访谈情况与健康档案相符"（第一项）→ 判定为<span class="green">符合</span>；选择任一②-⑦项 → 判定为<span class="red">不符合</span></div>
+</div>
+
+<div id="sendResBlock" class="hide-area">
+<div class="block">
+<h3>四、体检结果发放情况</h3>
+<div class="option-list">
+<div class="option-item"><label><input type="radio" name="sendRes" value="1"> ①没有发放或没有通知</label></div>
+<div class="option-item"><label><input type="radio" name="sendRes" value="2"> ②没有发放，仅口头告知</label></div>
+<div class="option-item"><label><input type="radio" name="sendRes" value="3"> ③15天内通知、发放并解读健康指导</label></div>
+<div class="option-item"><label><input type="radio" name="sendRes" value="4"> ④15天后通知、发放并解读健康指导</label></div>
+<div class="option-item"><label><input type="radio" name="sendRes" value="5"> ⑤已通知领取，但未解读结果</label></div>
+<div class="option-item"><label><input type="radio" name="sendRes" value="6"> ⑥15天内通知解读，个人原因晚领取</label></div>
+<div class="option-item"><label><input type="radio" name="sendRes" value="7"> ⑦记不清（失访）</label></div>
+</div>
+</div>
+</div>
+
+<div id="errBlock" class="hide-area">
+<div class="block">
+<h3>五、体检记录填写空项、错项 <span style="font-size:12px;color:#999;font-weight:normal;">（可多选）</span></h3>
+<div class="err-group">
+<label><input type="checkbox" class="errItem" value="1">①体检日期、责任医生</label>
+<label><input type="checkbox" class="errItem" value="2">②症状</label>
+</div>
+<div class="err-group" style="background:#f0f8ff;padding:10px;border-radius:6px;margin-bottom:8px;">
+<label style="font-weight:600;color:#333;margin-bottom:8px;display:block;">③一般状况</label>
+<label><input type="checkbox" class="errItem" value="3b">体温</label>
+<label><input type="checkbox" class="errItem" value="3c">脉率</label>
+<label><input type="checkbox" class="errItem" value="3d">呼吸频率</label>
+<label><input type="checkbox" class="errItem" value="3e">身高</label>
+<label><input type="checkbox" class="errItem" value="3f">体重</label>
+<label><input type="checkbox" class="errItem" value="3g">腰围</label>
+<label><input type="checkbox" class="errItem" value="3h">体质指数</label>
+</div>
+<div class="err-group">
+<label><input type="checkbox" class="errItem" value="4">④老年人生活自理能力评估</label>
+</div>
+<div class="err-group" style="background:#f0f8ff;padding:10px;border-radius:6px;margin-bottom:8px;">
+<label style="font-weight:600;color:#333;margin-bottom:8px;display:block;">⑤生活方式情况</label>
+<label><input type="checkbox" class="errItem" value="5a">锻炼</label>
+<label><input type="checkbox" class="errItem" value="5b">饮食</label>
+<label><input type="checkbox" class="errItem" value="5c">吸烟</label>
+<label><input type="checkbox" class="errItem" value="5d">职业危险因素接触史</label>
+</div>
+<div class="err-group" style="background:#f0f8ff;padding:10px;border-radius:6px;margin-bottom:8px;">
+<label style="font-weight:600;color:#333;margin-bottom:8px;display:block;">⑥脏器功能</label>
+<label><input type="checkbox" class="errItem" value="6a">口腔</label>
+<label><input type="checkbox" class="errItem" value="6b">视力</label>
+<label><input type="checkbox" class="errItem" value="6c">听力</label>
+<label><input type="checkbox" class="errItem" value="6d">运动功能</label>
+</div>
+<div class="err-group" style="background:#f0f8ff;padding:10px;border-radius:6px;margin-bottom:8px;">
+<label style="font-weight:600;color:#333;margin-bottom:8px;display:block;">⑦查体</label>
+<label><input type="checkbox" class="errItem" value="7a">皮肤</label>
+<label><input type="checkbox" class="errItem" value="7b">巩膜</label>
+<label><input type="checkbox" class="errItem" value="7c">淋巴</label>
+<label><input type="checkbox" class="errItem" value="7d">心脏</label>
+<label><input type="checkbox" class="errItem" value="7e">肺</label>
+<label><input type="checkbox" class="errItem" value="7f">腹部</label>
+<label><input type="checkbox" class="errItem" value="7g">下肢水肿</label>
+</div>
+<div class="err-group">
+<label><input type="checkbox" class="errItem checkLab" value="8">⑧血常规</label>
+<label><input type="checkbox" class="errItem" value="9">⑨尿常规</label>
+<label><input type="checkbox" class="errItem checkLab" value="10">⑩血压</label>
+<label><input type="checkbox" class="errItem checkLab" value="11">⑪空腹血糖</label>
+<label><input type="checkbox" class="errItem checkLab" value="12">⑫心电图</label>
+<label><input type="checkbox" class="errItem checkLab" value="13">⑬肝功能</label>
+<label><input type="checkbox" class="errItem checkLab" value="14">⑭肾功能</label>
+<label><input type="checkbox" class="errItem checkLab" value="15">⑮血脂</label>
+<label><input type="checkbox" class="errItem checkLab" value="16">⑯腹部B超</label>
+<label><input type="checkbox" class="errItem checkLab" value="17">㉑糖化血红蛋白</label>
+</div>
+<div class="err-group">
+<label><input type="checkbox" class="errItem" value="18">⑱主要用药情况</label>
+<label><input type="checkbox" class="errItem" value="19">⑲健康评价</label>
+<label><input type="checkbox" class="errItem" value="20">⑳健康指导</label>
+<label><input type="checkbox" class="errItem" value="21">㉑危险因素控制</label>
+<label><input type="checkbox" class="errItem" value="22">㉒现存主要健康问题</label>
+<label><input type="checkbox" class="errItem" value="24">㉔住院史</label>
+<label><input type="checkbox" class="errItem" value="25">㉕家庭病床史</label>
+<label><input type="checkbox" class="errItem" value="26">㉖免疫接种史</label>
+<label><input type="checkbox" class="errItem" id="errOther" value="27">㉗其他</label>
+<input type="text" id="otherInput" placeholder="请填写其他空项/错项说明">
+</div>
+<div class="rule-tip"><strong>规范性判定规则：</strong>血压/B超/心电图/血常规/肝功能/肾功能/空腹血糖/血脂/糖化血红蛋白任一项未填 → <span class="red">不规范</span>；其他项目4项（含）以上空错项 → <span class="red">不规范</span>；其他项目&le;4项空错项 → <span class="green">规范</span></div>
+</div>
+</div>
+</div>
+
+<div class="block">
+<h3>六、是否涉嫌档案造假</h3>
+<div class="fake-options">
+<div class="option-item" style="background:#e8f5e9;"><label><input type="radio" name="fake" value="0" checked> 无涉嫌造假</label></div>
+<div class="option-item"><label><input type="radio" name="fake" value="1"> 已死亡仍有体检记录</label></div>
+<div class="option-item"><label><input type="radio" name="fake" value="2"> 不在本地居住却有本地体检记录</label></div>
+<div class="option-item"><label><input type="radio" name="fake" value="3"> 复制往年体检记录</label></div>
+<div class="option-item"><label><input type="radio" name="fake" value="4"> 辅助检查3项及以上填0/多项填拒绝</label></div>
+</div>
+</div>
+
+<div class="block" style="margin-top:16px;">
+<h3>七、备注</h3>
+<textarea id="remark" placeholder="请填写其他问题或说明（选填）" style="width:100%;min-height:80px;padding:10px;border:1px solid #ddd;border-radius:6px;resize:vertical;font-size:13px;"></textarea>
+</div>
+
+<div class="block">
+<div class="toolbar">
+<div class="toolbar-left">
+<button class="btn btn-primary" onclick="saveEditRecord()">保存修改</button>
+<button class="btn btn-danger" onclick="deleteEditRecord()">删除此记录</button>
+</div>
+</div>
+</div>
+
+</div>
+
+<div class="judge-right" id="judgePanel">
+<div class="judge-card">
+  <h4>实时判定</h4>
+  <div class="judge-mini">
+    <div class="judge-mini-item"><label>有效性</label><span class="value green" id="res1">待选择</span></div>
+    <div class="judge-mini-item"><label>符合性</label><span class="value" id="res2">待判定</span></div>
+    <div class="judge-mini-item"><label>规范性</label><span class="value" id="res3">待判定</span></div>
+    <div class="judge-mini-item"><label>是否造假</label><span class="value green" id="res6">无</span></div>
+  </div>
+  <div id="resTotal" class="judge-mini-total"></div>
+</div>
+</div>
+
+</div>
+
+<script>
+var editingRecord = null;
+var editingIndex = null;
+var matchResult = "";
+var isFakeRecord = false;
+
+document.addEventListener("DOMContentLoaded", function(){
+    try {
+        editingRecord = JSON.parse(sessionStorage.getItem("editingRecord"));
+        editingIndex = parseInt(sessionStorage.getItem("editingIndex"));
+    } catch(e) {
+        console.error(e);
+    }
+    
+    if(!editingRecord){
+        alert("未找到要编辑的记录");
+        window.close();
+        return;
+    }
+    
+    document.getElementById("org").value = editingRecord.org || "";
+    document.getElementById("orgInput").value = editingRecord.org || "";
+    document.getElementById("year").value = editingRecord.year || "";
+    document.getElementById("quarter").value = editingRecord.quarter || "";
+    document.getElementById("project").value = editingRecord.project || "老年人";
+    document.getElementById("name").value = editingRecord.name || "";
+    document.getElementById("idcard").value = editingRecord.idcard || "";
+    document.getElementById("tel").value = editingRecord.tel || "";
+    document.getElementById("age").value = editingRecord.age || "";
+    document.getElementById("remark").value = editingRecord.remark || "";
+    
+    if(editingRecord.sex){
+        var sexRadio = document.querySelector('input[name="sex"][value="'+editingRecord.sex+'"]');
+        if(sexRadio) sexRadio.checked = true;
+    }
+    
+    if(editingRecord.replyCode){
+        var replyRadio = document.querySelector('input[name="reply"][value="'+editingRecord.replyCode+'"]');
+        if(replyRadio) replyRadio.checked = true;
+    }
+    
+    if(editingRecord.matchAllOk){
+        document.getElementById("matchAllOk").checked = true;
+    }
+    if(editingRecord.matchErrs && Array.isArray(editingRecord.matchErrs)){
+        editingRecord.matchErrs.forEach(function(val){
+            var cb = document.querySelector('.matchErr[value="'+val+'"]');
+            if(cb) cb.checked = true;
+        });
+    }
+    
+    if(editingRecord.sendResCode){
+        var sendRadio = document.querySelector('input[name="sendRes"][value="'+editingRecord.sendResCode+'"]');
+        if(sendRadio) sendRadio.checked = true;
+    }
+    
+    if(editingRecord.errItems && Array.isArray(editingRecord.errItems)){
+        editingRecord.errItems.forEach(function(val){
+            var cb = document.querySelector('.errItem[value="'+val+'"]');
+            if(cb) cb.checked = true;
+        });
+    }
+    if(editingRecord.otherDesc){
+        document.getElementById("otherInput").value = editingRecord.otherDesc;
+        document.getElementById("errOther").checked = true;
+        document.getElementById("otherInput").style.display = "block";
+    }
+    
+    if(editingRecord.fakeCode !== undefined){
+        var fakeRadio = document.querySelector('input[name="fake"][value="'+editingRecord.fakeCode+'"]');
+        if(fakeRadio) fakeRadio.checked = true;
+    }
+    
+    bindEvents();
+    calcAll();
+});
+
+function bindEvents(){
+    document.querySelectorAll('input[name="reply"]').forEach(function(el){
+        el.addEventListener("change", calcAll);
+    });
+    document.querySelectorAll('.matchErr').forEach(function(el){
+        el.addEventListener("change", calcAll);
+    });
+    document.getElementById("matchAllOk").addEventListener("change", function(){
+        if(this.checked){
+            document.querySelectorAll('.matchErr').forEach(function(el){
+                el.checked = false;
+                el.disabled = true;
+            });
+        } else {
+            document.querySelectorAll('.matchErr').forEach(function(el){ el.disabled = false; });
+        }
+        calcAll();
+    });
+    document.querySelectorAll('input[name="sendRes"]').forEach(function(el){
+        el.addEventListener("change", calcAll);
+    });
+    document.querySelectorAll('.errItem').forEach(function(el){
+        el.addEventListener("change", calcAll);
+    });
+    document.querySelectorAll('input[name="fake"]').forEach(function(el){
+        el.addEventListener("change", calcAll);
+    });
+    document.getElementById("errOther").addEventListener("change", function(){
+        document.getElementById("otherInput").style.display = this.checked ? "block" : "none";
+    });
+}
+
+function getCheckedValues(selector){
+    return Array.from(document.querySelectorAll(selector + ':checked')).map(function(el){ return el.value; });
+}
+
+function calcAll(){
+    calcReply();
+    calcMatch();
+    calcNorm();
+    calcFake();
+    calcTotal();
+}
+
+function calcReply(){
+    const replyVal = document.querySelector('input[name="reply"]:checked')?.value;
+    const matchArea = document.getElementById("matchArea");
+    const replyDisableTip = document.getElementById("replyDisableTip");
+    
+    if(!replyVal){
+        document.getElementById("res1").innerText = "待选择";
+        matchArea.classList.add("hide-area");
+        replyDisableTip.style.display = "none";
+        return;
+    }
+    
+    const isValid = replyVal === "1" || replyVal === "2";
+    
+    if(isValid){
+        document.getElementById("res1").innerHTML = `<span class="green">有效</span>`;
+        matchArea.classList.remove("hide-area");
+        replyDisableTip.style.display = "none";
+    } else {
+        const invalidTypes = {
+            "3":"不了解核查对象具体情况","4":"无法接通",
+            "5":"拒绝调查","6":"空号","7":"错号",
+            "8":"电话为村医、村干号码","9":"记不清情况"
+        };
+        document.getElementById("res1").innerHTML = `<span class="red">${invalidTypes[replyVal] || "无效"}</span>`;
+        matchArea.classList.add("hide-area");
+        replyDisableTip.style.display = "block";
+    }
+}
+
+function calcMatch(){
+    const matchDisableTip = document.getElementById("matchDisableTip");
+    const matchOkTip = document.getElementById("matchOkTip");
+    matchDisableTip.style.display = "none";
+    matchOkTip.style.display = "none";
+    
+    const isMatchAllOk = document.getElementById("matchAllOk").checked;
+    const matchErrs = document.querySelectorAll('.matchErr:checked');
+    const hasErrItem = matchErrs.length > 0;
+    const fakeVal = document.querySelector('input[name="fake"]:checked')?.value || "0";
+    const isFake = fakeVal !== "0";
+    
+    if(isMatchAllOk && !isFake){
+        document.getElementById("res2").innerHTML = `<span class="green">符合</span>`;
+        matchResult = "符合";
+        matchOkTip.style.display = "block";
+        document.getElementById("sendResBlock").classList.remove("hide-area");
+        document.getElementById("errBlock").classList.remove("hide-area");
+    }else if(hasErrItem || isFake){
+        document.getElementById("res2").innerHTML = `<span class="red">不符合</span>`;
+        matchResult = "不符合";
+        matchDisableTip.style.display = "block";
+        document.getElementById("sendResBlock").classList.add("hide-area");
+        document.getElementById("errBlock").classList.add("hide-area");
+    }else{
+        document.getElementById("res2").innerText = "待勾选";
+        matchResult = "待判定";
+        document.getElementById("sendResBlock").classList.add("hide-area");
+        document.getElementById("errBlock").classList.add("hide-area");
+    }
+}
+
+function calcNorm(){
+    const replyVal = document.querySelector('input[name="reply"]:checked')?.value;
+    if(!replyVal || (replyVal !== "1" && replyVal !== "2")){
+        document.getElementById("res3").innerText = "——";
+        return;
+    }
+    
+    const fakeVal = document.querySelector('input[name="fake"]:checked')?.value || "0";
+    if(fakeVal !== "0" || matchResult === "不符合"){
+        document.getElementById("res3").innerHTML = `<span class="red">不规范</span>`;
+        return;
+    }
+    
+    if(document.getElementById("errBlock").classList.contains("hide-area") && matchResult !== "符合"){
+        document.getElementById("res3").innerText = "——";
+        return;
+    }
+    
+    const allChecked = getCheckedValues('.errItem');
+    const keyLabItems = ['10', '11', '12', '13', '14', '15', '16', '17'];
+    const hasKeyLabEmpty = keyLabItems.some(function(v){ return allChecked.includes(v); });
+    const nonKeyErrs = allChecked.filter(function(v){ return !keyLabItems.includes(v); });
+    
+    const sendResVal = document.querySelector('input[name="sendRes"]:checked')?.value;
+    const isSendResNonStandard = ['1', '2', '4', '5'].includes(sendResVal);
+    
+    if(hasKeyLabEmpty){
+        const keyLabNames = keyLabItems.filter(function(v){ return allChecked.includes(v); });
+        document.getElementById("res3").innerHTML = `<span class="red">不规范（${keyLabNames.length}项关键辅助检查未填）</span>`;
+    }else if(nonKeyErrs.length > 4){
+        document.getElementById("res3").innerHTML = `<span class="red">不规范（其他项目空错项${nonKeyErrs.length}项，超过4项）</span>`;
+    }else if(isSendResNonStandard){
+        const sendResMap = {"1":"没有发放或没有通知","2":"没有发放仅口头告知","4":"15天后通知发放","5":"已通知但未解读"};
+        document.getElementById("res3").innerHTML = `<span class="red">不规范（${sendResMap[sendResVal]}）</span>`;
+    }else if(sendResVal && ['3', '6'].includes(sendResVal) && nonKeyErrs.length <= 4){
+        const errInfo = nonKeyErrs.length > 0 ? `（其他项目空错项${nonKeyErrs.length}项）` : '';
+        document.getElementById("res3").innerHTML = `<span class="green">规范${errInfo}</span>`;
+    }else{
+        document.getElementById("res3").innerText = "待完善";
+    }
+}
+
+function calcFake(){
+    const fakeMap = {
+        "0":"无涉嫌造假",
+        "1":"已死亡仍有体检记录",
+        "2":"不在本地居住却有本地体检记录",
+        "3":"复制往年体检记录",
+        "4":"辅助检查3项及以上填0/拒绝"
+    };
+    const v = document.querySelector('input[name="fake"]:checked')?.value || "0";
+    isFakeRecord = v !== "0";
+    
+    if(isFakeRecord){
+        document.getElementById("res6").innerHTML = `<span class="red">${fakeMap[v]}</span>`;
+    }else{
+        document.getElementById("res6").innerHTML = `<span class="green">无</span>`;
+    }
+}
+
+function calcTotal(){
+    const replyVal = document.querySelector('input[name="reply"]:checked')?.value;
+    const resTotal = document.getElementById("resTotal");
+    
+    if(!replyVal){
+        resTotal.innerText = "";
+        return;
+    }
+    
+    const isValid = replyVal === "1" || replyVal === "2";
+    
+    if(!isValid){
+        const invalidTypes = {
+            "3":"不了解核查对象具体情况","4":"无法接通",
+            "5":"拒绝调查","6":"空号","7":"错号",
+            "8":"电话为村医、村干号码","9":"记不清情况"
+        };
+        resTotal.innerHTML = '<span class="red">★ 档案判定：' + (invalidTypes[replyVal] || "无效应答") + '</span>';
+        return;
+    }
+    
+    const m = document.getElementById("res2").innerText;
+    const n = document.getElementById("res3").innerText;
+    
+    if(m.includes("不符合")){
+        resTotal.innerHTML = '<span class="red">★ 档案判定：不规范档案</span>';
+        return;
+    }
+    
+    if(n.includes("不规范")){
+        resTotal.innerHTML = '<span class="red">★ 档案判定：不规范档案</span>';
+        return;
+    }
+    
+    if(n.includes("待完善")){
+        resTotal.innerHTML = '<span class="orange">★ 档案判定：待完善</span>';
+        return;
+    }
+    
+    resTotal.innerHTML = '<span class="green">★ 档案判定：规范档案</span>';
+}
+
+function saveEditRecord(){
+    calcAll();
+    
+    const replyVal = document.querySelector('input[name="reply"]:checked')?.value || "";
+    const matchErrs = getCheckedValues('.matchErr');
+    const errItems = getCheckedValues('.errItem');
+    const otherDesc = document.getElementById("errOther").checked ? document.getElementById("otherInput").value : "";
+    const fakeCode = document.querySelector('input[name="fake"]:checked')?.value || "0";
+    const sendResCode = document.querySelector('input[name="sendRes"]:checked')?.value || "";
+    
+    const data = {
+        org: document.getElementById("org").value,
+        year: document.getElementById("year").value || new Date().getFullYear().toString(),
+        quarter: document.getElementById("quarter").value || "",
+        project: document.getElementById("project").value,
+        name: document.getElementById("name").value,
+        sex: document.querySelector('input[name="sex"]:checked')?.value || "",
+        age: document.getElementById("age").value,
+        idcard: document.getElementById("idcard").value,
+        tel: document.getElementById("tel").value,
+        replyCode: replyVal,
+        matchAllOk: document.getElementById("matchAllOk").checked,
+        matchErrs: matchErrs,
+        sendResCode: sendResCode,
+        errItems: errItems,
+        otherDesc: otherDesc,
+        fakeCode: fakeCode,
+        remark: document.getElementById("remark").value || "",
+        judgeMatch: document.getElementById("res2").innerText,
+        judgeNorm: document.getElementById("res3").innerText,
+        judgeTotal: document.getElementById("resTotal").innerText,
+        saveTime: formatDate(new Date())
+    };
+    
+    if(!data.org || !data.year || !data.name){
+        alert("核查单位、年度、姓名为必填项！");
+        return;
+    }
+    
+    var recordList = JSON.parse(localStorage.getItem("elderlyCheckRecords") || "[]");
+    if(editingIndex !== null && editingIndex < recordList.length){
+        recordList[editingIndex] = data;
+        localStorage.setItem("elderlyCheckRecords", JSON.stringify(recordList));
+        sessionStorage.setItem("justSaved", "1");
+        alert("保存成功！");
+        window.close();
+    }else{
+        alert("记录索引无效");
+    }
+}
+
+function deleteEditRecord(){
+    if(!confirm("确定要删除此记录吗？")) return;
+    
+    var recordList = JSON.parse(localStorage.getItem("elderlyCheckRecords") || "[]");
+    if(editingIndex !== null && editingIndex < recordList.length){
+        recordList.splice(editingIndex, 1);
+        localStorage.setItem("elderlyCheckRecords", JSON.stringify(recordList));
+        sessionStorage.setItem("justSaved", "1");
+        alert("删除成功！");
+        window.close();
+    }
+}
+
+function formatDate(date){
+    var pad = function(n){ return n < 10 ? '0' + n : n; };
+    return date.getFullYear() + '-' + pad(date.getMonth()+1) + '-' + pad(date.getDate()) + ' ' + pad(date.getHours()) + ':' + pad(date.getMinutes()) + ':' + pad(date.getSeconds());
+}
+
+document.addEventListener("DOMContentLoaded", function(){
+    var orgInput = document.getElementById("orgInput");
+    var orgDropdown = document.getElementById("orgDropdown");
+    var orgHidden = document.getElementById("org");
+    
+    orgInput.addEventListener("click", function(e){
+        e.stopPropagation();
+        orgDropdown.classList.add("show");
+    });
+    
+    orgInput.addEventListener("input", function(){
+        var keyword = this.value.toLowerCase();
+        document.querySelectorAll(".search-select-option").forEach(function(opt){
+            var text = opt.textContent.toLowerCase();
+            opt.style.display = text.includes(keyword) ? "" : "none";
+        });
+    });
+    
+    document.querySelectorAll(".search-select-option").forEach(function(opt){
+        opt.addEventListener("click", function(){
+            var value = this.getAttribute("data-value");
+            var text = this.textContent;
+            orgHidden.value = value;
+            orgInput.value = text === "请选择单位" ? "" : text;
+            orgDropdown.classList.remove("show");
+        });
+    });
+    
+    document.addEventListener("click", function(e){
+        if(!document.getElementById("orgSelect").contains(e.target)){
+            orgDropdown.classList.remove("show");
+        }
+    });
+});
+</script>
+</body>
+</html>
