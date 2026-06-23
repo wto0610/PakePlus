@@ -1,0 +1,589 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>存在问题一览表 - 健康核查后台</title>
+<style>
+*{box-sizing:border-box;font-size:14px;}
+body{padding:0;max-width:1600px;margin:0 auto;background:#f5f7fa;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Microsoft YaHei",sans-serif;}
+.container{padding:20px;}
+.header{background:linear-gradient(135deg,#2c3e50 0%,#34495e 100%);color:#fff;padding:20px 24px;border-radius:12px;margin-bottom:20px;box-shadow:0 4px 12px rgba(44,62,80,0.3);display:flex;justify-content:space-between;align-items:center;}
+.header h1{margin:0;font-size:22px;}
+.breadcrumb{font-size:13px;opacity:0.85;margin-top:6px;}
+.breadcrumb a{color:#fff;text-decoration:none;margin:0 6px;}
+.back-btn{background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:8px 18px;border-radius:6px;font-size:13px;cursor:pointer;text-decoration:none;}
+.back-btn:hover{background:rgba(255,255,255,0.35);}
+.filter-bar{display:flex;gap:15px;flex-wrap:wrap;align-items:center;padding:15px;background:#fff;border-radius:8px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+.filter-bar label{font-weight:500;color:#555;}
+.filter-bar select{padding:8px 12px;border:1px solid #ddd;border-radius:6px;min-width:120px;}
+.btn{padding:9px 20px;border:none;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s;}
+.btn-primary{background:#3498db;color:#fff;}
+.btn-primary:hover{background:#2980b9;}
+.btn-success{background:#27ae60;color:#fff;}
+.btn-success:hover{background:#219a52;}
+.report-section{background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:20px;}
+.report-section h3{margin:0 0 20px 0;color:#333;font-size:16px;border-left:4px solid #e74c3c;padding-left:12px;}
+.table-container{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px;}
+th,td{border:1px solid #ddd;padding:10px 8px;text-align:left;vertical-align:top;}
+th{background:#f8fafc;font-weight:600;color:#333;text-align:center;}
+td.project-cell{min-width:180px;}
+td.problem-cell{max-width:400px;word-break:break-all;}
+td.problem-cell .item{margin-bottom:4px;padding:2px 6px;background:#fff3cd;border-radius:3px;font-size:12px;}
+td.problem-cell .item.phone{background:#e2e3e5;color:#383d41;}
+td.problem-cell .item.send{background:#cce5ff;color:#004085;}
+td.problem-cell .item.norms{background:#f8d7da;}
+td.problem-cell .item.match{background:#f5c6cb;}
+td.problem-cell .item.empty{background:#fff3cd;}
+td.problem-cell .item.error{background:#ffeaa7;}
+td.problem-cell .item.remark{background:#d1ecf1;}
+td.problem-cell .item:last-child{margin-bottom:0;}
+td.problem-cell .item .count{font-size:11px;color:#666;font-weight:600;}
+td.problem-cell .empty-msg{color:#999;font-style:italic;}
+.no-data{text-align:center;color:#999;padding:40px;}
+.legend{margin-top:10px;padding:10px;background:#f8f9fa;border-radius:6px;font-size:12px;}
+.legend span{display:inline-block;padding:2px 8px;margin-right:15px;border-radius:3px;}
+.legend .phone{background:#e2e3e5;color:#383d41;}
+.legend .send{background:#cce5ff;color:#004085;}
+.legend .norms{background:#f8d7da;}
+.legend .match{background:#f5c6cb;}
+.legend .empty{background:#fff3cd;}
+.legend .error{background:#ffeaa7;}
+.legend .remark{background:#d1ecf1;}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <div>
+    <h1>⚠️ 存在问题一览表</h1>
+    <div class="breadcrumb"><a href="admin.html">后台首页</a> / 存在问题一览表</div>
+  </div>
+  <a href="admin.html" class="back-btn">返回后台</a>
+</div>
+
+<div class="filter-bar">
+  <label>年度：</label>
+  <select id="filterYear" onchange="generateReport()">
+    <option value="">全部年度</option>
+  </select>
+  <label>季度：</label>
+  <select id="filterQuarter" onchange="generateReport()">
+    <option value="">全部季度</option>
+    <option value="Q1">一季度</option>
+    <option value="Q2">二季度</option>
+    <option value="Q3">三季度</option>
+    <option value="Q4">四季度</option>
+  </select>
+  <button class="btn btn-success" onclick="exportExcel()">导出Excel</button>
+</div>
+
+<div class="report-section">
+  <h3>📋 各单位存在问题汇总</h3>
+  <div id="reportContent"></div>
+  <div class="legend">
+    <strong>图例：</strong>
+    <span class="phone">电话异常</span>
+    <span class="send">体检结果发放</span>
+    <span class="norms">不规范</span>
+    <span class="match">不符合</span>
+    <span class="empty">空项</span>
+    <span class="error">错项</span>
+    <span class="remark">备注</span>
+  </div>
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+const projects = {
+  '居民': { key: 'residentCheckRecords' },
+  '老年人': { key: 'elderlyCheckRecords' },
+  '高血压': { key: 'hypertensionCheckRecords' },
+  '糖尿病': { key: 'diabetesCheckRecords' },
+  '慢阻肺': { key: 'copdCheckRecords' }
+};
+
+const problemMaps = {
+  resident: {
+    phoneError: {
+      "7": "电话空号",
+      "8": "电话错号",
+      "9": "电话为村医、村干和养老机构号码"
+    },
+    match: {
+      "name": "姓名与访谈不符",
+      "sex": "性别与访谈不符",
+      "idcard": "身份证号与访谈不符"
+    },
+    norm: {
+      "cover_unit": "建档单位与访谈不符",
+      "cover_addr": "户籍地址与访谈不符",
+      "info_addr": "现住址与访谈不符",
+      "info_nation": "民族与访谈不符",
+      "info_edu": "文化程度与访谈不符",
+      "info_job": "职业与访谈不符",
+      "info_marriage": "婚姻状况与访谈不符",
+      "info_allergy": "药物过敏史与访谈不符",
+      "info_expose": "暴露史与访谈不符",
+      "info_history": "既往史与访谈不符",
+      "info_family": "家族史与访谈不符",
+      "info_genetic": "遗传史与访谈不符",
+      "info_disability": "残疾情况与访谈不符"
+    },
+    deathNotEnd: "死亡档案未及时终止管理"
+  },
+  elderly: {
+    phoneError: {
+      "7": "电话空号",
+      "8": "电话错号",
+      "9": "电话为村医、村干和养老机构号码"
+    },
+    match: {
+      "2": "访谈为未查体（血压、体重、心肺听诊），但档案中有查体记录",
+      "3": "访谈为未做心电图，但档案中有心电图记录",
+      "4": "访谈为未做B超，但档案中有B超记录",
+      "5": "访谈为未做健康体检，但档案中有体检记录",
+      "6": "访谈为未做抽血，但档案中有抽血（血脂、肝功能等）记录",
+      "7": "档案涉嫌造假：死亡仍体检/异地体检/复制往年记录/3项及以上填0或拒绝"
+    },
+    sendRes: {
+      "1": "未及时发放体检结果或解读",
+      "2": "未及时发放体检结果或解读",
+      "5": "未及时发放体检结果或解读"
+    },
+    exam: {
+      "1": "体检日期、责任医生空项",
+      "2": "症状空项",
+      "3b": "体温空项",
+      "3c": "脉率空项",
+      "3d": "呼吸频率空项",
+      "3e": "身高空项",
+      "3f": "体重空项",
+      "3g": "腰围空项",
+      "3h": "体质指数空项",
+      "4": "老年人生活自理能力评估空项",
+      "5": "生活方式情况空项",
+      "6a": "口腔空项",
+      "6b": "视力空项",
+      "6c": "听力空项",
+      "6d": "运动功能空项",
+      "7a": "皮肤空项",
+      "7b": "巩膜空项",
+      "7c": "淋巴空项",
+      "7d": "心脏空项",
+      "7e": "肺空项",
+      "7f": "腹部空项",
+      "7g": "下肢水肿空项",
+      "8": "血常规空项",
+      "9": "尿常规空项",
+      "10": "血压空项",
+      "11": "空腹血糖空项",
+      "12": "心电图空项",
+      "13": "肝功能空项",
+      "14": "肾功能空项",
+      "15": "血脂空项",
+      "16": "腹部B超空项",
+      "17": "糖化血红蛋白空项",
+      "18": "主要用药情况空项",
+      "19": "健康评价空项",
+      "20": "健康指导空项",
+      "21": "危险因素控制空项",
+      "22": "现存主要健康问题空项",
+      "24": "住院史空项",
+      "25": "家庭病床史空项",
+      "26": "免疫接种史空项",
+      "27": "其他空项/错项"
+    },
+    fake: {
+      "1": "已死亡仍有体检记录",
+      "2": "不在本地居住却有本地体检记录",
+      "3": "复制往年体检记录",
+      "4": "辅助检查3项及以上填0/多项填拒绝"
+    }
+  },
+  hypertension: {
+    phoneError: {
+      "7": "电话空号",
+      "8": "电话错号",
+      "9": "电话为村医、村干和养老机构号码"
+    },
+    match: {
+      "2": "访谈为非高血压患者，但档案中显示为高血压患者",
+      "3": "访谈否认体检，但档案中有体检记录",
+      "4": "访谈否认随访，但档案中有随访记录",
+      "5": "访谈为随访中未测血压，但档案中有血压记录",
+      "6": "访谈为电话随访，但档案中记录为门诊/家庭随访",
+      "7": "实际随访次数少于系统录入的次数"
+    },
+    norm: {
+      "1": "随访日期空项或错项",
+      "2": "随访方式空项或错项",
+      "3": "症状未填写",
+      "4": "血压未填写",
+      "5": "健康指导空项或错项",
+      "6": "下次随访日期空项或错项",
+      "7": "随访医生签名空项或错项",
+      "8": "此次随访分类空项或错项",
+      "9": "本年度随访方式均为电话随访"
+    },
+    fake: {
+      "1": "已死亡仍有服务记录",
+      "2": "不在本地居住却有面对面服务记录",
+      "3": "复制往年/次服务记录"
+    }
+  },
+  diabetes: {
+    phoneError: {
+      "7": "电话空号",
+      "8": "电话错号",
+      "9": "电话为村医、村干和养老机构号码"
+    },
+    match: {
+      "2": "访谈为非糖尿病患者，但档案中显示为糖尿病患者",
+      "3": "访谈否认体检，但档案中有体检记录",
+      "4": "访谈否认随访，但档案中有随访记录",
+      "5": "访谈为随访中未测血糖或未测血压，但档案中有血糖与血压记录",
+      "6": "访谈为电话随访，但档案中记录为门诊/家庭随访",
+      "7": "实际随访次数少于系统录入的次数"
+    },
+    norm: {
+      "1": "随访日期空项或错项",
+      "2": "随访方式空项或错项",
+      "3": "症状未填写",
+      "4": "血压未填写",
+      "5": "血糖未填写",
+      "6": "足背动脉搏动未填写",
+      "7": "生活方式指导空项或错项",
+      "8": "服药依从性空项或错项（指降糖药）",
+      "9": "用药情况空项或错项（指降糖药）",
+      "10": "随访医生签名空项或错项",
+      "11": "此次随访分类空项或错项（控制是否满意）",
+      "12": "本年度随访方式均为电话随访"
+    },
+    fake: {
+      "1": "已死亡仍有服务记录",
+      "2": "不在本地居住却有面对面服务记录",
+      "3": "复制往年/次服务记录"
+    }
+  },
+  copd: {
+    phoneError: {
+      "7": "电话空号",
+      "8": "电话错号",
+      "9": "电话为村医、村干和养老机构号码"
+    },
+    match: {
+      "2": "访谈为非慢性呼吸系统疾病患者，但档案中显示为慢阻肺病患者",
+      "3": "访谈否认体检，但档案中有体检记录",
+      "4": "访谈否认随访，但档案中有随访记录",
+      "5": "访谈为随访中未测血氧饱和度，但档案中有血氧饱和度记录",
+      "6": "访谈为电话随访，但档案中记录为门诊/家庭随访",
+      "7": "实际随访次数少于系统录入的次数"
+    },
+    norm: {
+      "1": "随访日期不规范",
+      "2": "随访方式不规范",
+      "3": "症状未填写",
+      "4": "体征未填写",
+      "5": "血氧饱和度未填写",
+      "6": "用药情况不规范",
+      "7": "随访医生签名不规范",
+      "8": "此次随访分类不规范"
+    },
+    exam: {
+      "1": "有小体检记录，体检记录表有3项及以上空项或漏项",
+      "2": "未填写任一项",
+      "3": "现存主要健康问题未填写慢阻肺病",
+      "4": "健康指导未填",
+      "5": "危险因素控制未填",
+      "6": "本年度没有体检"
+    },
+    follow: {
+      "1": "具体症状、CAT评分、mMRC评估任意一项未填写",
+      "2": "具体症状、CAT评分、mMRC评估不一致",
+      "3": "面对面随访时血氧饱和度未填写",
+      "4": "用药依从性填写规律/间断用药时，用药情况未填写",
+      "5": "其他项目超过3项及以上空项、漏项或错项"
+    },
+    fake: {
+      "1": "已死亡仍有服务记录",
+      "2": "不在本地居住却有面对面服务记录",
+      "3": "复制往年/次服务记录"
+    }
+  }
+};
+
+function getRecords(key){
+  try {
+    return JSON.parse(localStorage.getItem(key) || '[]');
+  } catch(e) {
+    return [];
+  }
+}
+
+function getAllRecords(){
+  let all = [];
+  Object.keys(projects).forEach(p => {
+    getRecords(projects[p].key).forEach(r => all.push({...r, projectName: p}));
+  });
+  return all;
+}
+
+function collectProblems(record, projectKey){
+  const problems = [];
+  const maps = problemMaps[projectKey] || {};
+  const seen = new Set();
+
+  const replyCode = record.replyCode || record.reply || '';
+  if(['7','8','9'].includes(replyCode) && maps.phoneError){
+    const text = maps.phoneError[replyCode];
+    if(text && !seen.has(text)){
+      seen.add(text);
+      problems.push({type:'phone', text: text});
+    }
+  }
+
+  if(record.matchErrs && Array.isArray(record.matchErrs) && maps.match){
+    record.matchErrs.forEach(err => {
+      const text = maps.match[err];
+      if(text && !seen.has(text)){
+        seen.add(text);
+        problems.push({type:'match', text: text});
+      }
+    });
+  }
+
+  if(record.sendResCode && maps.sendRes){
+    const text = maps.sendRes[record.sendResCode];
+    if(text && !seen.has(text)){
+      seen.add(text);
+      problems.push({type:'send', text: text});
+    }
+  }
+
+  if(record.normErrs && Array.isArray(record.normErrs) && maps.norm){
+    record.normErrs.forEach(err => {
+      const text = maps.norm[err];
+      if(text && !seen.has(text)){
+        seen.add(text);
+        problems.push({type:'norms', text: text});
+      }
+    });
+  }
+
+  if(projectKey === 'resident' && record.deathNotEnd && maps.deathNotEnd){
+    const text = maps.deathNotEnd;
+    if(text && !seen.has(text)){
+      seen.add(text);
+      problems.push({type:'norms', text: text});
+    }
+  }
+
+  const examErrs = record.examErrs || record.errItems;
+  if(examErrs && Array.isArray(examErrs) && maps.exam){
+    examErrs.forEach(err => {
+      const text = maps.exam[err];
+      if(text && !seen.has(text)){
+        seen.add(text);
+        problems.push({type:'empty', text: text});
+      }
+    });
+  }
+
+  if(record.followErrs && Array.isArray(record.followErrs) && maps.follow){
+    record.followErrs.forEach(err => {
+      const text = maps.follow[err];
+      if(text && !seen.has(text)){
+        seen.add(text);
+        problems.push({type:'empty', text: text});
+      }
+    });
+  }
+
+  const fakeVal = record.fake || record.fakeCode;
+  if(fakeVal && fakeVal !== '0' && maps.fake){
+    const text = maps.fake[fakeVal];
+    if(text && !seen.has(text)){
+      seen.add(text);
+      problems.push({type:'error', text: text});
+    }
+  }
+
+  if(record.remark && record.remark.trim()){
+    const text = record.remark.trim();
+    if(!seen.has(text)){
+      seen.add(text);
+      problems.push({type:'remark', text: text});
+    }
+  }
+
+  return problems;
+}
+
+function loadYearOptions(){
+  const years = new Set();
+  getAllRecords().forEach(r => { if(r.year) years.add(String(r.year)); });
+  const sorted = [...years].sort().reverse();
+  const sel = document.getElementById('filterYear');
+  sel.innerHTML = '<option value="">全部年度</option>';
+  sorted.forEach(y => sel.innerHTML += '<option value="' + y + '">' + y + '</option>');
+}
+
+function generateReport(){
+  const year = document.getElementById('filterYear').value;
+  const quarter = document.getElementById('filterQuarter').value;
+
+  const orgMap = {};
+
+  Object.keys(projects).forEach(pName => {
+    const records = getRecords(projects[pName].key);
+    const filtered = records.filter(r => {
+      if(year && String(r.year) !== year) return false;
+      if(quarter && r.quarter !== quarter) return false;
+      return true;
+    });
+
+    filtered.forEach(r => {
+      const org = r.org || '未知单位';
+      if(!orgMap[org]){
+        orgMap[org] = {
+          '居民': {}, '老年人': {}, '高血压': {}, '糖尿病': {}, '慢阻肺': {}
+        };
+      }
+      const projectKey = pName === '居民' ? 'resident' : 
+                         pName === '老年人' ? 'elderly' : 
+                         pName === '高血压' ? 'hypertension' : 
+                         pName === '糖尿病' ? 'diabetes' : 'copd';
+      const problems = collectProblems(r, projectKey);
+      problems.forEach(pb => {
+        const text = pb.text;
+        if(orgMap[org][pName][text]){
+          orgMap[org][pName][text]++;
+        } else {
+          orgMap[org][pName][text] = 1;
+        }
+      });
+    });
+  });
+
+  const container = document.getElementById('reportContent');
+  const orgs = Object.keys(orgMap).sort();
+
+  if(orgs.length === 0){
+    container.innerHTML = '<div class="no-data">暂无数据</div>';
+    return;
+  }
+
+  let html = '<table><thead><tr>';
+  html += '<th style="width:150px;">单位</th>';
+  ['居民','老年人','高血压','糖尿病','慢阻肺'].forEach(p => {
+    html += '<th class="project-cell">' + p + '</th>';
+  });
+  html += '</tr></thead><tbody>';
+
+  orgs.forEach(org => {
+    html += '<tr>';
+    html += '<td style="font-weight:500;">' + org + '</td>';
+
+    ['居民','老年人','高血压','糖尿病','慢阻肺'].forEach(p => {
+      const problemObj = orgMap[org][p] || {};
+      const problems = Object.keys(problemObj);
+      html += '<td class="problem-cell">';
+      if(problems.length === 0){
+        html += '<span class="empty-msg">无</span>';
+      }else{
+        problems.forEach(text => {
+          const count = problemObj[text];
+          let type = 'remark';
+          if(text.includes('电话空号') || text.includes('电话错号') || text.includes('村医')) type = 'phone';
+          else if(text.includes('发放体检结果') || text.includes('解读')) type = 'send';
+          else if(text.includes('不规范')) type = 'norms';
+          else if(text.includes('不符') || text.includes('造假') || text.includes('死亡')) type = 'match';
+          else if(text.includes('空项') || text.includes('错项') || text.includes('未填写') || text.includes('未填')) type = 'empty';
+          else type = 'remark';
+          html += '<div class="item ' + type + '">' + text + (count > 1 ? ' <span class="count">(' + count + '次)</span>' : '') + '</div>';
+        });
+      }
+      html += '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function exportExcel(){
+  const year = document.getElementById('filterYear').value;
+  const quarter = document.getElementById('filterQuarter').value;
+
+  const orgMap = {};
+  Object.keys(projects).forEach(pName => {
+    const records = getRecords(projects[pName].key);
+    const filtered = records.filter(r => {
+      if(year && String(r.year) !== year) return false;
+      if(quarter && r.quarter !== quarter) return false;
+      return true;
+    });
+    filtered.forEach(r => {
+      const org = r.org || '未知单位';
+      if(!orgMap[org]){
+        orgMap[org] = {
+          '居民': {}, '老年人': {}, '高血压': {}, '糖尿病': {}, '慢阻肺': {}
+        };
+      }
+      const projectKey = pName === '居民' ? 'resident' : 
+                         pName === '老年人' ? 'elderly' : 
+                         pName === '高血压' ? 'hypertension' : 
+                         pName === '糖尿病' ? 'diabetes' : 'copd';
+      const problems = collectProblems(r, projectKey);
+      problems.forEach(pb => {
+        const text = pb.text;
+        if(orgMap[org][pName][text]){
+          orgMap[org][pName][text]++;
+        } else {
+          orgMap[org][pName][text] = 1;
+        }
+      });
+    });
+  });
+
+  const orgs = Object.keys(orgMap).sort();
+  const data = [];
+  data.push(['单位', '居民', '老年人', '高血压', '糖尿病', '慢阻肺']);
+
+  orgs.forEach(org => {
+    const row = [org];
+    ['居民','老年人','高血压','糖尿病','慢阻肺'].forEach(p => {
+      const problemObj = orgMap[org][p] || {};
+      const problems = Object.keys(problemObj).map(text => {
+        const count = problemObj[text];
+        return text + (count > 1 ? '(' + count + '次)' : '');
+      });
+      row.push(problems.length > 0 ? problems.join('；') : '无');
+    });
+    data.push(row);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '存在问题一览表');
+
+  let fileName = '存在问题一览表';
+  if(year) fileName += '_' + year;
+  if(quarter) fileName += '_' + quarter;
+  fileName += '.xlsx';
+
+  XLSX.writeFile(wb, fileName);
+}
+
+window.onload = function(){
+  loadYearOptions();
+  generateReport();
+};
+</script>
+</body>
+</html>
