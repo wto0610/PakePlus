@@ -1,0 +1,3366 @@
+﻿﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>健康档案季度核查录入系统</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing: border-box; font-size:14px;}
+body{padding:0;max-width:1600px;margin:0 auto;background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}
+.container{padding:20px;}
+/* 右侧判定栏（固定） */
+.judge-right{position:fixed;top:50%;right:20px;transform:translateY(-50%);z-index:999;width:260px;}
+/* 主内容区 */
+.main-content{margin-right:90px;}
+/* 判定汇总卡片 */
+.judge-card{background:#fff;border-radius:8px;padding:8px;box-shadow:0 2px 12px rgba(0,0,0,0.1);text-align:center;}
+.judge-card h4{margin:0 0 6px 0;color:#333;font-size:10px;font-weight:600;}
+.judge-mini{display:flex;flex-direction:column;gap:6px;}
+.judge-mini-item{display:flex;flex-direction:column;gap:2px;padding:3px 4px;background:#f8fafc;border-radius:4px;font-size:9px;}
+.judge-mini-item label{color:#666;font-size:8px;}
+.judge-mini-item .value{font-weight:600;font-size:11px;}
+.judge-mini-total{margin-top:6px;padding:6px;background:#eef6ff;border-radius:4px;font-weight:600;color:#0066cc;font-size:10px;}
+/* 顶部标题栏 */
+.header{background:linear-gradient(135deg,#0066cc 0%,#0052a3 100%);color:#fff;padding:20px 24px;border-radius:12px;margin-bottom:20px;box-shadow:0 4px 12px rgba(0,102,204,0.3);}
+.header h1{margin:0 0 8px 0;font-size:22px;}
+.header-sub{font-size:13px;opacity:0.9;}
+/* 提示信息 */
+.tip-red{background:#ffe8e8;color:#d00;padding:12px 16px;border-radius:8px;margin-bottom:14px;font-weight:500;display:none;border-left:4px solid #d00;}
+.tip-green{background:#e8ffe8;color:#060;padding:12px 16px;border-radius:8px;margin-bottom:14px;font-weight:500;display:none;border-left:4px solid #060;}
+/* 表单卡片 */
+.block{background:#fff;border-radius:10px;padding:24px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.block h3{margin:0 0 20px 0;color:#333;font-size:15px;border-left:4px solid #0066cc;padding-left:10px;}
+/* 两列布局 */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;}
+.form-group{margin-bottom:18px;}
+.form-group label{display:block;min-width:90px;color:#555;font-weight:500;margin-bottom:6px;}
+input[type="text"],input[type="number"],select{padding:8px 12px;width:100%;border:1px solid #ddd;border-radius:6px;font-size:14px;transition:border-color 0.2s;}
+input:focus,select:focus{outline:none;border-color:#0066cc;box-shadow:0 0 0 3px rgba(0,102,204,0.1);}
+input[type="radio"],input[type="checkbox"]{width:16px;height:16px;cursor:pointer;accent-color:#0066cc;}
+/* 选项列表 */
+.option-list{display:flex;flex-direction:column;gap:8px;}
+.option-item{display:flex;align-items:flex-start;padding:10px 14px;background:#f8fafc;border-radius:6px;transition:background 0.2s;}
+.option-item:hover{background:#eef6ff;}
+.option-item label{cursor:pointer;line-height:1.6;color:#444;margin:0;}
+/* 空错项分组 */
+.err-group{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;padding:12px;background:#f8fafc;border-radius:8px;margin-bottom:10px;}
+.err-group label{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#fff;border-radius:4px;cursor:pointer;font-size:13px;}
+/* 造假选项 */
+.fake-options{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;}
+/* 按钮样式 */
+.btn{padding:10px 20px;border:none;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s;}
+.btn-primary{background:#0066cc;color:#fff;}
+.btn-primary:hover{background:#0052a3;box-shadow:0 4px 12px rgba(0,102,204,0.3);}
+.btn-success{background:#28a745;color:#fff;}
+.btn-success:hover{background:#218838;}
+.btn-danger{background:#dc3545;color:#fff;}
+.btn-danger:hover{background:#c82333;}
+.btn-outline{background:#fff;color:#666;border:1px solid #ddd;}
+.btn-outline:hover{background:#f8f9fa;}
+/* 工具栏 */
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:16px 0;border-top:1px solid #eee;margin-top:20px;}
+.toolbar-left{flex:1;display:flex;gap:10px;flex-wrap:wrap;}
+/* 数据管理 */
+.data-section{background:#fff;border-radius:10px;padding:24px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.data-section h3{margin:0 0 18px 0;color:#333;font-size:15px;border-left:4px solid #0066cc;padding-left:10px;}
+.export-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+.export-row select,.export-row input{padding:8px 12px;border:1px solid #ddd;border-radius:6px;min-width:140px;}
+/* 模态框 */
+.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;display:none;}
+.modal.show{display:block;}
+.modal-content{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:24px;border-radius:12px;max-width:95%;max-height:85%;overflow:auto;min-width:400px;}
+.modal h3{margin:0 0 16px 0;color:#333;}
+/* 颜色 */
+.green{color:#28a745;font-weight:600}
+.red{color:#dc3545;font-weight:600}
+.orange{color:#fd7e14;font-weight:600}
+.hide-area{display:none;}
+/* 辅助 */
+.form-tip{font-size:12px;color:#999;margin-left:8px;}
+.required{color:#dc3545;}
+/* 标签页 */
+.tab-container{background:#fff;border-radius:10px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden;}
+.tab-header{display:flex;border-bottom:1px solid #eee;}
+.tab-item{flex:1;padding:14px 20px;text-align:center;font-size:15px;font-weight:500;cursor:pointer;color:#666;transition:all 0.2s;}
+.tab-item:hover{background:#f8fafc;color:#0066cc;}
+.tab-item.active{background:#0066cc;color:#fff;}
+.tab-content{padding:0;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+/* 搜索下拉组件 */
+.search-select{position:relative;width:100%;}
+.search-select-input{padding-right:32px;}
+.search-select-arrow{position:absolute;right:8px;top:50%;transform:translateY(-50%);pointer-events:none;color:#999;}
+.search-select-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #ddd;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.1);max-height:200px;overflow-y:auto;z-index:100;display:none;}
+.search-select-dropdown.show{display:block;}
+.search-select-option{padding:10px 12px;cursor:pointer;transition:background 0.2s;}
+.search-select-option:hover{background:#eef6ff;}
+.search-select-option.selected{background:#0066cc;color:#fff;}
+.search-select-no-result{padding:12px;color:#999;text-align:center;}
+/* 项目选择卡片 */
+.project-select-container{padding:40px 20px;max-width:1000px;margin:0 auto;}
+.project-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:24px;}
+.project-card{background:#fff;border-radius:12px;padding:30px 20px;text-align:center;cursor:pointer;transition:all 0.3s ease;box-shadow:0 2px 12px rgba(0,0,0,0.08);border:2px solid transparent;}
+.project-card:hover{transform:translateY(-5px);box-shadow:0 8px 25px rgba(0,0,0,0.15);border-color:#0066cc;}
+.project-icon{width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 15px;font-size:32px;color:#fff;}
+.project-name{font-size:20px;font-weight:600;color:#333;margin-bottom:8px;}
+.project-desc{font-size:13px;color:#666;}
+/* 管理界面全屏显示（无右侧边距） */
+#manageTab{margin-right:0;}
+@media(max-width:768px){
+  .form-grid{grid-template-columns:1fr;}
+  .err-group{grid-template-columns:1fr 1fr;}
+  .export-row{flex-direction:column;align-items:stretch;}
+  .judge-inner{flex-direction:column;gap:10px;}
+  .judge-row{gap:12px;}
+  .judge-item{min-width:120px;}
+  .main-content{padding-top:100px;}
+  .project-cards{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<!-- 主内容区 -->
+<div class="main-content">
+<!-- 顶部标题 -->
+<div class="header">
+  <h1>基层健康档案季度核查信息录入系统</h1>
+  <div class="header-sub">录入、判定、导出全流程管理</div>
+</div>
+
+<!-- 标签页切换 -->
+<div class="tab-container">
+<div class="tab-header">
+  <div class="tab-item active" onclick="switchTab('home')">首页</div>
+  <div class="tab-item" onclick="switchTab('entry')">录入界面</div>
+  <div class="tab-item" onclick="switchTab('manage')">管理界面</div>
+</div>
+<div class="tab-content">
+
+<!-- 首页：项目选择 -->
+<div class="tab-panel active" id="homeTab">
+<div class="project-select-container">
+  <h2 style="text-align:center;margin-bottom:30px;color:#333;">请选择核查项目</h2>
+  <div class="project-cards">
+    <div class="project-card" onclick="selectProject('居民')">
+      <div class="project-icon" style="background:#17a2b8;">👤</div>
+      <div class="project-name">居民</div>
+      <div class="project-desc">居民健康档案核查</div>
+    </div>
+    <div class="project-card" onclick="selectProject('老年人')">
+      <div class="project-icon" style="background:#6c757d;">👴</div>
+      <div class="project-name">老年人</div>
+      <div class="project-desc">老年人健康管理核查</div>
+    </div>
+    <div class="project-card" onclick="selectProject('高血压')">
+      <div class="project-icon" style="background:#dc3545;">❤️</div>
+      <div class="project-name">高血压</div>
+      <div class="project-desc">高血压患者管理核查</div>
+    </div>
+    <div class="project-card" onclick="selectProject('糖尿病')">
+      <div class="project-icon" style="background:#fd7e14;">🩸</div>
+      <div class="project-name">糖尿病</div>
+      <div class="project-desc">糖尿病患者管理核查</div>
+    </div>
+    <div class="project-card" onclick="selectProject('慢阻肺')">
+      <div class="project-icon" style="background:#28a745;">🫁</div>
+      <div class="project-name">慢阻肺</div>
+      <div class="project-desc">慢阻肺病患者管理核查</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- 录入界面 -->
+<div class="tab-panel" id="entryTab">
+
+<!-- 提示信息 -->
+<div class="tip-red" id="replyDisableTip">当前应答为无效应答，无需填写下方档案核查内容，可直接保存本条记录</div>
+<div class="tip-red" id="matchDisableTip">符合性判定为不符合，本次问卷结束，下方体检相关内容隐藏不可填写</div>
+<div class="tip-green" id="matchOkTip">符合性判定全部相符，可继续填写体检核查内容</div>
+
+<!-- 一、基础信息 -->
+<div class="block">
+<h3>一、基础信息</h3>
+<div class="form-grid">
+<div class="form-group"><label>核查单位<span class="required">*</span></label>
+<div class="search-select" id="orgSelect">
+<input type="text" id="orgInput" class="search-select-input" placeholder="请输入单位名称搜索">
+<span class="search-select-arrow">▼</span>
+<div class="search-select-dropdown" id="orgDropdown">
+<div class="search-select-option" data-value="">请选择单位</div>
+<div class="search-select-option" data-value="澄城社区卫生服务中心">澄城社区卫生服务中心</div>
+<div class="search-select-option" data-value="金江镇卫生院">金江镇卫生院</div>
+<div class="search-select-option" data-value="山口社区卫生服务中心">山口社区卫生服务中心</div>
+<div class="search-select-option" data-value="仁兴镇卫生院">仁兴镇卫生院</div>
+<div class="search-select-option" data-value="中兴镇卫生院">中兴镇卫生院</div>
+<div class="search-select-option" data-value="太平社区卫生服务中心">太平社区卫生服务中心</div>
+<div class="search-select-option" data-value="加乐镇中心卫生院">加乐镇中心卫生院</div>
+<div class="search-select-option" data-value="文儒镇卫生院">文儒镇卫生院</div>
+<div class="search-select-option" data-value="文儒镇卫生院石浮门诊部">文儒镇卫生院石浮门诊部</div>
+<div class="search-select-option" data-value="金江镇长安卫生院">金江镇长安卫生院</div>
+<div class="search-select-option" data-value="瑞溪镇中心卫生院">瑞溪镇中心卫生院</div>
+<div class="search-select-option" data-value="永发镇中心卫生院">永发镇中心卫生院</div>
+<div class="search-select-option" data-value="永发镇中心卫生院新吴门诊部">永发镇中心卫生院新吴门诊部</div>
+<div class="search-select-option" data-value="大丰镇卫生院">大丰镇卫生院</div>
+<div class="search-select-option" data-value="美亭社区卫生服务中心">美亭社区卫生服务中心</div>
+<div class="search-select-option" data-value="福山镇卫生院">福山镇卫生院</div>
+<div class="search-select-option" data-value="桥头镇卫生院">桥头镇卫生院</div>
+<div class="search-select-option" data-value="老城社区卫生服务中心">老城社区卫生服务中心</div>
+<div class="search-select-option" data-value="老城镇中心卫生院">老城镇中心卫生院</div>
+<div class="search-select-option" data-value="老城镇中心卫生院马村门诊部">老城镇中心卫生院马村门诊部</div>
+<div class="search-select-option" data-value="仁兴镇西达卫生院">仁兴镇西达卫生院</div>
+<div class="search-select-option" data-value="福山镇红光卫生院">福山镇红光卫生院</div>
+<div class="search-select-option" data-value="文儒镇红岗卫生院">文儒镇红岗卫生院</div>
+<div class="search-select-option" data-value="金安社区卫生服务中心">金安社区卫生服务中心</div>
+<div class="search-select-option" data-value="昆仑社区卫生服务中心">昆仑社区卫生服务中心</div>
+<div class="search-select-option" data-value="和岭社区卫生服务中心">和岭社区卫生服务中心</div>
+</div>
+<input type="hidden" id="org" name="org">
+</div></div>
+<div class="form-group">
+<label>核查项目<span class="required">*</span></label>
+<div style="display:flex;align-items:center;gap:10px;">
+<div id="projectDisplay" style="flex:1;padding:10px 12px;background:#eef6ff;border-radius:6px;font-weight:600;color:#0066cc;font-size:16px;">未选择项目</div>
+<button type="button" class="btn btn-outline" onclick="switchTab('home')" style="white-space:nowrap;">返回首页</button>
+</div>
+<select id="project" style="display:none;">
+<option value="">请选择项目</option>
+<option value="居民">居民</option>
+<option value="老年人">老年人</option>
+<option value="高血压">高血压</option>
+<option value="糖尿病">糖尿病</option>
+<option value="慢阻肺">慢阻肺</option>
+</select>
+</div>
+<div class="form-group"><label>年度<span class="required">*</span></label>
+<input type="number" id="year" placeholder="如2026"></div>
+<div class="form-group"><label>季度<span class="required">*</span></label>
+<select id="quarter">
+<option value="">请选择季度</option>
+<option value="Q1">一季度</option>
+<option value="Q2">二季度</option>
+<option value="Q3">三季度</option>
+<option value="Q4">四季度</option>
+</select></div>
+<div class="form-group"><label>姓名<span class="required">*</span></label>
+<input type="text" id="name"></div>
+<div class="form-group"><label>性别</label>
+<div style="display:flex;gap:16px;padding-top:6px;">
+<label><input type="radio" name="sex" value="男"> 男</label>
+<label><input type="radio" name="sex" value="女"> 女</label>
+</div></div>
+<div class="form-group"><label>年龄</label>
+<input type="number" id="age" min="0" max="120"></div>
+<div class="form-group"><label>身份证号</label>
+<input type="text" id="idcard" maxlength="18"><span class="form-tip" id="idTip"></span></div>
+<div class="form-group"><label>联系电话</label>
+<input type="text" id="tel" maxlength="11"><span class="form-tip" id="telTip"></span></div>
+</div>
+</div>
+
+<!-- 二、应答情况 -->
+<div class="block">
+<h3>二、应答情况</h3>
+<div class="option-list">
+<div class="option-item"><label><input type="radio" name="reply" value="1"> ①本人应答</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="2"> ②应答人为家属、亲戚等，了解情况</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="3"> ③应答人为家属、亲戚等，不了解核查对象具体情况</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="4"> ④无法接通（不同时间拨打三次，关机、停机）</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="5"> ⑤拒绝调查：接听后不配合，中途退出</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="6"> ⑥空号</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="7"> ⑦错号</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="8"> ⑧电话为村医、村干号码</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="9"> ⑨本人应答，记不清情况</label></div>
+</div>
+</div>
+
+<div class="block">
+<div class="toolbar">
+<div class="toolbar-left">
+<button class="btn btn-primary" onclick="saveRecord()">保存本条记录</button>
+<button class="btn btn-outline" onclick="clearForm()">清空表单</button>
+</div>
+<div>
+<span style="color:#666;font-size:13px;">已保存记录：</span>
+<span id="recordCount" style="color:#0066cc;font-weight:600;">0</span>
+<span style="color:#666;font-size:13px;">条</span>
+</div>
+</div>
+
+<!-- 右侧实时判定面板（仅录入界面显示） -->
+<div class="judge-right" id="judgePanel">
+<div class="judge-card">
+  <h4>实时判定</h4>
+  <div class="judge-mini">
+    <div class="judge-mini-item"><label>有效性</label><span class="value green" id="res1">待选择</span></div>
+    <div class="judge-mini-item"><label>符合性</label><span class="value" id="res2">待判定</span></div>
+    <div class="judge-mini-item"><label>规范性</label><span class="value" id="resExam">待判定</span></div>
+    <div class="judge-mini-item" id="controlRateItem" style="display:none;"><label>控制率</label><span class="value" id="resControl">待填写</span></div>
+    <div class="judge-mini-item"><label>是否造假</label><span class="value green" id="res6">无</span></div>
+  </div>
+  <div id="resTotal" class="judge-mini-total"></div>
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- 管理界面 -->
+<div class="tab-panel" id="manageTab">
+
+<!-- 第一行：总体统计卡片 -->
+<div class="block">
+  <h3>录入档案总体情况</h3>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
+    <div style="background:#f8fafc;padding:12px;border-radius:6px;text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:#0066cc;" id="totalCount">0</div>
+      <div style="font-size:12px;color:#666;">总记录数</div>
+    </div>
+    <div style="background:#f8fafc;padding:12px;border-radius:6px;text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:#28a745;" id="validCount">0</div>
+      <div style="font-size:12px;color:#666;">有效核查数</div>
+    </div>
+    <div style="background:#f8fafc;padding:12px;border-radius:6px;text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:#dc3545;" id="lostCount">0</div>
+      <div style="font-size:12px;color:#666;">失访数</div>
+    </div>
+    <div style="background:#f8fafc;padding:12px;border-radius:6px;text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:#fd7e14;" id="telErrorCount">0</div>
+      <div style="font-size:12px;color:#666;">电话异常数</div>
+    </div>
+    <div style="background:#f8fafc;padding:12px;border-radius:6px;text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:#28a745;" id="matchCount">0</div>
+      <div style="font-size:12px;color:#666;">符合数</div>
+    </div>
+    <div style="background:#f8fafc;padding:12px;border-radius:6px;text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:#dc3545;" id="unmatchCount">0</div>
+      <div style="font-size:12px;color:#666;">不符合数</div>
+    </div>
+    <div style="background:#f8fafc;padding:12px;border-radius:6px;text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:#0066cc;" id="matchRate">-</div>
+      <div style="font-size:12px;color:#666;">符合率(%)</div>
+    </div>
+    <div style="background:#f8fafc;padding:12px;border-radius:6px;text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:#28a745;" id="standardCount">0</div>
+      <div style="font-size:12px;color:#666;">规范数</div>
+    </div>
+    <div style="background:#f8fafc;padding:12px;border-radius:6px;text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:#dc3545;" id="unstandardCount">0</div>
+      <div style="font-size:12px;color:#666;">不规范数</div>
+    </div>
+    <div style="background:#f8fafc;padding:12px;border-radius:6px;text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:#0066cc;" id="standardRate">-</div>
+      <div style="font-size:12px;color:#666;">规范率(%)</div>
+    </div>
+    <div style="background:#f8fafc;padding:12px;border-radius:6px;text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:#dc3545;" id="fakeCount">0</div>
+      <div style="font-size:12px;color:#666;">造假档案数</div>
+    </div>
+    <div style="background:#e8f5e9;padding:12px;border-radius:6px;text-align:center;border:2px solid #28a745;">
+      <div style="font-size:24px;font-weight:700;color:#28a745;" id="hypControlOkCount">0</div>
+      <div style="font-size:12px;color:#666;">高血压控制满意</div>
+    </div>
+    <div style="background:#ffebee;padding:12px;border-radius:6px;text-align:center;border:2px solid #dc3545;">
+      <div style="font-size:24px;font-weight:700;color:#dc3545;" id="hypControlNotOkCount">0</div>
+      <div style="font-size:12px;color:#666;">高血压控制不满意</div>
+    </div>
+    <div style="background:#f8fafc;padding:12px;border-radius:6px;text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:#0066cc;" id="hypControlRate">-</div>
+      <div style="font-size:12px;color:#666;">高血压控制率(%)</div>
+    </div>
+    <div style="background:#e8f5e9;padding:12px;border-radius:6px;text-align:center;border:2px solid #e67e22;">
+      <div style="font-size:24px;font-weight:700;color:#e67e22;" id="dmControlOkCount">0</div>
+      <div style="font-size:12px;color:#666;">糖尿病控制满意</div>
+    </div>
+    <div style="background:#ffebee;padding:12px;border-radius:6px;text-align:center;border:2px solid #9b59b6;">
+      <div style="font-size:24px;font-weight:700;color:#9b59b6;" id="dmControlNotOkCount">0</div>
+      <div style="font-size:12px;color:#666;">糖尿病控制不满意</div>
+    </div>
+    <div style="background:#f8fafc;padding:12px;border-radius:6px;text-align:center;">
+      <div style="font-size:24px;font-weight:700;color:#e67e22;" id="dmControlRate">-</div>
+      <div style="font-size:12px;color:#666;">糖尿病控制率(%)</div>
+    </div>
+  </div>
+</div>
+
+<!-- 第二行：季度对比统计 -->
+<div class="block" style="margin-top:20px;">
+  <h3>季度对比统计</h3>
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="background:#0066cc;color:#fff;">
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">年度</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">季度</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">总记录</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">有效数</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">失访数</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">电话异常</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">符合数</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">不符合数</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">符合率(%)</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">规范数</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">不规范数</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">规范率(%)</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">造假数</th>
+        </tr>
+      </thead>
+      <tbody id="quarterTableBody">
+        <tr><td colspan="13" style="color:#999;text-align:center;padding:20px;">暂无数据</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 第三行：各单位统计 -->
+<div class="block" style="margin-top:20px;">
+  <h3>各单位统计明细</h3>
+  <div style="margin-bottom:16px;">
+    <select id="statsYear" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;margin-right:10px;">
+      <option value="">全部年度</option>
+    </select>
+    <select id="statsQuarter" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;margin-right:10px;">
+      <option value="">全部季度</option>
+      <option value="Q1">一季度</option>
+      <option value="Q2">二季度</option>
+      <option value="Q3">三季度</option>
+      <option value="Q4">四季度</option>
+    </select>
+    <button class="btn btn-primary" onclick="filterOrgStats()">筛选</button>
+    <button class="btn btn-success" onclick="exportOrgStats()">导出单位统计</button>
+  </div>
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="background:#0066cc;color:#fff;">
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">单位名称</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">录入数</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">有效数</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">失访数</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">电话异常</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">符合数</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">不符合数</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">符合率(%)</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">规范数</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">不规范数</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">规范率(%)</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">造假数</th>
+        </tr>
+      </thead>
+      <tbody id="orgStatsBody">
+        <tr><td colspan="12" style="color:#999;text-align:center;padding:20px;">暂无数据</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 第四行：考核评分设置 -->
+<div class="block" style="margin-top:20px;">
+  <h3>考核评分设置</h3>
+
+  <!-- 老年人评分标准 -->
+  <div style="margin-bottom:20px;">
+    <h4 style="color:#0066cc;margin:0 0 12px 0;">老年人评分标准</h4>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;padding:16px;background:#f0f7ff;border-radius:8px;">
+      <div>
+        <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">总分（基础分）</label>
+        <input type="number" id="elderScoreTotal" value="100" min="0" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;width:100%;">
+      </div>
+      <div>
+        <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">失访一份扣分</label>
+        <input type="number" id="elderScoreLost" value="2" min="0" step="0.5" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;width:100%;">
+      </div>
+      <div>
+        <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">电话异常一份扣分</label>
+        <input type="number" id="elderScoreTelError" value="1" min="0" step="0.5" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;width:100%;">
+      </div>
+      <div>
+        <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">不符合一份扣分</label>
+        <input type="number" id="elderScoreUnmatch" value="3" min="0" step="0.5" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;width:100%;">
+      </div>
+      <div>
+        <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">规范率达标阈值(%)</label>
+        <input type="number" id="elderScoreStandardRate" value="90" min="0" max="100" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;width:100%;">
+      </div>
+      <div>
+        <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">规范率不达标扣分</label>
+        <input type="number" id="elderScoreStandardBonus" value="10" min="0" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;width:100%;">
+      </div>
+    </div>
+  </div>
+
+  <!-- 高血压评分标准 -->
+  <div style="margin-bottom:20px;">
+    <h4 style="color:#28a745;margin:0 0 12px 0;">高血压评分标准</h4>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;padding:16px;background:#e8f5e9;border-radius:8px;">
+      <div>
+        <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">总分（基础分）</label>
+        <input type="number" id="hypScoreTotal" value="100" min="0" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;width:100%;">
+      </div>
+      <div>
+        <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">失访一份扣分</label>
+        <input type="number" id="hypScoreLost" value="2" min="0" step="0.5" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;width:100%;">
+      </div>
+      <div>
+        <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">电话异常一份扣分</label>
+        <input type="number" id="hypScoreTelError" value="1" min="0" step="0.5" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;width:100%;">
+      </div>
+      <div>
+        <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">不符合一份扣分</label>
+        <input type="number" id="hypScoreUnmatch" value="3" min="0" step="0.5" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;width:100%;">
+      </div>
+      <div>
+        <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">规范率达标阈值(%)</label>
+        <input type="number" id="hypScoreStandardRate" value="90" min="0" max="100" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;width:100%;">
+      </div>
+      <div>
+        <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">规范率不达标扣分</label>
+        <input type="number" id="hypScoreStandardBonus" value="10" min="0" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;width:100%;">
+      </div>
+      <div>
+        <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">控制率达标阈值(%)</label>
+        <input type="number" id="hypScoreControlRate" value="60" min="0" max="100" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;width:100%;">
+      </div>
+      <div>
+        <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">控制率不达标扣分</label>
+        <input type="number" id="hypScoreControlBonus" value="10" min="0" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;width:100%;">
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px;">
+    <button class="btn btn-primary" onclick="calculateScores()">计算各单位得分</button>
+    <button class="btn btn-success" onclick="exportScoreExcel()">导出得分表</button>
+  </div>
+  <div style="margin-top:20px;overflow-x:auto;">
+    <h4 style="margin:0 0 12px 0;color:#333;">各单位考核得分表</h4>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="background:#0066cc;color:#fff;">
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">排名</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:left;">单位名称</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">项目</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">录入数</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">有效数</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">失访数</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">电话异常</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">符合数</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">不符合数</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">规范率(%)</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">控制率(%)</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">得分</th>
+        </tr>
+      </thead>
+      <tbody id="scoreTableBody">
+        <tr><td colspan="12" style="color:#999;text-align:center;padding:20px;">暂无数据，请先保存记录后点击"计算各单位得分"</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 各单位存在问题一览表 -->
+  <div style="margin-top:20px;overflow-x:auto;">
+    <h4 style="margin:0 0 12px 0;color:#333;">各单位存在问题一览表</h4>
+    <div style="margin-bottom:12px;">
+      <button class="btn btn-primary" onclick="showOrgProblemTable()">刷新问题表</button>
+      <button class="btn btn-success" onclick="exportOrgProblemExcel()">导出问题表</button>
+    </div>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="background:#dc3545;color:#fff;">
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:left;">单位名称</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">问题总数</th>
+          <th style="padding:12px 8px;border:1px solid #e2e8f0;text-align:left;">具体问题</th>
+        </tr>
+      </thead>
+      <tbody id="problemTableBody">
+        <tr><td colspan="3" style="color:#999;text-align:center;padding:20px;">暂无数据，点击"刷新问题表"查看存在问题的档案</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 第五行：报告生成 -->
+<div class="block" style="margin-top:20px;">
+  <h3>初步分析报告</h3>
+  <div style="margin-bottom:16px;">
+    <button class="btn btn-primary" onclick="generateReport()">生成分析报告</button>
+    <button class="btn btn-success" onclick="exportReport()">导出报告</button>
+  </div>
+  <div id="reportContent" style="background:#f8fafc;padding:20px;border-radius:8px;min-height:200px;display:none;">
+    <!-- 报告内容将动态生成 -->
+  </div>
+</div>
+
+<!-- 第五行：数据管理与导出 -->
+<div class="block" style="margin-top:20px;">
+  <h3>数据管理与导出</h3>
+  <div class="export-row">
+    <select id="exportYear"><option value="">全部年度</option></select>
+    <select id="exportQuarter">
+      <option value="">全部季度</option>
+      <option value="Q1">一季度</option>
+      <option value="Q2">二季度</option>
+      <option value="Q3">三季度</option>
+      <option value="Q4">四季度</option>
+    </select>
+    <button class="btn btn-success" onclick="exportExcelByQuarter()">按条件导出Excel</button>
+    <button class="btn btn-outline" onclick="exportAllExcel()">导出全部Excel</button>
+  </div>
+  <div class="export-row" style="margin-top:12px;">
+    <button class="btn btn-outline" onclick="showRecordList()">查看/删除记录</button>
+    <button class="btn btn-danger" onclick="clearAllRecords()">清空全部记录</button>
+  </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- 记录列表模态框 -->
+<div id="recordModal" class="modal">
+<div class="modal-content">
+<h3>已保存记录列表 <button class="btn btn-outline" onclick="closeRecordModal()" style="float:right;">关闭</button></h3>
+<div id="recordTableArea"></div>
+</div>
+</div>
+
+<script>
+let recordList = [];
+try {
+    const stored = localStorage.getItem("checkRecords");
+    if (stored) recordList = JSON.parse(stored);
+} catch (e) {
+    console.error("读取本地存储失败", e);
+    recordList = [];
+}
+const replyDisableTip = document.getElementById("replyDisableTip");
+const matchDisableTip = document.getElementById("matchDisableTip");
+const matchOkTip = document.getElementById("matchOkTip");
+const matchArea = document.getElementById("matchArea");
+const examAllBlock = document.getElementById("examAllBlock");
+const matchAllOk = document.getElementById("matchAllOk");
+const matchErrList = document.querySelectorAll(".matchErr");
+const errOther = document.getElementById("errOther");
+const otherInput = document.getElementById("otherInput");
+const idcard = document.getElementById("idcard");
+const tel = document.getElementById("tel");
+const idTip = document.getElementById("idTip");
+const telTip = document.getElementById("telTip");
+let matchResult = "待判定";
+let isFakeRecord = false;
+let prevMatchOkBeforeFake = false;
+
+// 全部计算入口
+function calcAll(){
+    checkIdTelFormat();
+    calcReply();
+    const project = document.getElementById("project")?.value;
+    if(project === "高血压"){
+        calcHypMatch();
+        calcHypStandard();
+        calcHypControl();
+        calcFake();
+    } else if(project === "糖尿病"){
+        calcDmMatch();
+        calcDmStandard();
+        calcDmControl();
+    } else if(project === "慢阻肺"){
+        calcCopdMatch();
+        calcCopdStandard();
+    } else if(project === "居民"){
+        calcResMatch();
+        calcResStandard();
+        calcFake();
+    } else {
+        calcMatch();
+        calcExamTotal();
+        calcFake();
+    }
+    calcTotal();
+}
+
+// 项目类型切换 - 显示/隐藏不同问卷
+document.getElementById("project")?.addEventListener("change", function(){
+    const project = this.value;
+    const projectDisplay = document.getElementById("projectDisplay");
+    // 更新项目显示
+    if(projectDisplay){
+        if(project){
+            projectDisplay.innerText = project;
+            projectDisplay.style.background = "#eef6ff";
+            projectDisplay.style.color = "#0066cc";
+        } else {
+            projectDisplay.innerText = "未选择项目";
+            projectDisplay.style.background = "#fff3cd";
+            projectDisplay.style.color = "#856404";
+        }
+    }
+
+    const elderQ = document.getElementById("elderQuestionnaire");
+    const hypQ = document.getElementById("hypertensionQuestionnaire");
+    const dmQ = document.getElementById("diabetesQuestionnaire");
+    const copdQ = document.getElementById("copdQuestionnaire");
+    const resQ = document.getElementById("residentQuestionnaire");
+    const controlRateItem = document.getElementById("controlRateItem");
+    const fakeBlock = document.getElementById("fakeBlock");
+
+    // 隐藏所有问卷和fakeBlock
+    [elderQ, hypQ, dmQ, copdQ, resQ].forEach(q => {
+        if(q) q.classList.add("hide-area");
+    });
+    if(fakeBlock) fakeBlock.classList.add("hide-area");
+
+    // 根据项目类型显示对应问卷
+    if(project === "老年人"){
+        // 老年人问卷内容在matchArea内部
+        if(fakeBlock) fakeBlock.classList.remove("hide-area");
+        if(controlRateItem) controlRateItem.style.display = "none";
+        // 老年人档案比对部分
+        const replyVal = document.querySelector('input[name="reply"]:checked')?.value;
+        if(replyVal === "1" || replyVal === "2"){
+            matchArea.style.display = "block";
+        } else {
+            matchArea.style.display = "none";
+        }
+    } else if(project === "高血压"){
+        if(hypQ) hypQ.classList.remove("hide-area");
+        if(fakeBlock) fakeBlock.classList.remove("hide-area");
+        if(controlRateItem) controlRateItem.style.display = "flex";
+        // 高血压问卷也在matchArea内部
+        const replyVal = document.querySelector('input[name="reply"]:checked')?.value;
+        if(replyVal === "1" || replyVal === "2"){
+            matchArea.style.display = "block";
+        } else {
+            matchArea.style.display = "none";
+        }
+    } else if(project === "糖尿病"){
+        if(dmQ) dmQ.classList.remove("hide-area");
+        // 糖尿病有自己的造假判定，不需要显示fakeBlock
+        if(controlRateItem) controlRateItem.style.display = "flex";
+        // 糖尿病问卷也在matchArea内部
+        const replyVal = document.querySelector('input[name="reply"]:checked')?.value;
+        if(replyVal === "1" || replyVal === "2"){
+            matchArea.style.display = "block";
+        } else {
+            matchArea.style.display = "none";
+        }
+    } else if(project === "慢阻肺"){
+        if(copdQ) copdQ.classList.remove("hide-area");
+        // 慢阻肺有自己的造假判定，不需要显示fakeBlock
+        if(controlRateItem) controlRateItem.style.display = "none";
+        // 慢阻肺问卷也在matchArea内部
+        const replyVal = document.querySelector('input[name="reply"]:checked')?.value;
+        if(replyVal === "1" || replyVal === "2"){
+            matchArea.style.display = "block";
+        } else {
+            matchArea.style.display = "none";
+        }
+    } else if(project === "居民"){
+        if(resQ) resQ.classList.remove("hide-area");
+        if(fakeBlock) fakeBlock.classList.remove("hide-area");
+        if(controlRateItem) controlRateItem.style.display = "none";
+        // 居民问卷也在matchArea内部
+        const replyVal = document.querySelector('input[name="reply"]:checked')?.value;
+        if(replyVal === "1" || replyVal === "2"){
+            matchArea.style.display = "block";
+        } else {
+            matchArea.style.display = "none";
+        }
+    }
+    calcAll();
+});
+
+// 控制率第二项血压值输入框显示
+function toggleBPMeasureValue(radio){
+    const yesGroup = document.getElementById("hypBPMeasureYesGroup");
+    const noGroup = document.getElementById("hypBPMeasureNoGroup");
+    if(radio.value === "1"){
+        yesGroup.style.display = "flex";
+        noGroup.style.display = "none";
+    } else if(radio.value === "2"){
+        yesGroup.style.display = "none";
+        noGroup.style.display = "flex";
+    } else {
+        yesGroup.style.display = "none";
+        noGroup.style.display = "none";
+    }
+}
+
+// 身份证、手机号格式校验
+function checkIdTelFormat(){
+    const idVal = idcard.value.trim();
+    const telVal = tel.value.trim();
+    if(idVal === ""){
+        idTip.innerText = "";
+    }else if(/(^\d{18}$)|(^\d{17}(\d|X|x)$)/.test(idVal)){
+        idTip.className = "form-tip green";
+        idTip.innerText = "身份证格式正确";
+    }else{
+        idTip.className = "form-tip red";
+        idTip.innerText = "身份证格式错误";
+    }
+    if(telVal === ""){
+        telTip.innerText = "";
+    }else if(/^1[3-9]\d{9}$/.test(telVal) || /^\d{7,12}$/.test(telVal)){
+        telTip.className = "form-tip green";
+        telTip.innerText = "号码格式正确";
+    }else{
+        telTip.className = "form-tip red";
+        telTip.innerText = "号码格式错误";
+    }
+}
+
+// 1.应答有效性控制区块显示
+function calcReply(){
+    const val = document.querySelector('input[name="reply"]:checked')?.value;
+    if(!val){
+        document.getElementById("res1").innerText = "待选择";
+        replyDisableTip.style.display = "none";
+        matchArea.style.display = "none";
+        return;
+    }
+    let html;
+    if(val === "1" || val === "2"){
+        html = `<span class="green">有效应答</span>`;
+        replyDisableTip.style.display = "none";
+        matchArea.style.display = "block";
+    }else{
+        const type = ["3","4","5","9"].includes(val) ? "失访" : "电话异常";
+        html = `<span class="red">无效应答 - ${type}</span>`;
+        replyDisableTip.style.display = "block";
+        matchArea.style.display = "none";
+        examAllBlock.classList.add("hide-area");
+        // 清空档案比对及体检相关选择
+        matchResult = "待判定";
+        matchAllOk.checked = false;
+        matchErrList.forEach(item => { item.checked = false; item.disabled = false; });
+        clearExamSection();
+    }
+    document.getElementById("res1").innerHTML = html;
+}
+
+// 清空体检区域选择
+function clearExamSection(){
+    document.querySelectorAll('input[name="sendRes"]').forEach(el => el.checked = false);
+    document.querySelectorAll('.errItem').forEach(el => el.checked = false);
+    otherInput.style.display = "none";
+    otherInput.value = "";
+    document.querySelectorAll('input[name="fake"]').forEach(el => el.checked = false);
+    document.getElementById("resExam").innerText = "——";
+    document.getElementById("res6").innerText = "无涉嫌造假";
+    isFakeRecord = false;
+    prevMatchOkBeforeFake = false;
+}
+
+// 2.符合性判定互斥、控制体检区块显示
+function calcMatch(){
+    matchDisableTip.style.display = "none";
+    matchOkTip.style.display = "none";
+
+    const fakeVal = document.querySelector('input[name="fake"]:checked')?.value || "0";
+    if(fakeVal !== "0"){
+        document.getElementById("res2").innerHTML = `<span class="red">不符合</span>`;
+        matchResult = "不符合";
+        matchDisableTip.style.display = "block";
+        examAllBlock.classList.remove("hide-area");
+        document.getElementById("errBlock").classList.add("hide-area");
+        return;
+    }
+
+    const allOkChecked = matchAllOk.checked;
+    let hasErrItem = false;
+    matchErrList.forEach(item => { if(item.checked) hasErrItem = true; });
+
+    if(allOkChecked){
+        // 符合：显示四、五
+        matchErrList.forEach(item => {
+            item.checked = false;
+            item.disabled = true;
+        });
+        document.getElementById("res2").innerHTML = `<span class="green">符合</span>`;
+        matchResult = "符合";
+        matchOkTip.style.display = "block";
+        examAllBlock.classList.remove("hide-area");
+        document.getElementById("errBlock").classList.remove("hide-area");
+    }else if(hasErrItem){
+        // 不符合：显示四，隐藏五
+        matchErrList.forEach(item => item.disabled = false);
+        document.getElementById("res2").innerHTML = `<span class="red">不符合</span>`;
+        matchResult = "不符合";
+        matchDisableTip.style.display = "block";
+        examAllBlock.classList.remove("hide-area");
+        document.getElementById("errBlock").classList.add("hide-area");
+        // 清空空错项选择
+        document.querySelectorAll('.errItem').forEach(el => el.checked = false);
+        otherInput.style.display = "none";
+        otherInput.value = "";
+    }else{
+        // 待勾选：隐藏四、五
+        matchErrList.forEach(item => item.disabled = false);
+        document.getElementById("res2").innerText = "待勾选比对项";
+        matchResult = "待判定";
+        examAllBlock.classList.add("hide-area");
+    }
+    // 六、是否涉嫌档案造假始终显示，不设定跳转隐藏
+}
+
+// 高血压符合性判定
+function calcHypMatch(){
+    const hypMatchDisableTip = document.getElementById("hypMatchDisableTip");
+    const hypMatchOkTip = document.getElementById("hypMatchOkTip");
+    const hypExamAllBlock = document.getElementById("hypExamAllBlock");
+
+    hypMatchDisableTip.style.display = "none";
+    hypMatchOkTip.style.display = "none";
+
+    const fakeVal = document.querySelector('input[name="fake"]:checked')?.value || "0";
+    if(fakeVal !== "0"){
+        document.getElementById("res2").innerHTML = `<span class="red">不符合</span>`;
+        matchResult = "不符合";
+        hypMatchDisableTip.style.display = "block";
+        hypExamAllBlock.classList.add("hide-area");
+        return;
+    }
+
+    const hypMatchAllOk = document.getElementById("hypMatchAllOk");
+    const hypMatchErrList = document.querySelectorAll(".hypMatchErr");
+
+    const allOkChecked = hypMatchAllOk?.checked;
+    let hasErrItem = false;
+    hypMatchErrList.forEach(item => { if(item.checked) hasErrItem = true; });
+
+    if(allOkChecked){
+        // 选择第1项（符合）：显示规范性核查和控制率
+        hypMatchErrList.forEach(item => {
+            item.checked = false;
+            item.disabled = true;
+        });
+        document.getElementById("res2").innerHTML = `<span class="green">符合</span>`;
+        matchResult = "符合";
+        hypMatchOkTip.style.display = "block";
+        hypExamAllBlock.classList.remove("hide-area");
+    }else if(hasErrItem){
+        // 选择(2)-(8)中任一项（不符合）：隐藏后续模块
+        hypMatchErrList.forEach(item => item.disabled = false);
+        document.getElementById("res2").innerHTML = `<span class="red">不符合</span>`;
+        matchResult = "不符合";
+        hypMatchDisableTip.style.display = "block";
+        hypExamAllBlock.classList.add("hide-area");
+    }else{
+        // 待勾选：隐藏后续模块
+        hypMatchErrList.forEach(item => item.disabled = false);
+        document.getElementById("res2").innerText = "待勾选";
+        matchResult = "待判定";
+        hypExamAllBlock.classList.add("hide-area");
+    }
+}
+
+// 高血压规范性判定
+function calcHypStandard(){
+    // 符合性不符合或造假时，直接判定为不规范
+    const fakeVal = document.querySelector('input[name="fake"]:checked')?.value || "0";
+    if(matchResult === "不符合" || fakeVal !== "0"){
+        document.getElementById("resExam").innerHTML = `<span class="red">不规范</span>`;
+        return;
+    }
+
+    // 符合性未勾选时，不判定
+    if(matchResult === "待判定"){
+        document.getElementById("resExam").innerText = "——";
+        return;
+    }
+
+    // 高血压规范性判定规则：
+    // 出现④血压或⑩或其他项≥2项，视为不规范
+    const hypErrList = document.querySelectorAll(".hypErrItem:checked");
+    const hasBPError = document.querySelector('.hypErrItem[value="4"]')?.checked; // ④血压
+    const hasTelError = document.querySelector('.hypErrItem[value="10"]')?.checked; // ⑩本年度随访方式均为电话随访
+    const otherErrorCount = Array.from(hypErrList).filter(el => !["4", "10"].includes(el.value)).length;
+
+    let isUnstandard = false;
+    let detail = [];
+
+    if(hasBPError){
+        isUnstandard = true;
+        detail.push("血压漏项/错项");
+    }
+    if(hasTelError){
+        isUnstandard = true;
+        detail.push("本年度随访方式均为电话随访");
+    }
+    if(otherErrorCount >= 2){
+        isUnstandard = true;
+        detail.push(`其他漏项/错项≥2项(${otherErrorCount}项)`);
+    }
+
+    if(isUnstandard){
+        document.getElementById("resExam").innerHTML = `<span class="red">不规范（${detail.join("、")}）</span>`;
+    } else if(hypErrList.length > 0){
+        document.getElementById("resExam").innerHTML = `<span class="green">规范（漏错项${hypErrList.length}项）</span>`;
+    } else {
+        document.getElementById("resExam").innerHTML = `<span class="green">规范</span>`;
+    }
+}
+
+// 高血压控制率判定
+function calcHypControl(){
+    // 无效档案判定为控制不满意
+    const replyVal = document.querySelector('input[name="reply"]:checked')?.value || "";
+    const isInvalidReply = ["3","4","5","6","7","8","9"].includes(replyVal);
+
+    // 符合性不符合或造假时，直接判定为控制不满意
+    const fakeVal = document.querySelector('input[name="fake"]:checked')?.value || "0";
+
+    if(isInvalidReply){
+        document.getElementById("resControl").innerHTML = `<span class="red">控制不满意</span>（无效档案）`;
+        return;
+    }
+
+    if(matchResult === "不符合" || fakeVal !== "0"){
+        document.getElementById("resControl").innerHTML = `<span class="red">控制不满意</span>`;
+        return;
+    }
+
+    // 符合性未勾选时，不判定
+    if(matchResult === "待判定"){
+        document.getElementById("resControl").innerText = "——";
+        return;
+    }
+
+    // 控制率判定：只要有一个控制不满意就算控制不满意
+    const hypBPControl = document.querySelector('input[name="hypBPControl"]:checked')?.value || "";
+    const hypBPMeasure = document.querySelector('input[name="hypBPMeasure"]:checked')?.value || "";
+
+    // 随访记录血压控制不满意
+    if(hypBPControl === "2"){
+        document.getElementById("resControl").innerHTML = `<span class="red">控制不满意</span>（随访记录血压控制不满意）`;
+        return;
+    }
+
+    // 自测/药店测量血压控制不满意
+    if(hypBPMeasure === "2"){
+        document.getElementById("resControl").innerHTML = `<span class="red">控制不满意</span>（自测/药店测量血压控制不满意）`;
+        return;
+    }
+
+    // 两个都满意或记不清
+    if(hypBPControl === "1" && (hypBPMeasure === "1" || hypBPMeasure === "3")){
+        document.getElementById("resControl").innerHTML = `<span class="green">控制满意</span>`;
+    } else if(hypBPControl === "1" && hypBPMeasure === ""){
+        document.getElementById("resControl").innerText = "待填写";
+    } else if(hypBPControl === "" && hypBPMeasure === ""){
+        document.getElementById("resControl").innerText = "待填写";
+    } else {
+        document.getElementById("resControl").innerText = "——";
+    }
+}
+
+// ========== 糖尿病判定函数 ==========
+
+// 糖尿病血糖值输入框显示
+function toggleGLUMeasureValue(radio){
+    const yesGroup = document.getElementById("dmGLUMeasureYesGroup");
+    const noGroup = document.getElementById("dmGLUMeasureNoGroup");
+    if(radio.value === "1"){
+        yesGroup.style.display = "flex";
+        noGroup.style.display = "none";
+    } else if(radio.value === "2"){
+        yesGroup.style.display = "none";
+        noGroup.style.display = "flex";
+    } else {
+        yesGroup.style.display = "none";
+        noGroup.style.display = "none";
+    }
+}
+
+// 糖尿病符合性判定
+function calcDmMatch(){
+    const dmMatchDisableTip = document.getElementById("dmMatchDisableTip");
+    const dmMatchOkTip = document.getElementById("dmMatchOkTip");
+    const dmExamAllBlock = document.getElementById("dmExamAllBlock");
+
+    dmMatchDisableTip.style.display = "none";
+    dmMatchOkTip.style.display = "none";
+
+    const dmFakeVal = document.querySelector('input[name="dmFake"]:checked')?.value || "0";
+    if(dmFakeVal !== "0"){
+        document.getElementById("res2").innerHTML = `<span class="red">不符合</span>`;
+        matchResult = "不符合";
+        dmMatchDisableTip.style.display = "block";
+        dmExamAllBlock.classList.add("hide-area");
+        return;
+    }
+
+    const dmMatchAllOk = document.getElementById("dmMatchAllOk");
+    const dmMatchErrList = document.querySelectorAll(".dmMatchErr");
+
+    const allOkChecked = dmMatchAllOk?.checked;
+    let hasErrItem = false;
+    dmMatchErrList.forEach(item => { if(item.checked) hasErrItem = true; });
+
+    if(allOkChecked){
+        dmMatchErrList.forEach(item => {
+            item.checked = false;
+            item.disabled = true;
+        });
+        document.getElementById("res2").innerHTML = `<span class="green">符合</span>`;
+        matchResult = "符合";
+        dmMatchOkTip.style.display = "block";
+        dmExamAllBlock.classList.remove("hide-area");
+    }else if(hasErrItem){
+        dmMatchErrList.forEach(item => item.disabled = false);
+        document.getElementById("res2").innerHTML = `<span class="red">不符合</span>`;
+        matchResult = "不符合";
+        dmMatchDisableTip.style.display = "block";
+        dmExamAllBlock.classList.add("hide-area");
+    }else{
+        dmMatchErrList.forEach(item => item.disabled = false);
+        document.getElementById("res2").innerText = "待勾选";
+        matchResult = "待判定";
+        dmExamAllBlock.classList.add("hide-area");
+    }
+}
+
+// 糖尿病规范性判定
+function calcDmStandard(){
+    const dmFakeVal = document.querySelector('input[name="dmFake"]:checked')?.value || "0";
+    if(matchResult === "不符合" || dmFakeVal !== "0"){
+        document.getElementById("resExam").innerHTML = `<span class="red">不规范</span>`;
+        return;
+    }
+
+    if(matchResult === "待判定"){
+        document.getElementById("resExam").innerText = "——";
+        return;
+    }
+
+    // 糖尿病规范性判定：出现④血压、⑤血糖、⑥足背动脉搏动、⑫或其他项≥2项，视为不规范
+    const dmErrList = document.querySelectorAll(".dmErrItem:checked");
+    const hasBPError = document.querySelector('.dmErrItem[value="4"]')?.checked; // ④血压
+    const hasGLUError = document.querySelector('.dmErrItem[value="5"]')?.checked; // ⑤血糖
+    const hasFootError = document.querySelector('.dmErrItem[value="6"]')?.checked; // ⑥足背动脉搏动
+    const hasTelError = document.querySelector('.dmErrItem[value="12"]')?.checked; // ⑫本年度随访方式均为电话随访
+    const otherErrorCount = Array.from(dmErrList).filter(el => !["4", "5", "6", "12"].includes(el.value)).length;
+
+    let isUnstandard = false;
+    let detail = [];
+
+    if(hasBPError){ isUnstandard = true; detail.push("血压漏项/错项"); }
+    if(hasGLUError){ isUnstandard = true; detail.push("血糖漏项/错项"); }
+    if(hasFootError){ isUnstandard = true; detail.push("足背动脉搏动未触诊"); }
+    if(hasTelError){ isUnstandard = true; detail.push("本年度随访方式均为电话随访"); }
+    if(otherErrorCount >= 2){ isUnstandard = true; detail.push(`其他漏项/错项≥2项(${otherErrorCount}项)`); }
+
+    if(isUnstandard){
+        document.getElementById("resExam").innerHTML = `<span class="red">不规范（${detail.join("、")}）</span>`;
+    } else if(dmErrList.length > 0){
+        document.getElementById("resExam").innerHTML = `<span class="green">规范（漏错项${dmErrList.length}项）</span>`;
+    } else {
+        document.getElementById("resExam").innerHTML = `<span class="green">规范</span>`;
+    }
+}
+
+// 糖尿病控制率判定
+function calcDmControl(){
+    const replyVal = document.querySelector('input[name="reply"]:checked')?.value || "";
+    const isInvalidReply = ["3","4","5","6","7","8","9"].includes(replyVal);
+    const dmFakeVal = document.querySelector('input[name="dmFake"]:checked')?.value || "0";
+
+    if(isInvalidReply){
+        document.getElementById("resControl").innerHTML = `<span class="red">控制不满意</span>（无效档案）`;
+        return;
+    }
+
+    if(matchResult === "不符合" || dmFakeVal !== "0"){
+        document.getElementById("resControl").innerHTML = `<span class="red">控制不满意</span>`;
+        return;
+    }
+
+    if(matchResult === "待判定"){
+        document.getElementById("resControl").innerText = "——";
+        return;
+    }
+
+    // 控制率判定：只要有一个控制不满意就算控制不满意
+    const dmGLUControl = document.querySelector('input[name="dmGLUControl"]:checked')?.value || "";
+    const dmGLUMeasure = document.querySelector('input[name="dmGLUMeasure"]:checked')?.value || "";
+
+    if(dmGLUControl === "2"){
+        document.getElementById("resControl").innerHTML = `<span class="red">控制不满意</span>（随访记录血糖控制不满意）`;
+        return;
+    }
+
+    if(dmGLUMeasure === "2"){
+        document.getElementById("resControl").innerHTML = `<span class="red">控制不满意</span>（自测/药店测量血糖控制不满意）`;
+        return;
+    }
+
+    if(dmGLUControl === "1" && (dmGLUMeasure === "1" || dmGLUMeasure === "3")){
+        document.getElementById("resControl").innerHTML = `<span class="green">控制满意</span>`;
+    } else if(dmGLUControl === "1" && dmGLUMeasure === ""){
+        document.getElementById("resControl").innerText = "待填写";
+    } else if(dmGLUControl === "" && dmGLUMeasure === ""){
+        document.getElementById("resControl").innerText = "待填写";
+    } else {
+        document.getElementById("resControl").innerText = "——";
+    }
+}
+
+// ========== 慢阻肺判定函数 ==========
+
+// 慢阻肺符合性判定
+function calcCopdMatch(){
+    const copdMatchDisableTip = document.getElementById("copdMatchDisableTip");
+    const copdMatchOkTip = document.getElementById("copdMatchOkTip");
+    const copdExamAllBlock = document.getElementById("copdExamAllBlock");
+
+    copdMatchDisableTip.style.display = "none";
+    copdMatchOkTip.style.display = "none";
+
+    const copdFakeVal = document.querySelector('input[name="copdFake"]:checked')?.value || "0";
+    if(copdFakeVal !== "0"){
+        document.getElementById("res2").innerHTML = `<span class="red">不符合</span>`;
+        matchResult = "不符合";
+        copdMatchDisableTip.style.display = "block";
+        copdExamAllBlock.classList.add("hide-area");
+        return;
+    }
+
+    const copdMatchAllOk = document.getElementById("copdMatchAllOk");
+    const copdMatchErrList = document.querySelectorAll(".copdMatchErr");
+
+    const allOkChecked = copdMatchAllOk?.checked;
+    let hasErrItem = false;
+    copdMatchErrList.forEach(item => { if(item.checked) hasErrItem = true; });
+
+    if(allOkChecked){
+        copdMatchErrList.forEach(item => {
+            item.checked = false;
+            item.disabled = true;
+        });
+        document.getElementById("res2").innerHTML = `<span class="green">符合</span>`;
+        matchResult = "符合";
+        copdMatchOkTip.style.display = "block";
+        copdExamAllBlock.classList.remove("hide-area");
+    }else if(hasErrItem){
+        copdMatchErrList.forEach(item => item.disabled = false);
+        document.getElementById("res2").innerHTML = `<span class="red">不符合</span>`;
+        matchResult = "不符合";
+        copdMatchDisableTip.style.display = "block";
+        copdExamAllBlock.classList.add("hide-area");
+    }else{
+        copdMatchErrList.forEach(item => item.disabled = false);
+        document.getElementById("res2").innerText = "待勾选";
+        matchResult = "待判定";
+        copdExamAllBlock.classList.add("hide-area");
+    }
+}
+
+// 慢阻肺规范性判定
+function calcCopdStandard(){
+    const copdFakeVal = document.querySelector('input[name="copdFake"]:checked')?.value || "0";
+    if(matchResult === "不符合" || copdFakeVal !== "0"){
+        document.getElementById("resExam").innerHTML = `<span class="red">不规范</span>`;
+        return;
+    }
+
+    if(matchResult === "待判定"){
+        document.getElementById("resExam").innerText = "——";
+        return;
+    }
+
+    // 慢阻肺规范性判定
+    // 1. 体检记录：除①外出现任一项视为不规范
+    const copdExamErrList = document.querySelectorAll(".copdExamErrItem:checked");
+    const hasValidExam = document.querySelector('.copdExamErrItem[value="1"]')?.checked; // ①有小体检记录且完整
+    let isUnstandard = false;
+    let detail = [];
+
+    // 除①外勾选任一项即为不规范
+    const examErrors = Array.from(copdExamErrList).filter(el => el.value !== "1");
+    if(examErrors.length > 0){
+        isUnstandard = true;
+        detail.push("本年度健康体检记录不规范");
+    }
+
+    // 2. 随访次数：选择②不规范
+    const followupStandard = document.querySelector('input[name="copdFollowupStandard"]:checked')?.value || "";
+    if(followupStandard === "2"){
+        isUnstandard = true;
+        detail.push("面对面随访次数达不到国家规范要求");
+    }
+
+    // 3. 随访记录空项漏项错项判断
+    const copdErrList = document.querySelectorAll(".copdErrItem:checked");
+    if(copdErrList.length > 0){
+        isUnstandard = true;
+        detail.push("随访记录存在空项漏项错项");
+    }
+
+    if(isUnstandard){
+        document.getElementById("resExam").innerHTML = `<span class="red">不规范（${detail.join("、")}）</span>`;
+    } else {
+        document.getElementById("resExam").innerHTML = `<span class="green">规范</span>`;
+    }
+}
+
+// ========== 居民判定函数 ==========
+
+// 居民符合性判定
+function calcResMatch(){
+    const resMatchDisableTip = document.getElementById("resMatchDisableTip");
+    const resMatchOkTip = document.getElementById("resMatchOkTip");
+
+    resMatchDisableTip.style.display = "none";
+    resMatchOkTip.style.display = "none";
+
+    const fakeVal = document.querySelector('input[name="fake"]:checked')?.value || "0";
+    if(fakeVal !== "0"){
+        document.getElementById("res2").innerHTML = `<span class="red">不符合</span>`;
+        matchResult = "不符合";
+        resMatchDisableTip.style.display = "block";
+        return;
+    }
+
+    const resMatchAllOk = document.getElementById("resMatchAllOk");
+    const resMatchErr = document.querySelector(".resMatchErr");
+
+    if(resMatchAllOk?.checked){
+        if(resMatchErr) resMatchErr.checked = false;
+        document.getElementById("res2").innerHTML = `<span class="green">符合</span>`;
+        matchResult = "符合";
+        resMatchOkTip.style.display = "block";
+    }else if(resMatchErr?.checked){
+        document.getElementById("res2").innerHTML = `<span class="red">不符合</span>`;
+        matchResult = "不符合";
+        resMatchDisableTip.style.display = "block";
+    }else{
+        document.getElementById("res2").innerText = "待勾选";
+        matchResult = "待判定";
+    }
+}
+
+// 居民规范性判定
+function calcResStandard(){
+    const fakeVal = document.querySelector('input[name="fake"]:checked')?.value || "0";
+    if(matchResult === "不符合" || fakeVal !== "0"){
+        document.getElementById("resExam").innerHTML = `<span class="red">不规范</span>`;
+        return;
+    }
+
+    if(matchResult === "待判定"){
+        document.getElementById("resExam").innerText = "——";
+        return;
+    }
+
+    // 居民规范性判定：2项及以上错项为不规范；死亡档案未及时终止管理为不规范
+    const resErrList = document.querySelectorAll(".resErrItem:checked");
+    const hasDeathManageError = document.querySelector('.resErrItem[value="14"]')?.checked; // ⑫死亡档案未及时终止管理
+    const otherErrorCount = Array.from(resErrList).filter(el => el.value !== "14").length;
+
+    if(hasDeathManageError){
+        document.getElementById("resExam").innerHTML = `<span class="red">不规范（死亡档案未及时终止管理）</span>`;
+    } else if(otherErrorCount >= 2){
+        document.getElementById("resExam").innerHTML = `<span class="red">不规范（错项≥2项）</span>`;
+    } else if(otherErrorCount > 0){
+        document.getElementById("resExam").innerHTML = `<span class="green">规范（错项${otherErrorCount}项）</span>`;
+    } else {
+        document.getElementById("resExam").innerHTML = `<span class="green">规范</span>`;
+    }
+}
+
+// 3.体检规范性合并判定（发放+空错项，有一项不规范即不规范）
+function calcExamTotal(){
+    // 档案比对不符合或造假时，直接判定为不规范
+    const fakeVal = document.querySelector('input[name="fake"]:checked')?.value || "0";
+    if(matchResult === "不符合" || fakeVal !== "0"){
+        document.getElementById("resExam").innerHTML = `<span class="red">不规范</span>`;
+        return;
+    }
+    
+    // 体检区块隐藏（无效应答）也不判定
+    if(examAllBlock.classList.contains("hide-area")){
+        document.getElementById("resExam").innerText = "——";
+        return;
+    }
+
+    // 判定发放规范性
+    const sendVal = document.querySelector('input[name="sendRes"]:checked')?.value;
+    let sendStandard = null; // null=待选择, true=规范, false=不规范
+    if(sendVal){
+        sendStandard = (sendVal === "3" || sendVal === "6");
+    }
+
+    // 判定空错项规范性
+    const allErr = document.querySelectorAll(".errItem:checked");
+    const labErr = document.querySelectorAll(".checkLab:checked");
+    const labHasEmpty = labErr.length > 0;
+    let normalCount = 0;
+    allErr.forEach(item => { if(!item.classList.contains("checkLab")) normalCount++; });
+
+    let errStandard = null; // null=待判定, true=规范, false=不规范
+    if(!labHasEmpty && normalCount <= 3){
+        errStandard = true;
+    }else if(labHasEmpty || normalCount > 3){
+        errStandard = false;
+    }
+
+    // 合并判定：有一项不规范即不规范
+    if(sendStandard === false || errStandard === false){
+        let detail = [];
+        if(sendStandard === false) detail.push("发放不规范");
+        if(errStandard === false) detail.push(`空错项不规范(非辅助${normalCount}项)`);
+        document.getElementById("resExam").innerHTML = `<span class="red">不规范（${detail.join("、")}）</span>`;
+    }else if(sendStandard === null || errStandard === null){
+        document.getElementById("resExam").innerText = "待完善";
+    }else{
+        document.getElementById("resExam").innerHTML = `<span class="green">规范（非辅助检查空错项${normalCount}项）</span>`;
+    }
+}
+
+// 6.档案总判定：有一项不规范则整体不规范（无效档案不判定）
+function calcTotal(){
+    const reply = document.getElementById("res1").innerText;
+    const match = document.getElementById("res2").innerText;
+    const exam = document.getElementById("resExam").innerText;
+    const fake = document.getElementById("res6").innerText;
+
+    // 无效应答不参与总判定
+    const hasInvalidReply = reply.includes("无效应答");
+    if(hasInvalidReply){
+        document.getElementById("resTotal").innerHTML = `<span class="orange">★ 档案判定：待完善（无效应答）</span>`;
+        return;
+    }
+    
+    const hasMatchFail = match.includes("不符合");
+    const hasExamErr = exam.includes("不规范");
+    const hasFake = !fake.includes("无涉嫌造假");
+
+    if(hasMatchFail || hasExamErr || hasFake){
+        document.getElementById("resTotal").innerHTML = `<span class="red">★ 档案判定：不规范档案</span>`;
+    }else if(reply === "待选择" || match === "待判定" || match === "待勾选比对项" || exam === "待完善" || exam === "待判定"){
+        document.getElementById("resTotal").innerHTML = `<span class="orange">★ 档案判定：待完善</span>`;
+    }else{
+        document.getElementById("resTotal").innerHTML = `<span class="green">★ 档案判定：规范档案</span>`;
+    }
+}
+
+// 5.档案造假判定文字
+function calcFake(){
+    const project = document.getElementById("project")?.value;
+    let fakeMap;
+    if(project === "高血压"){
+        // 高血压造假选项
+        fakeMap = {
+            "0":"无涉嫌造假",
+            "1":"已死亡仍有服务记录",
+            "2":"不在本地居住却有面对面服务记录",
+            "3":"2026年复制往次服务记录"
+        };
+    } else {
+        // 老年人造假选项
+        fakeMap = {
+            "0":"无涉嫌造假",
+            "1":"已死亡仍有体检记录",
+            "2":"不在本地居住有本地体检记录",
+            "3":"复制往年体检记录",
+            "4":"辅助检查3项及以上填0/拒绝"
+        };
+    }
+    const v = document.querySelector('input[name="fake"]:checked')?.value || "0";
+    const text = fakeMap[v] || fakeMap["0"];
+    isFakeRecord = v !== "0";
+
+    if(isFakeRecord){
+        document.getElementById("res6").innerHTML = `<span class="red">${text}</span>`;
+        if(project === "高血压"){
+            document.getElementById("res2").innerHTML = `<span class="red">不符合</span>`;
+            matchResult = "不符合";
+        } else {
+            document.getElementById("res2").innerHTML = `<span class="red">不符合</span>`;
+            matchResult = "不符合";
+            matchAllOk.checked = false;
+            matchErrList.forEach(item => item.disabled = false);
+            const fakeMatchItem = document.querySelector('.matchErr[value="7"]');
+            if(fakeMatchItem){
+                fakeMatchItem.checked = true;
+            }
+        }
+    }else{
+        document.getElementById("res6").innerHTML = `<span class="green">${text}</span>`;
+    }
+}
+
+// 勾选其他显示输入框
+errOther.onchange = function(){
+    if(this.checked){
+        otherInput.style.display = "block";
+    }else{
+        otherInput.style.display = "none";
+        otherInput.value = "";
+    }
+}
+
+// 获取当前所有勾选项的详情
+function getCheckedValues(selector){
+    return Array.from(document.querySelectorAll(selector + ':checked')).map(el => el.value);
+}
+
+// 保存记录
+function saveRecord(){
+    calcAll();
+    const project = document.getElementById("project")?.value || "";
+    const replyVal = document.querySelector('input[name="reply"]:checked')?.value || "";
+    const sendResVal = document.querySelector('input[name="sendRes"]:checked')?.value || "";
+    const fakeVal = document.querySelector('input[name="fake"]:checked')?.value || "";
+
+    const data = {
+        org: document.getElementById("org").value,
+        project: project,
+        year: document.getElementById("year").value || new Date().getFullYear().toString(),
+        quarter: document.getElementById("quarter").value || "",
+        name: document.getElementById("name").value,
+        sex: document.querySelector('input[name="sex"]:checked')?.value || "",
+        age: document.getElementById("age").value,
+        idcard: document.getElementById("idcard").value,
+        tel: document.getElementById("tel").value,
+        otherDesc: otherInput.value,
+        replyCode: replyVal,
+        fakeCode: fakeVal,
+        remark: document.getElementById("remark")?.value || "",
+        judgeReply: document.getElementById("res1").innerText,
+        judgeMatch: document.getElementById("res2").innerText,
+        judgeExam: document.getElementById("resExam").innerText,
+        judgeControl: document.getElementById("resControl")?.innerText || "",
+        judgeFake: document.getElementById("res6").innerText,
+        judgeTotal: document.getElementById("resTotal").innerText,
+        saveTime: formatDate(new Date())
+    };
+
+    // 根据项目类型保存特有字段
+    if(project === "高血压"){
+        data.hypMatchAllOk = document.getElementById("hypMatchAllOk")?.checked || false;
+        data.hypMatchItems = getCheckedValues('.hypMatchErr');
+        data.hypErrItems = getCheckedValues('.hypErrItem');
+        data.hypBPValue = document.getElementById("hypBPValue")?.value || "";
+        data.hypBPControl = document.querySelector('input[name="hypBPControl"]:checked')?.value || "";
+        data.hypBPMeasure = document.querySelector('input[name="hypBPMeasure"]:checked')?.value || "";
+        data.hypBPMeasureYes = document.getElementById("hypBPMeasureYes")?.value || "";
+        data.hypBPMeasureNo = document.getElementById("hypBPMeasureNo")?.value || "";
+        data.hypFake = fakeVal; // 高血压使用单独的fake字段
+    } else if(project === "糖尿病"){
+        data.dmMatchAllOk = document.getElementById("dmMatchAllOk")?.checked || false;
+        data.dmMatchItems = getCheckedValues('.dmMatchErr');
+        data.dmErrItems = getCheckedValues('.dmErrItem');
+        data.dmGLUValue = document.getElementById("dmGLUValue")?.value || "";
+        data.dmGLUControl = document.querySelector('input[name="dmGLUControl"]:checked')?.value || "";
+        data.dmGLUMeasure = document.querySelector('input[name="dmGLUMeasure"]:checked')?.value || "";
+        data.dmGLUMeasureYes = document.getElementById("dmGLUMeasureYes")?.value || "";
+        data.dmGLUMeasureNo = document.getElementById("dmGLUMeasureNo")?.value || "";
+        data.dmFake = document.querySelector('input[name="dmFake"]:checked')?.value || "0";
+    } else if(project === "慢阻肺"){
+        data.copdMatchAllOk = document.getElementById("copdMatchAllOk")?.checked || false;
+        data.copdMatchItems = getCheckedValues('.copdMatchErr');
+        data.copdExamErrItems = getCheckedValues('.copdExamErrItem');
+        data.copdFollowupStandard = document.querySelector('input[name="copdFollowupStandard"]:checked')?.value || "";
+        data.copdErrItems = getCheckedValues('.copdErrItem');
+        data.copdFake = document.querySelector('input[name="copdFake"]:checked')?.value || "0";
+    } else if(project === "居民"){
+        data.resMatchAllOk = document.getElementById("resMatchAllOk")?.checked || false;
+        data.resMatchItems = getCheckedValues('.resMatchErr');
+        data.resErrItems = getCheckedValues('.resErrItem');
+    } else {
+        // 老年人
+        data.matchAllOk = matchAllOk.checked;
+        data.matchItems = getCheckedValues('.matchErr');
+        data.sendResCode = sendResVal;
+        data.errItems = getCheckedValues('.errItem');
+    }
+
+    // 必填项验证
+    if(!data.org || !data.project || !data.year || !data.name){
+        alert("核查单位、核查项目、年度、姓名为必填项，无法保存！");
+        return;
+    }
+
+    // 无效应答只需基础信息，无需验证其他项
+    const isInvalidReply = ["3","4","5","6","7","8","9"].includes(replyVal);
+    if(isInvalidReply){
+        recordList.push(data);
+        try {
+            localStorage.setItem("checkRecords", JSON.stringify(recordList));
+            updateRecordCount();
+            updateExportYearOptions();
+            alert("本条核查记录保存成功！");
+        } catch (e) {
+            alert("保存失败，本地存储空间可能已满");
+            console.error(e);
+        }
+        return;
+    }
+
+    // 有效应答记录的必填项验证
+    if(replyVal === "1" || replyVal === "2"){
+        // 高血压验证
+        if(project === "高血压"){
+            if(!data.hypMatchAllOk && (data.hypMatchItems || []).length === 0){
+                alert("有效应答记录，符合性核查为必填项，请至少选择一项！");
+                return;
+            }
+            if(!fakeVal){
+                alert("有效应答记录，是否涉嫌档案造假为必填项！");
+                return;
+            }
+        } else if(project === "糖尿病"){
+            if(!data.dmMatchAllOk && (data.dmMatchItems || []).length === 0){
+                alert("有效应答记录，符合性核查为必填项，请至少选择一项！");
+                return;
+            }
+            if(!data.dmFake || data.dmFake === "0"){
+                // 造假字段是必须的
+            }
+        } else if(project === "慢阻肺"){
+            if(!data.copdMatchAllOk && (data.copdMatchItems || []).length === 0){
+                alert("有效应答记录，符合性核查为必填项，请至少选择一项！");
+                return;
+            }
+        } else if(project === "居民"){
+            if(!data.resMatchAllOk && (data.resMatchItems || []).length === 0){
+                alert("有效应答记录，符合性核查为必填项，请至少选择一项！");
+                return;
+            }
+            if(!fakeVal){
+                alert("有效应答记录，是否涉嫌档案造假为必填项！");
+                return;
+            }
+        } else {
+            // 老年人验证
+            if(!data.matchAllOk && (data.matchItems || []).length === 0){
+                alert("有效应答记录，访谈记录与健康档案比对为必填项，请至少选择一项！");
+                return;
+            }
+            // 体检区块必填（档案比对符合时）
+            if(data.matchAllOk || (data.matchItems || []).length === 0){
+                if(!sendResVal){
+                    alert("有效应答记录且档案比对符合，体检结果发放情况为必填项！");
+                    return;
+                }
+            }
+            if(!fakeVal){
+                alert("有效应答记录，是否涉嫌档案造假为必填项！");
+                return;
+            }
+        }
+    }
+
+    recordList.push(data);
+    try {
+        localStorage.setItem("checkRecords", JSON.stringify(recordList));
+        updateRecordCount();
+        updateExportYearOptions();
+        alert("本条核查记录保存成功！");
+    } catch (e) {
+        alert("保存失败，本地存储空间可能已满");
+        console.error(e);
+    }
+}
+
+// 格式化日期为固定格式 YYYY-MM-DD HH:mm:ss
+function formatDate(date){
+    const pad = n => n < 10 ? '0' + n : n;
+    return date.getFullYear() + '-' + pad(date.getMonth()+1) + '-' + pad(date.getDate()) + ' ' + pad(date.getHours()) + ':' + pad(date.getMinutes()) + ':' + pad(date.getSeconds());
+}
+
+// 清空表单
+function clearForm(){
+    document.querySelectorAll("input,select").forEach(el => {
+        el.checked = false;
+        if(el.tagName === "SELECT") el.value = "";
+        if(el.type === "text" || el.type === "number") el.value = "";
+        if(el.classList.contains("matchErr")) el.disabled = false;
+        if(el.classList.contains("hypMatchErr")) el.disabled = false;
+        if(el.classList.contains("dmMatchErr")) el.disabled = false;
+        if(el.classList.contains("dmErrItem")) el.disabled = false;
+        if(el.classList.contains("copdMatchErr")) el.disabled = false;
+        if(el.classList.contains("copdExamErrItem")) el.disabled = false;
+        if(el.classList.contains("copdErrItem")) el.disabled = false;
+        if(el.classList.contains("resMatchErr")) el.disabled = false;
+        if(el.classList.contains("resErrItem")) el.disabled = false;
+    });
+    matchResult = "待判定";
+    isFakeRecord = false;
+    prevMatchOkBeforeFake = false;
+    otherInput.style.display = "none";
+    idTip.innerText = "";
+    telTip.innerText = "";
+    // 清空备注
+    const remark = document.getElementById("remark");
+    if(remark) remark.value = "";
+    // 清空高血压特有字段
+    const hypBPValue = document.getElementById("hypBPValue");
+    if(hypBPValue) hypBPValue.value = "";
+    const hypBPMeasureYesGroup = document.getElementById("hypBPMeasureYesGroup");
+    const hypBPMeasureNoGroup = document.getElementById("hypBPMeasureNoGroup");
+    if(hypBPMeasureYesGroup) hypBPMeasureYesGroup.style.display = "none";
+    if(hypBPMeasureNoGroup) hypBPMeasureNoGroup.style.display = "none";
+    const hypBPMeasureYes = document.getElementById("hypBPMeasureYes");
+    const hypBPMeasureNo = document.getElementById("hypBPMeasureNo");
+    if(hypBPMeasureYes) hypBPMeasureYes.value = "";
+    if(hypBPMeasureNo) hypBPMeasureNo.value = "";
+    // 清空糖尿病特有字段
+    const dmGLUValue = document.getElementById("dmGLUValue");
+    if(dmGLUValue) dmGLUValue.value = "";
+    const dmGLUMeasureYesGroup = document.getElementById("dmGLUMeasureYesGroup");
+    const dmGLUMeasureNoGroup = document.getElementById("dmGLUMeasureNoGroup");
+    if(dmGLUMeasureYesGroup) dmGLUMeasureYesGroup.style.display = "none";
+    if(dmGLUMeasureNoGroup) dmGLUMeasureNoGroup.style.display = "none";
+    const dmGLUMeasureYes = document.getElementById("dmGLUMeasureYes");
+    const dmGLUMeasureNo = document.getElementById("dmGLUMeasureNo");
+    if(dmGLUMeasureYes) dmGLUMeasureYes.value = "";
+    if(dmGLUMeasureNo) dmGLUMeasureNo.value = "";
+    calcAll();
+}
+
+// 按季度条件导出Excel
+function exportExcelByQuarter(){
+    const yearVal = document.getElementById("exportYear").value;
+    const quarterVal = document.getElementById("exportQuarter").value;
+    
+    let filteredList = recordList;
+    if(yearVal){
+        filteredList = filteredList.filter(item => item.year === yearVal);
+    }
+    if(quarterVal){
+        filteredList = filteredList.filter(item => item.quarter === quarterVal);
+    }
+    
+    if(filteredList.length === 0){
+        alert("没有符合筛选条件的记录");
+        return;
+    }
+    
+    const fileNameSuffix = (yearVal || "全部年度") + (quarterVal ? "_" + quarterVal : "");
+    exportExcelWithData(filteredList, fileNameSuffix);
+}
+
+// 导出全部Excel
+function exportAllExcel(){
+    if(recordList.length === 0){
+        alert("暂无已保存记录，无法导出");
+        return;
+    }
+    exportExcelWithData(recordList, "全部");
+}
+
+// 核心导出函数（接受数据列表）
+function exportExcelWithData(dataList, nameSuffix){
+    if(dataList.length === 0){
+        alert("没有可导出的记录");
+        return;
+    }
+
+    // 清理判定结果中的前缀
+    function cleanPrefix(text){
+        if(!text) return "";
+        // 移除常见前缀
+        return text.replace(/^(应答有效性：|访谈档案比对结果：|符合性判定：|体检结果发放规范性：|体检空错项规范判定：|档案造假判定：)/g, "");
+    }
+
+    // ---------------------- 1. 核查明细（原始全部记录） ----------------------
+    // 表头：年度，季度，项目，姓名，性别，年龄，身份证，联系电话，应答情况，访谈记录与健康档案比对，体检结果发放情况，体检记录填写空项/错项，是否涉嫌档案造假，有效性判断，符合性判断，规范性判断，是否造假，备注
+    const detailHeader = [
+        "核查单位","年度","季度","项目","姓名","性别","年龄","身份证","联系电话",
+        "应答情况","访谈记录与健康档案比对","体检结果发放情况","体检记录填写空项/错项","是否涉嫌档案造假",
+        "有效性判断","符合性判断","规范性判断","是否造假","备注"
+    ];
+    // 判断辅助函数
+    function getValidityJudge(v){
+        if(!v) return "";
+        if(v.includes("有效应答")) return "有效";
+        if(v.includes("失访")) return "无效（失访）";
+        if(v.includes("电话异常")) return "无效（电话异常）";
+        return "";
+    }
+    function getComplianceJudge(v){
+        if(!v) return "";
+        if(v.includes("不符合")) return "不符合";
+        if(v.includes("符合")) return "符合";
+        return "";
+    }
+    function getStandardJudge(v){
+        if(!v) return "";
+        if(v.includes("不规范")) return "不规范";
+        if(v.includes("规范")) return "规范";
+        return "";
+    }
+    function getFakeJudge(v){
+        if(!v) return "";
+        if(v.includes("无涉嫌造假")) return "否";
+        return "是";
+    }
+    const detailData = dataList.map(item => {
+        const replyRaw = cleanPrefix(item.judgeReply) || "";
+        const matchRaw = cleanPrefix(item.judgeMatch) || "";
+        const examRaw = cleanPrefix(item.judgeExam) || cleanPrefix(item.judgeSend) || cleanPrefix(item.judgeErr) || "";
+        const fakeRaw = cleanPrefix(item.judgeFake) || "";
+
+        const isValid = replyRaw.includes("有效应答");
+        const project = item.project || "";
+
+        // 规范性判断：符合性为不符合或造假时，直接判定为不规范
+        let standardJudge = getStandardJudge(examRaw);
+        if(matchRaw.includes("不符合") || !fakeRaw.includes("无涉嫌造假")){
+            standardJudge = "不规范";
+        }
+
+        // 应答情况：原始编码转文字
+        const replyCodeMap = {
+            "1":"本人应答","2":"应答人为家属、亲戚等，了解核查对象情况",
+            "3":"应答人为家属、亲戚等，不了解核查对象具体情况","4":"无法接通（关机、停机）",
+            "5":"拒绝调查","6":"空号","7":"错号","8":"电话为村医、村干号码",
+            "9":"本人应答，记不清情况"
+        };
+        const replyCodeText = replyCodeMap[item.replyCode] || item.replyCode || "";
+
+        let matchText = "";
+        let errText = "";
+        let fakeText = "";
+
+        if(project === "高血压"){
+            // 高血压符合性核查
+            const hypMatchCodeMap = {
+                "1":"（1）访谈中体检和随访服务提供情况与档案记录一致","2":"（2）访谈为非高血压患者，但档案中显示为高血压患者",
+                "3":"（3）访谈否认体检，但档案中有体检记录","4":"（4）访谈否认随访，但档案中有随访记录",
+                "5":"（5）访谈为随访中未测量血压，但档案中有血压记录","6":"（6）访谈为电话随访，但档案中记录为门诊/家庭随访",
+                "7":"（7）实际面对面随访次数少于系统录入的次数","8":"（8）档案涉嫌造假"
+            };
+            matchText = item.hypMatchAllOk ? "（1）访谈中体检和随访服务提供情况与档案记录一致" :
+                ((item.hypMatchItems || []).map(v => hypMatchCodeMap[v] || v).join("；") || "");
+
+            // 高血压规范性核查
+            const hypErrCodeMap = {
+                "1":"①随访日期","2":"②随访方式","3":"③症状","4":"④血压",
+                "5":"⑤生活方式指导","6":"⑥服药依从性","7":"⑦用药情况",
+                "8":"⑧随访医生签名","9":"⑨此次随访分类","10":"⑩本年度随访方式均为电话随访"
+            };
+            errText = (item.hypErrItems || []).map(v => hypErrCodeMap[v] || v).join("；") || "";
+
+            // 高血压控制率
+            const bpControlMap = {"1":"是","2":"否"};
+            const bpControlText = item.hypBPControl ? `随访记录血压控制是否满意：${bpControlMap[item.hypBPControl] || item.hypBPControl}` : "";
+            const bpValueText = item.hypBPValue ? `随访记录血压值：${item.hypBPValue}mmHg` : "";
+
+            const bpMeasureMap = {"1":"是","2":"否","3":"记不清无法判定"};
+            const bpMeasureText = item.hypBPMeasure ? `自测/药店测量控制是否满意：${bpMeasureMap[item.hypBPMeasure] || item.hypBPMeasure}` : "";
+            let bpMeasureValueText = "";
+            if(item.hypBPMeasure === "1" && item.hypBPMeasureYes){
+                bpMeasureValueText = `自测/药店测量血压值（满意）：${item.hypBPMeasureYes}mmHg`;
+            } else if(item.hypBPMeasure === "2" && item.hypBPMeasureNo){
+                bpMeasureValueText = `自测/药店测量血压值（不满意）：${item.hypBPMeasureNo}mmHg`;
+            }
+
+            const bpParts = [bpControlText, bpValueText, bpMeasureText, bpMeasureValueText].filter(p => p);
+            if(bpParts.length > 0){
+                errText = (errText ? errText + "；" : "") + bpParts.join("；");
+            }
+
+            // 高血压造假情况
+            const hypFakeCodeMap = {
+                "0":"无涉嫌造假","1":"已死亡仍有服务记录","2":"不在本地居住却有面对面服务记录",
+                "3":"2026年复制往次服务记录"
+            };
+            fakeText = hypFakeCodeMap[item.fakeCode] || item.fakeCode || "";
+        } else {
+            // 老年人访谈记录与健康档案比对
+            const matchCodeMap = {
+                "1":"（1）访谈情况与健康档案相符","2":"（2）访谈为未查体，但档案中有查体记录",
+                "3":"（3）访谈为未做心电图，但档案中有心电图记录","4":"（4）访谈为未做B超，但档案中有B超记录",
+                "5":"（5）访谈为未做健康体检，但档案中有体检记录","6":"（6）访谈为未做抽血，但档案中有抽血记录",
+                "7":"（7）档案涉嫌造假"
+            };
+            matchText = item.matchAllOk ? "（1）访谈情况与健康档案相符" :
+                ((item.matchItems || []).map(v => matchCodeMap[v] || v).join("；") || "");
+
+            // 老年人空错项文字
+            const errCodeMap = {
+                "1":"①体检日期、责任医生空项或错项","2":"②症状空项或错项","3":"③一般状况(血压/身高体重/BMI等)空项或错项","4":"④老年人生活自理能力评估空项或错项",
+                "5":"⑤生活方式(锻炼/吸烟/饮食等)空项或错项","6":"⑥脏器功能(口腔/视力/听力)空项或错项","7":"⑦体格查体(皮肤/心肺/腹部等)空项或错项",
+                "8":"⑧血常规空项","9":"⑨尿常规空项","10":"⑩血压空项","11":"⑪空腹血糖空项","12":"⑫心电图空项",
+                "13":"⑬肝功能空项","14":"⑭肾功能空项","15":"⑮血脂空项","16":"⑯腹部B超空项","22":"㉒糖化血红蛋白空项",
+                "17":"⑰主要用药情况空项或错项","18":"⑱健康评价空项或错项","19":"⑲健康指导空项或错项","20":"⑳危险因素控制空项或错项",
+                "21":"㉑现存主要健康问题空项或错项","23":"㉓住院史空项或错项","24":"㉔家庭病床史空项或错项","25":"㉕免疫接种史空项或错项","26":"㉖其他空项或错项"
+            };
+            errText = (item.errItems || []).map(v => errCodeMap[v] || v).join("；") || "";
+
+            // 老年人体检发放情况
+            const sendCodeMap = {
+                "1":"没有发放或没有通知","2":"没有发放，仅口头告知",
+                "3":"15天内通知、发放并解读健康指导","4":"15天后通知、发放并解读健康指导",
+                "5":"已通知领取，但未解读结果","6":"15天内通知解读，个人原因晚领取","7":"记不清（失访）"
+            };
+            const sendText = sendCodeMap[item.sendResCode] || "";
+            if(sendText) errText = (errText ? errText + "；" : "") + "体检发放情况：" + sendText;
+
+            // 老年人造假情况
+            const fakeCodeMap = {
+                "0":"无涉嫌造假","1":"已死亡仍有体检记录","2":"不在本地居住有本地体检记录",
+                "3":"复制往年体检记录","4":"辅助检查3项及以上填0/多项填拒绝"
+            };
+            fakeText = fakeCodeMap[item.fakeCode] || item.fakeCode || "";
+        }
+
+        return [
+            item.org,
+            item.year, item.quarter, project, item.name,
+            item.sex, item.age, item.idcard, item.tel,
+            replyCodeText,          // 应答情况
+            matchText,              // 访谈记录与健康档案比对/符合性核查
+            errText,                // 体检记录填写空项/错项/规范性核查+控制率
+            fakeText,               // 是否涉嫌档案造假
+            getValidityJudge(replyRaw),     // 有效性判断
+            getComplianceJudge(matchRaw),  // 符合性判断
+            standardJudge,                  // 规范性判断
+            getFakeJudge(fakeRaw),          // 是否造假
+            item.remark || ""                // 备注
+        ];
+    });
+    const detailSheet = XLSX.utils.aoa_to_sheet([detailHeader, ...detailData]);
+    detailSheet["!cols"] = [
+        {wch:22},{wch:6},{wch:6},{wch:10},{wch:8},
+        {wch:4},{wch:4},{wch:20},{wch:13},
+        {wch:12},{wch:30},{wch:20},{wch:20},{wch:16},
+        {wch:10},{wch:10},{wch:10},{wch:8},{wch:20}
+    ];
+
+    // ---------------------- 2. 单位汇总统计 ----------------------
+    const orgGroup = {};
+    dataList.forEach(item => {
+        if(!orgGroup[item.org]){
+            orgGroup[item.org] = {
+                totalAll: 0,
+                validTotal: 0,
+                lostNum: 0,
+                phoneErrNum: 0,
+                matchOk: 0,
+                matchErr: 0,
+                standardOk: 0,
+                standardErr: 0
+            };
+        }
+        const g = orgGroup[item.org];
+        g.totalAll++;
+
+        // 清理前缀后的判定结果
+        const replyVal = cleanPrefix(item.judgeReply);
+        const matchVal = cleanPrefix(item.judgeMatch);
+        const examVal = cleanPrefix(item.judgeExam) || cleanPrefix(item.judgeSend) || cleanPrefix(item.judgeErr) || "";
+        const fakeVal = cleanPrefix(item.judgeFake);
+
+        const isValid = replyVal.includes("有效应答");
+        const isLost = replyVal.includes("失访");
+        const isPhoneErr = replyVal.includes("电话异常");
+
+        if(isLost) g.lostNum++;
+        if(isPhoneErr) g.phoneErrNum++;
+
+        if(isValid){
+            g.validTotal++;
+            // 符合性判定
+            if(matchVal.includes("不符合")){
+                g.matchErr++;
+            }else if(matchVal.includes("符合")){
+                g.matchOk++;
+            }
+            // 体检规范性判定：符合性为不符合或造假时，直接判定为不规范
+            if(matchVal.includes("不符合") || !fakeVal.includes("无涉嫌造假")){
+                g.standardErr++;
+            }else if(examVal.includes("不规范")){
+                g.standardErr++;
+            }else if(examVal.includes("规范")){
+                g.standardOk++;
+            }
+        }
+    });
+
+    const summaryHeader = [
+        "单位","总核查数","有效核查数","失访数","电话异常数",
+        "符合数","不符合数","符合率(%)","规范数","不规范数","规范率(%)"
+    ];
+    const summaryData = [];
+    Object.keys(orgGroup).forEach(orgName => {
+        const d = orgGroup[orgName];
+        const matchRate = d.validTotal > 0 ? (d.matchOk / d.validTotal) : 0;
+        // 规范率 = 体检规范数 ÷ 有效档案总数
+        const standardRate = d.validTotal > 0 ? (d.standardOk / d.validTotal) : 0;
+        summaryData.push([
+            orgName,
+            d.totalAll,
+            d.validTotal,
+            d.lostNum,
+            d.phoneErrNum,
+            d.matchOk,
+            d.matchErr,
+            matchRate,
+            d.standardOk,
+            d.standardErr,
+            standardRate
+        ]);
+    });
+    const summarySheet = XLSX.utils.aoa_to_sheet([summaryHeader, ...summaryData]);
+    summarySheet["!cols"] = [
+        {wch:22},{wch:10},{wch:10},{wch:8},{wch:12},
+        {wch:8},{wch:10},{wch:10},{wch:8},{wch:10},{wch:10}
+    ];
+    const range = XLSX.utils.decode_range(summarySheet['!ref']);
+    for(let row = 1; row <= range.e.r; row++){
+        summarySheet[XLSX.utils.encode_cell({r:row, c:7})].t = 'n';
+        summarySheet[XLSX.utils.encode_cell({r:row, c:7})].z = '0.00%';
+        summarySheet[XLSX.utils.encode_cell({r:row, c:10})].t = 'n';
+        summarySheet[XLSX.utils.encode_cell({r:row, c:10})].z = '0.00%';
+    }
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, detailSheet, "核查明细数据");
+    XLSX.utils.book_append_sheet(workbook, summarySheet, "单位汇总统计");
+    XLSX.writeFile(workbook, `健康档案核查记录_${nameSuffix}_${formatDate(new Date()).split(' ')[0]}.xlsx`);
+}
+
+// 更新记录数量显示
+function updateRecordCount(){
+    document.getElementById("recordCount").innerText = recordList.length;
+}
+
+// 更新年度选择器选项
+function updateExportYearOptions(){
+    const years = [...new Set(recordList.map(item => item.year).filter(y => y))];
+    const select = document.getElementById("exportYear");
+    select.innerHTML = '<option value="">全部年度</option>';
+    years.sort().reverse().forEach(year => {
+        select.innerHTML += `<option value="${year}">${year}年</option>`;
+    });
+}
+
+// 显示记录列表弹窗
+function showRecordList(){
+    if(recordList.length === 0){
+        alert("暂无已保存记录");
+        return;
+    }
+    const modal = document.getElementById("recordModal");
+    const tableArea = document.getElementById("recordTableArea");
+
+    // 应答情况编码映射
+    const replyCodeMap = {
+        "1":"①本人应答","2":"②应答人为家属、亲戚等，了解情况",
+        "3":"③应答人为家属、亲戚等，不了解核查对象具体情况","4":"④无法接通（不同时间拨打三次，关机、停机）",
+        "5":"⑤拒绝调查：接听后不配合，中途退出","6":"⑥空号","7":"⑦错号",
+        "8":"⑧电话为村医、村干号码","9":"⑨本人应答，记不清情况"
+    };
+
+    // 老年人访谈记录与健康档案比对编码映射
+    const matchCodeMap = {
+        "2":"②访谈为未查体（血压、体重、心肺听诊），但档案中有查体记录",
+        "3":"③访谈为未做心电图，但档案中有心电图记录",
+        "4":"④访谈为未做B超，但档案中有B超记录",
+        "5":"⑤访谈为未做健康体检，但档案中有体检记录",
+        "6":"⑥访谈为未做抽血，但档案中有抽血（血脂、肝功能等）记录",
+        "7":"⑦档案涉嫌造假"
+    };
+
+    // 高血压符合性核查编码映射
+    const hypMatchCodeMap = {
+        "2":"②访谈为非高血压患者，但档案中显示为高血压患者",
+        "3":"③访谈否认体检，但档案中有体检记录",
+        "4":"④访谈否认随访，但档案中有随访记录",
+        "5":"⑤访谈为随访中未测量血压，但档案中有血压记录",
+        "6":"⑥访谈为电话随访，但档案中记录为门诊/家庭随访",
+        "7":"⑦实际面对面随访次数少于系统录入的次数",
+        "8":"⑧档案涉嫌造假"
+    };
+
+    // 老年人体检发放情况编码映射
+    const sendCodeMap = {
+        "1":"①没有发放或没有通知","2":"②没有发放，仅口头告知",
+        "3":"③15天内通知、发放并解读健康指导","4":"④15天后通知、发放并解读健康指导",
+        "5":"⑤已通知领取，但未解读结果","6":"⑥15天内通知解读，个人原因晚领取","7":"⑦记不清（失访）"
+    };
+
+    // 老年人空错项编码映射
+    const errCodeMap = {
+        "1":"①体检日期、责任医生空项或错项","2":"②症状空项或错项","3":"③一般状况(血压/身高体重/BMI等)空项或错项",
+        "4":"④老年人生活自理能力评估空项或错项","5":"⑤生活方式(锻炼/吸烟/饮食等)空项或错项",
+        "6":"⑥脏器功能(口腔/视力/听力)空项或错项","7":"⑦体格查体(皮肤/心肺/腹部等)空项或错项",
+        "8":"⑧血常规空项","9":"⑨尿常规空项","10":"⑩血压空项","11":"⑪空腹血糖空项","12":"⑫心电图空项",
+        "13":"⑬肝功能空项","14":"⑭肾功能空项","15":"⑮血脂空项","16":"⑯腹部B超空项","22":"㉒糖化血红蛋白空项",
+        "17":"⑰主要用药情况空项或错项","18":"⑱健康评价空项或错项","19":"⑲健康指导空项或错项","20":"⑳危险因素控制空项或错项",
+        "21":"㉑现存主要健康问题空项或错项","23":"㉓住院史空项或错项","24":"㉔家庭病床史空项或错项","25":"㉕免疫接种史空项或错项","26":"㉖其他空项或错项"
+    };
+
+    // 高血压规范性核查编码映射
+    const hypErrCodeMap = {
+        "1":"①随访日期","2":"②随访方式","3":"③症状","4":"④血压",
+        "5":"⑤生活方式指导","6":"⑥服药依从性","7":"⑦用药情况",
+        "8":"⑧随访医生签名","9":"⑨此次随访分类","10":"⑩本年度随访方式均为电话随访"
+    };
+
+    // 老年人造假情况编码映射
+    const fakeCodeMap = {
+        "0":"无涉嫌造假","1":"已死亡仍有体检记录","2":"不在本地居住却有本地体检记录",
+        "3":"复制往年体检记录","4":"辅助检查3项及以上填0/多项填拒绝"
+    };
+
+    // 高血压造假情况编码映射
+    const hypFakeCodeMap = {
+        "0":"无涉嫌造假","1":"已死亡仍有服务记录","2":"不在本地居住却有面对面服务记录",
+        "3":"2026年复制往次服务记录"
+    };
+
+    let html = `<table border="1" cellpadding="5" cellspacing="0" style="width:100%;font-size:11px;border-collapse:collapse;table-layout:auto;">
+    <tr style="background:#0066cc;color:#fff;">
+        <th>序号</th><th>单位</th><th>项目</th><th>年度</th><th>季度</th><th>姓名</th><th>性别</th><th>年龄</th>
+        <th>应答情况</th><th>符合性核查</th><th>规范性核查</th>
+        <th>是否涉嫌造假</th><th>录入时间</th><th>操作</th>
+    </tr>`;
+
+    recordList.forEach((item, index) => {
+        const project = item.project || "";
+        // 应答情况文字
+        const replyText = replyCodeMap[item.replyCode] || item.replyCode || '-';
+
+        let matchText = '-';
+        let errText = '-';
+        let fakeText = '-';
+
+        if(project === "高血压"){
+            // 高血压符合性核查
+            if(item.hypMatchAllOk){
+                matchText = "（1）访谈中体检和随访服务提供情况与档案记录一致";
+            }else if(item.hypMatchItems && item.hypMatchItems.length > 0){
+                matchText = item.hypMatchItems.map(v => hypMatchCodeMap[v] || v).join("；");
+            }
+            // 高血压规范性核查
+            if(item.hypErrItems && item.hypErrItems.length > 0){
+                errText = item.hypErrItems.map(v => hypErrCodeMap[v] || v).join("；");
+            }
+            // 控制率
+            const bpControlMap = {"1":"血压控制满意","2":"血压控制不满意"};
+            if(item.hypBPControl){
+                errText += (errText !== '-' ? "；" : "") + `随访记录血压控制：${bpControlMap[item.hypBPControl] || item.hypBPControl}`;
+            }
+            if(item.hypBPValue){
+                errText += (errText !== '-' && !errText.endsWith("）") ? "；" : "") + `随访记录血压值：${item.hypBPValue}mmHg`;
+            }
+            // 自测/药店测量
+            const bpMeasureMap = {"1":"是","2":"否","3":"记不清"};
+            if(item.hypBPMeasure){
+                errText += (errText !== '-' && !errText.endsWith("）") ? "；" : "") + `自测/药店测量控制满意：${bpMeasureMap[item.hypBPMeasure] || item.hypBPMeasure}`;
+            }
+            if(item.hypBPMeasure === "1" && item.hypBPMeasureYes){
+                errText += `（${item.hypBPMeasureYes}mmHg）`;
+            } else if(item.hypBPMeasure === "2" && item.hypBPMeasureNo){
+                errText += `（${item.hypBPMeasureNo}mmHg）`;
+            }
+            // 高血压造假情况
+            fakeText = hypFakeCodeMap[item.fakeCode] || item.fakeCode || '-';
+        } else {
+            // 老年人访谈记录与健康档案比对
+            if(item.matchAllOk){
+                matchText = "（1）访谈情况与健康档案相符";
+            }else if(item.matchItems && item.matchItems.length > 0){
+                matchText = item.matchItems.map(v => matchCodeMap[v] || v).join("；");
+            }
+            // 老年人空错项
+            if(item.errItems && item.errItems.length > 0){
+                errText = item.errItems.map(v => errCodeMap[v] || v).join("；");
+                if(item.otherDesc) errText += "；" + item.otherDesc;
+            }
+            // 老年人体检发放情况
+            const sendText = sendCodeMap[item.sendResCode] || '';
+            if(sendText) errText += (errText !== '-' ? "；" : "") + "体检发放：" + sendText;
+            // 老年人造假情况
+            fakeText = fakeCodeMap[item.fakeCode] || item.fakeCode || '-';
+        }
+
+        html += `<tr>
+            <td>${index + 1}</td>
+            <td>${item.org || '-'}</td>
+            <td>${project || '-'}</td>
+            <td>${item.year || '-'}</td>
+            <td>${item.quarter || '-'}</td>
+            <td>${item.name || '-'}</td>
+            <td>${item.sex || '-'}</td>
+            <td>${item.age || '-'}</td>
+            <td style="max-width:200px;word-break:break-all;">${replyText}</td>
+            <td style="max-width:250px;word-break:break-all;">${matchText}</td>
+            <td style="max-width:250px;word-break:break-all;">${errText}</td>
+            <td>${fakeText}</td>
+            <td>${item.saveTime}</td>
+            <td><button onclick="deleteRecord(${index})" style="background:#cc0000;color:#fff;padding:2px 8px;border:none;border-radius:3px;cursor:pointer;">删除</button></td>
+        </tr>`;
+    });
+
+    html += '</table>';
+    tableArea.innerHTML = html;
+    modal.classList.add("show");
+}
+
+// 关闭记录列表弹窗
+function closeRecordModal(){
+    document.getElementById("recordModal").classList.remove("show");
+}
+
+// 删除单条记录
+function deleteRecord(index){
+    if(!confirm(`确定要删除第 ${index + 1} 条记录（${recordList[index].name}）吗？`)){
+        return;
+    }
+    recordList.splice(index, 1);
+    try {
+        localStorage.setItem("checkRecords", JSON.stringify(recordList));
+        updateRecordCount();
+        updateExportYearOptions();
+        alert("删除成功");
+        // 刷新列表显示
+        if(recordList.length > 0){
+            showRecordList();
+        }else{
+            closeRecordModal();
+        }
+    } catch (e) {
+        alert("删除失败");
+        console.error(e);
+    }
+}
+
+// 清空全部记录
+function clearAllRecords(){
+    if(recordList.length === 0){
+        alert("暂无记录可清空");
+        return;
+    }
+    if(!confirm(`确定要清空全部 ${recordList.length} 条记录吗？此操作不可恢复！`)){
+        return;
+    }
+    recordList = [];
+    try {
+        localStorage.removeItem("checkRecords");
+        updateRecordCount();
+        updateExportYearOptions();
+        alert("已清空全部记录");
+    } catch (e) {
+        alert("清空失败");
+        console.error(e);
+    }
+}
+
+// 输入实时校验
+document.querySelectorAll("input,select").forEach(el => {
+    const type = el.type;
+    if(type === "radio" || type === "checkbox" || el.tagName === "SELECT"){
+        el.addEventListener("change", calcAll);
+    }else{
+        el.addEventListener("input", calcAll);
+    }
+});
+calcAll();
+updateRecordCount();
+updateExportYearOptions();
+
+// 年度默认为当前年度
+const yearInput = document.getElementById("year");
+if(!yearInput.value){
+    yearInput.value = new Date().getFullYear();
+}
+
+// 单位搜索下拉组件逻辑
+const orgInput = document.getElementById("orgInput");
+const orgDropdown = document.getElementById("orgDropdown");
+const orgSelect = document.getElementById("orgSelect");
+const orgHidden = document.getElementById("org");
+
+orgInput.addEventListener("click", function(e){
+    e.stopPropagation();
+    orgDropdown.classList.add("show");
+});
+
+orgInput.addEventListener("input", function(){
+    const keyword = this.value.toLowerCase();
+    document.querySelectorAll(".search-select-option").forEach(opt => {
+        const text = opt.textContent.toLowerCase();
+        opt.style.display = text.includes(keyword) ? "" : "none";
+    });
+});
+
+document.querySelectorAll(".search-select-option").forEach(opt => {
+    opt.addEventListener("click", function(){
+        const value = this.getAttribute("data-value");
+        const text = this.textContent;
+        orgHidden.value = value;
+        orgInput.value = text === "请选择单位" ? "" : text;
+        orgDropdown.classList.remove("show");
+        calcAll();
+    });
+});
+
+document.addEventListener("click", function(e){
+    if(!orgSelect.contains(e.target)){
+        orgDropdown.classList.remove("show");
+    }
+});
+
+// 标签页切换
+function switchTab(tab){
+    document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(el => el.classList.remove('active'));
+
+    // 根据tab设置激活的标签项
+    let tabIndex = 0;
+    if(tab === 'entry') tabIndex = 1;
+    else if(tab === 'manage') tabIndex = 2;
+    const tabItem = document.querySelector(`.tab-item:nth-child(${tabIndex + 1})`);
+    if(tabItem) tabItem.classList.add('active');
+    document.getElementById(tab + 'Tab').classList.add('active');
+
+    // 切换标签页时显示/隐藏右侧判定面板
+    const judgePanel = document.getElementById('judgePanel');
+    if(judgePanel){
+        judgePanel.style.display = tab === 'entry' ? 'block' : 'none';
+    }
+    if(tab === 'manage'){
+        updateManageStats();
+    }
+}
+
+// 选择项目并跳转到录入界面
+function selectProject(projectName){
+    document.getElementById("project").value = projectName;
+    // 触发项目切换事件
+    const event = new Event('change');
+    document.getElementById("project").dispatchEvent(event);
+    // 切换到录入界面
+    switchTab('entry');
+}
+
+// 更新记录计数（同时更新录入界面和管理界面）
+function updateRecordCount(){
+    const count = recordList.length;
+    const el = document.getElementById("recordCount");
+    if(el) el.innerText = count;
+    const manageEl = document.getElementById("manageRecordCount");
+    if(manageEl) manageEl.innerText = count;
+}
+
+// 更新管理界面统计数据
+function updateManageStats(){
+    // 分类统计
+    let elderStats = {total:0, valid:0, lost:0, telError:0, match:0, unmatch:0, standard:0, unstandard:0, fake:0};
+    let hypStats = {total:0, valid:0, lost:0, telError:0, match:0, unmatch:0, standard:0, unstandard:0, fake:0, controlOk:0, controlNotOk:0};
+    let dmStats = {total:0, valid:0, lost:0, telError:0, match:0, unmatch:0, standard:0, unstandard:0, fake:0, controlOk:0, controlNotOk:0};
+    let copdStats = {total:0, valid:0, lost:0, telError:0, match:0, unmatch:0, standard:0, unstandard:0, fake:0};
+    let resStats = {total:0, valid:0, lost:0, telError:0, match:0, unmatch:0, standard:0, unstandard:0, fake:0};
+
+    recordList.forEach(r => {
+        const project = r.project || "";
+        const reply = r.replyCode || "";
+        const isValid = !["3","4","5","6","7","8","9"].includes(reply);
+        const matchJudge = r.matchJudge || r.judgeMatch || "";
+        const fakeCode = r.fakeCode || r.judgeFake || (r.hypFake || (r.dmFake !== undefined ? r.dmFake : (r.copdFake !== undefined ? r.copdFake : "0")));
+        const isUnmatch = matchJudge.includes("不符合") || (fakeCode !== "0" && fakeCode !== "undefined");
+        const examJudge = r.judgeExam || "";
+        const isUnstandard = examJudge.includes("不规范") || isUnmatch;
+        const controlJudge = r.judgeControl || "";
+        const isControlOk = controlJudge.includes("控制满意") && !controlJudge.includes("不满意");
+
+        let stats;
+        if(project === "高血压") stats = hypStats;
+        else if(project === "糖尿病") stats = dmStats;
+        else if(project === "慢阻肺") stats = copdStats;
+        else if(project === "居民") stats = resStats;
+        else stats = elderStats;
+
+        stats.total++;
+        if(isValid) stats.valid++;
+        if(["4","7"].includes(reply)) stats.lost++;
+        if(["6","8"].includes(reply)) stats.telError++;
+        if(isUnmatch){
+            stats.unmatch++;
+            stats.unstandard++;
+        } else {
+            stats.match++;
+            if(isValid) stats.standard++;
+        }
+        if(fakeCode !== "0" && fakeCode !== "undefined") stats.fake++;
+
+        // 控制率统计（高血压、糖尿病）
+        if((project === "高血压" || project === "糖尿病") && isValid){
+            if(isControlOk){
+                stats.controlOk++;
+            } else if(controlJudge.includes("控制不满意")){
+                stats.controlNotOk++;
+            }
+        }
+    });
+
+    // 更新总体统计（合并）
+    const total = elderStats.total + hypStats.total + dmStats.total + copdStats.total + resStats.total;
+    const valid = elderStats.valid + hypStats.valid + dmStats.valid + copdStats.valid + resStats.valid;
+    const lost = elderStats.lost + hypStats.lost + dmStats.lost + copdStats.lost + resStats.lost;
+    const telError = elderStats.telError + hypStats.telError + dmStats.telError + copdStats.telError + resStats.telError;
+    const match = elderStats.match + hypStats.match + dmStats.match + copdStats.match + resStats.match;
+    const unmatch = elderStats.unmatch + hypStats.unmatch + dmStats.unmatch + copdStats.unmatch + resStats.unmatch;
+    const standard = elderStats.standard + hypStats.standard + dmStats.standard + copdStats.standard + resStats.standard;
+    const unstandard = elderStats.unstandard + hypStats.unstandard + dmStats.unstandard + copdStats.unstandard + resStats.unstandard;
+    const fake = elderStats.fake + hypStats.fake + dmStats.fake + copdStats.fake + resStats.fake;
+
+    const matchRate = valid > 0 ? ((match / valid) * 100).toFixed(1) : "-";
+    const standardRate = valid > 0 ? ((standard / valid) * 100).toFixed(1) : "-";
+
+    document.getElementById("totalCount").innerText = total;
+    document.getElementById("validCount").innerText = valid;
+    document.getElementById("lostCount").innerText = lost;
+    document.getElementById("telErrorCount").innerText = telError;
+    document.getElementById("matchCount").innerText = match;
+    document.getElementById("unmatchCount").innerText = unmatch;
+    document.getElementById("matchRate").innerText = matchRate === "-" ? "-" : matchRate + "%";
+    document.getElementById("standardCount").innerText = standard;
+    document.getElementById("unstandardCount").innerText = unstandard;
+    document.getElementById("standardRate").innerText = standardRate === "-" ? "-" : standardRate + "%";
+    document.getElementById("fakeCount").innerText = fake;
+
+    // 更新高血压控制率统计
+    const hypControlRate = hypStats.valid > 0 ? ((hypStats.controlOk / hypStats.valid) * 100).toFixed(1) : "-";
+    const hypControlRateEl = document.getElementById("hypControlRate");
+    if(hypControlRateEl){
+        hypControlRateEl.innerText = hypControlRate === "-" ? "-" : hypControlRate + "%";
+    }
+    const hypControlOkEl = document.getElementById("hypControlOkCount");
+    if(hypControlOkEl) hypControlOkEl.innerText = hypStats.controlOk;
+    const hypControlNotOkEl = document.getElementById("hypControlNotOkCount");
+    if(hypControlNotOkEl) hypControlNotOkEl.innerText = hypStats.controlNotOk;
+
+    // 更新糖尿病控制率统计
+    const dmControlRate = dmStats.valid > 0 ? ((dmStats.controlOk / dmStats.valid) * 100).toFixed(1) : "-";
+    const dmControlRateEl = document.getElementById("dmControlRate");
+    if(dmControlRateEl){
+        dmControlRateEl.innerText = dmControlRate === "-" ? "-" : dmControlRate + "%";
+    }
+    const dmControlOkEl = document.getElementById("dmControlOkCount");
+    if(dmControlOkEl) dmControlOkEl.innerText = dmStats.controlOk;
+    const dmControlNotOkEl = document.getElementById("dmControlNotOkCount");
+    if(dmControlNotOkEl) dmControlNotOkEl.innerText = dmStats.controlNotOk;
+
+    updateQuarterStats();
+    updateStatsYearOptions();
+    filterOrgStats();
+}
+
+// 更新季度对比统计
+function updateQuarterStats(){
+    const quarterMap = {};
+    recordList.forEach(r => {
+        const year = r.year || new Date().getFullYear().toString();
+        const quarter = r.quarter || "";
+        const key = year + "-" + quarter;
+        if(!quarterMap[key]){
+            quarterMap[key] = {year, quarter, total:0, valid:0, lost:0, telError:0, match:0, unmatch:0, standard:0, unstandard:0, fake:0};
+        }
+        quarterMap[key].total++;
+        const reply = r.replyCode || "";
+        if(!["3","4","5","6","7","8","9"].includes(reply)){
+            quarterMap[key].valid++;
+        }
+        if(["4","7"].includes(reply)){
+            quarterMap[key].lost++;
+        }
+        if(["6","8"].includes(reply)){
+            quarterMap[key].telError++;
+        }
+        const matchJudge = r.matchJudge || r.judgeMatch || "";
+        const fakeCode = r.fakeCode || r.judgeFake || "0";
+        const isUnmatch = matchJudge.includes("不符合") || fakeCode !== "0";
+        if(isUnmatch){
+            quarterMap[key].unmatch++;
+            quarterMap[key].unstandard++;
+        } else {
+            quarterMap[key].match++;
+            // 有效档案才算规范
+            if(!["3","4","5","6","7","8","9"].includes(reply)){
+                quarterMap[key].standard++;
+            }
+        }
+        if(fakeCode !== "0"){
+            quarterMap[key].fake++;
+        }
+    });
+
+    const quarters = Object.keys(quarterMap).sort().reverse();
+    const tbody = document.getElementById("quarterTableBody");
+    if(quarters.length === 0){
+        tbody.innerHTML = '<tr><td colspan="13" style="color:#999;text-align:center;padding:20px;">暂无数据</td></tr>';
+        return;
+    }
+
+    let html = '';
+    quarters.forEach(key => {
+        const q = quarterMap[key];
+        const matchRate = q.valid > 0 ? ((q.match / q.valid) * 100).toFixed(1) : "0";
+        const standardRate = q.valid > 0 ? ((q.standard / q.valid) * 100).toFixed(1) : "0";
+        const quarterName = {"Q1":"一季度","Q2":"二季度","Q3":"三季度","Q4":"四季度"}[q.quarter] || q.quarter || "全部";
+        html += `<tr>
+            <td style="text-align:center;">${q.year}</td>
+            <td style="text-align:center;">${quarterName}</td>
+            <td style="text-align:center;">${q.total}</td>
+            <td style="text-align:center;">${q.valid}</td>
+            <td style="text-align:center;color:#dc3545;">${q.lost}</td>
+            <td style="text-align:center;color:#fd7e14;">${q.telError}</td>
+            <td style="text-align:center;color:#28a745;">${q.match}</td>
+            <td style="text-align:center;color:#dc3545;">${q.unmatch}</td>
+            <td style="text-align:center;">${matchRate}%</td>
+            <td style="text-align:center;color:#28a745;">${q.standard}</td>
+            <td style="text-align:center;color:#dc3545;">${q.unstandard}</td>
+            <td style="text-align:center;">${standardRate}%</td>
+            <td style="text-align:center;color:#dc3545;">${q.fake}</td>
+        </tr>`;
+    });
+    tbody.innerHTML = html;
+}
+
+// 更新统计年度选项
+function updateStatsYearOptions(){
+    const years = new Set();
+    recordList.forEach(r => {
+        if(r.year) years.add(r.year);
+    });
+    const select = document.getElementById("statsYear");
+    select.innerHTML = '<option value="">全部年度</option>';
+    Array.from(years).sort().reverse().forEach(y => {
+        select.innerHTML += `<option value="${y}">${y}</option>`;
+    });
+}
+
+// 筛选单位统计
+function filterOrgStats(){
+    const year = document.getElementById("statsYear").value;
+    const quarter = document.getElementById("statsQuarter").value;
+
+    const filtered = recordList.filter(r => {
+        if(year && r.year !== year) return false;
+        if(quarter && r.quarter !== quarter) return false;
+        return true;
+    });
+
+    const orgMap = {};
+    filtered.forEach(r => {
+        const org = r.org || "未知单位";
+        if(!orgMap[org]){
+            orgMap[org] = {total:0, valid:0, lost:0, telError:0, match:0, unmatch:0, standard:0, unstandard:0, fake:0};
+        }
+        orgMap[org].total++;
+        const reply = r.replyCode || "";
+        if(!["3","4","5","6","7","8","9"].includes(reply)){
+            orgMap[org].valid++;
+        }
+        if(["4","7"].includes(reply)){
+            orgMap[org].lost++;
+        }
+        if(["6","8"].includes(reply)){
+            orgMap[org].telError++;
+        }
+        const matchJudge = r.matchJudge || r.judgeMatch || "";
+        const fakeCode = r.fakeCode || r.judgeFake || "0";
+        const isUnmatch = matchJudge.includes("不符合") || fakeCode !== "0";
+        if(isUnmatch){
+            orgMap[org].unmatch++;
+            orgMap[org].unstandard++;
+        } else {
+            orgMap[org].match++;
+            // 有效档案才算规范
+            if(!["3","4","5","6","7","8","9"].includes(reply)){
+                orgMap[org].standard++;
+            }
+        }
+        if(fakeCode !== "0"){
+            orgMap[org].fake++;
+        }
+    });
+
+    const orgs = Object.keys(orgMap).sort();
+    const tbody = document.getElementById("orgStatsBody");
+    if(orgs.length === 0){
+        tbody.innerHTML = '<tr><td colspan="12" style="color:#999;text-align:center;padding:20px;">暂无数据</td></tr>';
+        return;
+    }
+
+    let html = '';
+    orgs.forEach(org => {
+        const s = orgMap[org];
+        const matchRate = s.valid > 0 ? ((s.match / s.valid) * 100).toFixed(1) : "0";
+        const standardRate = s.valid > 0 ? ((s.standard / s.valid) * 100).toFixed(1) : "0";
+        html += `<tr>
+            <td style="text-align:left;">${org}</td>
+            <td style="text-align:center;">${s.total}</td>
+            <td style="text-align:center;">${s.valid}</td>
+            <td style="text-align:center;color:#dc3545;">${s.lost}</td>
+            <td style="text-align:center;color:#fd7e14;">${s.telError}</td>
+            <td style="text-align:center;color:#28a745;">${s.match}</td>
+            <td style="text-align:center;color:#dc3545;">${s.unmatch}</td>
+            <td style="text-align:center;">${matchRate}%</td>
+            <td style="text-align:center;color:#28a745;">${s.standard}</td>
+            <td style="text-align:center;color:#dc3545;">${s.unstandard}</td>
+            <td style="text-align:center;">${standardRate}%</td>
+            <td style="text-align:center;color:#dc3545;">${s.fake}</td>
+        </tr>`;
+    });
+    tbody.innerHTML = html;
+}
+
+// 导出单位统计
+function exportOrgStats(){
+    const tbody = document.getElementById("orgStatsBody");
+    if(tbody.querySelector('td[colspan="12"]')){
+        alert("暂无数据可导出");
+        return;
+    }
+
+    const rows = [["单位名称", "录入数", "有效数", "失访数", "电话异常", "符合数", "不符合数", "符合率(%)", "规范数", "不规范数", "规范率(%)", "造假数"]];
+    tbody.querySelectorAll('tr').forEach(tr => {
+        const tds = tr.querySelectorAll('td');
+        if(tds.length === 12){
+            rows.push(Array.from(tds).map(td => td.innerText));
+        }
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:30},{wch:8},{wch:8},{wch:8},{wch:8},{wch:8},{wch:8},{wch:10},{wch:8},{wch:8},{wch:10},{wch:8}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "单位统计");
+    XLSX.writeFile(wb, `健康档案单位统计_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+// 生成分析报告
+function generateReport(){
+    if(recordList.length === 0){
+        alert("暂无数据可分析");
+        return;
+    }
+
+    const reportDiv = document.getElementById("reportContent");
+    reportDiv.style.display = "block";
+
+    // 总体统计
+    const total = recordList.length;
+    let valid = 0, invalid = 0, lost = 0, telError = 0;
+    let match = 0, unmatch = 0, standard = 0, unstandard = 0, fake = 0;
+
+    // 原因统计
+    const lostReasons = {off:0, wrong:0}; // 关机停机、错号
+    const telReasons = {empty:0, other:0}; // 空号、其他(村医村干)
+    const unmatchReasons = {noExam:0, noECG:0, noB超:0, noExamRecord:0, noBlood:0, fake:0}; // 未查体、未心电图、未B超、未体检记录、未抽血、造假
+    const errReasons = { // 空错项统计
+        "1":0,"2":0,"3":0,"4":0,"5":0,"6":0,"7":0,
+        "8":0,"9":0,"10":0,"11":0,"12":0,"13":0,"14":0,"15":0,"16":0,"17":0,"18":0,"19":0,"20":0,"21":0,"22":0,"23":0,"24":0,"25":0,"26":0
+    };
+    const errCodeText = {
+        "1":"①体检日期、责任医生空项或错项","2":"②症状空项或错项","3":"③一般状况(血压/身高体重/BMI等)空项或错项","4":"④老年人生活自理能力评估空项或错项",
+        "5":"⑤生活方式(锻炼/吸烟/饮食等)空项或错项","6":"⑥脏器功能(口腔/视力/听力)空项或错项","7":"⑦体格查体(皮肤/心肺/腹部等)空项或错项",
+        "8":"⑧血常规空项","9":"⑨尿常规空项","10":"⑩血压空项","11":"⑪空腹血糖空项","12":"⑫心电图空项",
+        "13":"⑬肝功能空项","14":"⑭肾功能空项","15":"⑮血脂空项","16":"⑯腹部B超空项","22":"㉒糖化血红蛋白空项",
+        "17":"⑰主要用药情况空项或错项","18":"⑱健康评价空项或错项","19":"⑲健康指导空项或错项","20":"⑳危险因素控制空项或错项",
+        "21":"㉑现存主要健康问题空项或错项","23":"㉓住院史空项或错项","24":"㉔家庭病床史空项或错项","25":"㉕免疫接种史空项或错项","26":"㉖其他空项或错项"
+    };
+
+    recordList.forEach(r => {
+        const reply = r.replyCode || "";
+        const isValid = !["3","4","5","6","7","8","9"].includes(reply);
+        if(isValid){
+            valid++;
+        } else {
+            invalid++;
+        }
+        if(["4","7"].includes(reply)){
+            lost++;
+            if(reply === "4") lostReasons.off++;
+            if(reply === "7") lostReasons.wrong++;
+        }
+        if(["6","8"].includes(reply)){
+            telError++;
+            if(reply === "6") telReasons.empty++;
+            if(reply === "8") telReasons.other++;
+        }
+
+        const matchJudge = r.matchJudge || r.judgeMatch || "";
+        const fakeCode = r.fakeCode || r.judgeFake || "0";
+        const matchItems = r.matchItems || [];
+
+        if(fakeCode !== "0"){
+            unmatchReasons.fake++;
+        } else if(matchItems.includes("2")){
+            unmatchReasons.noExam++;
+        } else if(matchItems.includes("3")){
+            unmatchReasons.noECG++;
+        } else if(matchItems.includes("4")){
+            unmatchReasons.noB超++;
+        } else if(matchItems.includes("5")){
+            unmatchReasons.noExamRecord++;
+        } else if(matchItems.includes("6")){
+            unmatchReasons.noBlood++;
+        }
+
+        const isUnmatch = matchJudge.includes("不符合") || fakeCode !== "0";
+
+        if(isUnmatch){
+            unmatch++;
+            unstandard++;
+        } else {
+            match++;
+            if(isValid) standard++;
+        }
+        if(fakeCode !== "0") fake++;
+
+        // 统计不规范原因（空错项）
+        const errItems = r.errItems || [];
+        errItems.forEach(errCode => {
+            if(errReasons.hasOwnProperty(errCode)){
+                errReasons[errCode]++;
+            }
+        });
+    });
+
+    const matchRate = valid > 0 ? ((match / valid) * 100).toFixed(1) : "0";
+    const standardRate = valid > 0 ? ((standard / valid) * 100).toFixed(1) : "0";
+
+    // 各年度季度统计
+    const quarterMap = {};
+    recordList.forEach(r => {
+        const year = r.year || new Date().getFullYear().toString();
+        const quarter = r.quarter || "";
+        const key = year + "-" + quarter;
+        if(!quarterMap[key]){
+            quarterMap[key] = {total:0, valid:0, match:0, standard:0, unstandard:0};
+        }
+        quarterMap[key].total++;
+        const reply = r.replyCode || "";
+        const isValid = !["3","4","5","6","7","8","9"].includes(reply);
+        if(isValid){
+            quarterMap[key].valid++;
+        }
+        const matchJudge = r.matchJudge || r.judgeMatch || "";
+        const fakeCode = r.fakeCode || r.judgeFake || "0";
+        const isUnmatch = matchJudge.includes("不符合") || fakeCode !== "0";
+        if(isUnmatch){
+            quarterMap[key].unstandard++;
+        } else {
+            if(isValid) quarterMap[key].standard++;
+        }
+    });
+
+    // 找出问题最多的单位
+    const orgMap = {};
+    recordList.forEach(r => {
+        const org = r.org || "未知单位";
+        if(!orgMap[org]) orgMap[org] = {unmatch:0, unstandard:0, fake:0};
+        const matchJudge = r.matchJudge || r.judgeMatch || "";
+        const fakeCode = r.fakeCode || r.judgeFake || "0";
+        if(matchJudge.includes("不符合")) orgMap[org].unmatch++;
+        if(fakeCode !== "0") orgMap[org].fake++;
+    });
+
+    const problemOrgs = Object.entries(orgMap)
+        .map(([org, data]) => ({org, ...data, total: data.unmatch + data.unstandard + data.fake}))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 5);
+
+    // 生成报告HTML
+    let html = `<div style="line-height:1.8;">
+        <h4 style="margin:0 0 16px 0;color:#0066cc;border-bottom:2px solid #0066cc;padding-bottom:8px;">一、总体概况</h4>
+        <p>本次核查共录入 <strong>${total}</strong> 条记录，其中有效核查 <strong>${valid}</strong> 条，无效记录 <strong>${invalid}</strong> 条。</p>
+        <p>失访 <strong>${lost}</strong> 例（占比${total > 0 ? ((lost / total) * 100).toFixed(1) : 0}%），电话异常 <strong>${telError}</strong> 例（占比${total > 0 ? ((telError / total) * 100).toFixed(1) : 0}%）。</p>
+
+        <h4 style="margin:20px 0 16px 0;color:#0066cc;border-bottom:2px solid #0066cc;padding-bottom:8px;">二、失访原因分析</h4>
+        ${lost > 0 ? `<p>失访共 <strong>${lost}</strong> 例，具体原因如下：</p><ul>` : '<p>无失访情况。</p>'}
+        ${lostReasons.off > 0 ? `<li>无法接通（关机、停机）：<strong>${lostReasons.off}</strong> 例</li>` : ''}
+        ${lostReasons.wrong > 0 ? `<li>错号：<strong>${lostReasons.wrong}</strong> 例</li>` : ''}
+        ${lost > 0 ? '</ul>' : ''}
+
+        <h4 style="margin:20px 0 16px 0;color:#0066cc;border-bottom:2px solid #0066cc;padding-bottom:8px;">三、电话异常原因分析</h4>
+        ${telError > 0 ? `<p>电话异常共 <strong>${telError}</strong> 例，具体原因如下：</p><ul>` : '<p>无电话异常情况。</p>'}
+        ${telReasons.empty > 0 ? `<li>空号：<strong>${telReasons.empty}</strong> 例</li>` : ''}
+        ${telReasons.other > 0 ? `<li>电话为村医、村干号码：<strong>${telReasons.other}</strong> 例</li>` : ''}
+        ${telError > 0 ? '</ul>' : ''}
+
+        <h4 style="margin:20px 0 16px 0;color:#0066cc;border-bottom:2px solid #0066cc;padding-bottom:8px;">四、符合性分析</h4>
+        <p>符合档案 <strong>${match}</strong> 份，符合率 <strong>${matchRate}%</strong>；不符合档案 <strong>${unmatch}</strong> 份。</p>
+        ${unmatch > 0 ? `<p>不符合档案共 <strong>${unmatch}</strong> 份，具体原因如下：</p><ul>` : '<p style="color:#28a745;">✓ 所有有效档案均符合标准。</p>'}
+        ${unmatchReasons.noExam > 0 ? `<li>访谈为未查体，但档案中有查体记录：<strong>${unmatchReasons.noExam}</strong> 例</li>` : ''}
+        ${unmatchReasons.noECG > 0 ? `<li>访谈为未做心电图，但档案中有心电图记录：<strong>${unmatchReasons.noECG}</strong> 例</li>` : ''}
+        ${unmatchReasons.noB超 > 0 ? `<li>访谈为未做B超，但档案中有B超记录：<strong>${unmatchReasons.noB超}</strong> 例</li>` : ''}
+        ${unmatchReasons.noExamRecord > 0 ? `<li>访谈为未做健康体检，但档案中有体检记录：<strong>${unmatchReasons.noExamRecord}</strong> 例</li>` : ''}
+        ${unmatchReasons.noBlood > 0 ? `<li>访谈为未做抽血，但档案中有抽血记录：<strong>${unmatchReasons.noBlood}</strong> 例</li>` : ''}
+        ${unmatchReasons.fake > 0 ? `<li>档案涉嫌造假：<strong>${unmatchReasons.fake}</strong> 例</li>` : ''}
+        ${unmatch > 0 ? '</ul>' : ''}
+
+        <h4 style="margin:20px 0 16px 0;color:#0066cc;border-bottom:2px solid #0066cc;padding-bottom:8px;">五、规范性分析</h4>
+        <p>规范档案 <strong>${standard}</strong> 份，规范率 <strong>${standardRate}%</strong>；不规范档案 <strong>${unstandard}</strong> 份。</p>
+        ${unstandard > 0 ? `<p>不规范档案共 <strong>${unstandard}</strong> 份，具体问题如下：</p><ul>` : '<p style="color:#28a745;">✓ 所有有效档案均符合规范要求。</p>'}
+        ${(() => {
+            let errHtml = '';
+            const hasErr = Object.values(errReasons).some(v => v > 0);
+            if(hasErr){
+                for(const code in errReasons){
+                    if(errReasons[code] > 0){
+                        errHtml += `<li>${errCodeText[code]}：<strong>${errReasons[code]}</strong> 例</li>`;
+                    }
+                }
+            }
+            return errHtml;
+        })()}
+        ${unstandard > 0 && Object.values(errReasons).some(v => v > 0) ? '</ul>' : ''}
+
+        <h4 style="margin:20px 0 16px 0;color:#0066cc;border-bottom:2px solid #0066cc;padding-bottom:8px;">六、造假情况</h4>
+        <p>涉嫌造假档案 <strong>${fake}</strong> 份。</p>
+        ${fake > 0 ? `<p style="color:#dc3545;">⚠️ 发现 <strong>${fake}</strong> 份档案涉嫌造假，需进一步核实并追究责任。</p>` : '<p style="color:#28a745;">✓ 未发现涉嫌造假档案。</p>'}`;
+
+    if(problemOrgs.length > 0 && problemOrgs[0].total > 0){
+        html += `<h4 style="margin:20px 0 16px 0;color:#0066cc;border-bottom:2px solid #0066cc;padding-bottom:8px;">七、重点关注单位</h4>
+        <p>以下单位存在问题较多，建议重点核查：</p><ul>`;
+        problemOrgs.forEach(org => {
+            html += `<li>${org.org}：不符合 ${org.unmatch} 份，不规范 ${org.unstandard} 份${org.fake > 0 ? `，造假 ${org.fake} 份` : ''}</li>`;
+        });
+        html += `</ul>`;
+    }
+
+    html += `<h4 style="margin:20px 0 16px 0;color:#0066cc;border-bottom:2px solid #0066cc;padding-bottom:8px;">八、改进建议</h4>
+        <ul>
+            ${lost > 0 ? '<li>核实联系电话的准确性，及时更新变更的联系方式。</li>' : ''}
+            ${telError > 0 ? '<li>核实档案中联系电话的真实性和有效性，确保能联系到本人或家属。</li>' : ''}
+            ${unmatch > 0 ? '<li>加强档案核查培训，提高访谈记录与健康档案的一致性。</li>' : ''}
+            ${unstandard > 0 ? '<li>规范体检记录填写流程，减少空项、错项发生。</li>' : ''}
+            ${fake > 0 ? '<li>严肃处理造假行为，加强档案管理监督。</li>' : ''}
+            <li>定期开展档案质量检查，建立长效管理机制。</li>
+        </ul>
+        <p style="margin-top:20px;color:#999;font-size:12px;">报告生成时间：${new Date().toLocaleString()}</p>
+    </div>`;
+
+    reportDiv.innerHTML = html;
+}
+
+// 导出报告
+function exportReport(){
+    const reportDiv = document.getElementById("reportContent");
+    if(reportDiv.style.display === "none" || !reportDiv.innerHTML){
+        alert("请先生成分析报告");
+        return;
+    }
+
+    const content = reportDiv.innerText;
+    const blob = new Blob(["\uFEFF" + content], {type: "text/plain;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `健康档案核查分析报告_${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// 计算各单位得分
+function calculateScores(){
+    // 老年人评分标准
+    const elderTotalScore = parseFloat(document.getElementById("elderScoreTotal").value) || 100;
+    const elderLostDeduct = parseFloat(document.getElementById("elderScoreLost").value) || 2;
+    const elderTelDeduct = parseFloat(document.getElementById("elderScoreTelError").value) || 1;
+    const elderUnmatchDeduct = parseFloat(document.getElementById("elderScoreUnmatch").value) || 3;
+    const elderStandardThreshold = parseFloat(document.getElementById("elderScoreStandardRate").value) || 90;
+    const elderStandardBonus = parseFloat(document.getElementById("elderScoreStandardBonus").value) || 10;
+
+    // 高血压评分标准
+    const hypTotalScore = parseFloat(document.getElementById("hypScoreTotal").value) || 100;
+    const hypLostDeduct = parseFloat(document.getElementById("hypScoreLost").value) || 2;
+    const hypTelDeduct = parseFloat(document.getElementById("hypScoreTelError").value) || 1;
+    const hypUnmatchDeduct = parseFloat(document.getElementById("hypScoreUnmatch").value) || 3;
+    const hypStandardThreshold = parseFloat(document.getElementById("hypScoreStandardRate").value) || 90;
+    const hypStandardBonus = parseFloat(document.getElementById("hypScoreStandardBonus").value) || 10;
+    const hypControlThreshold = parseFloat(document.getElementById("hypScoreControlRate").value) || 60;
+    const hypControlBonus = parseFloat(document.getElementById("hypScoreControlBonus").value) || 10;
+
+    // 糖尿病评分标准（复用高血压控制率参数）
+    const dmTotalScore = hypTotalScore;
+    const dmLostDeduct = hypLostDeduct;
+    const dmTelDeduct = hypTelDeduct;
+    const dmUnmatchDeduct = hypUnmatchDeduct;
+    const dmStandardThreshold = hypStandardThreshold;
+    const dmStandardBonus = hypStandardBonus;
+    const dmControlThreshold = hypControlThreshold;
+    const dmControlBonus = hypControlBonus;
+
+    // 慢阻肺/居民评分标准（复用老年人参数，但无控制率）
+    const copdTotalScore = elderTotalScore;
+    const copdLostDeduct = elderLostDeduct;
+    const copdTelDeduct = elderTelDeduct;
+    const copdUnmatchDeduct = elderUnmatchDeduct;
+    const copdStandardThreshold = elderStandardThreshold;
+    const copdStandardBonus = elderStandardBonus;
+
+    // 按单位+项目分组统计
+    const orgStats = {};
+    recordList.forEach(r => {
+        const org = r.org || "未知单位";
+        const project = r.project || "老年人";
+        const key = org + "|||" + project;
+
+        if(!orgStats[key]){
+            orgStats[key] = {
+                org,
+                project,
+                total: 0, valid: 0, lost: 0, telError: 0, match: 0, unmatch: 0, standard: 0, controlOk: 0, controlNotOk: 0
+            };
+        }
+
+        orgStats[key].total++;
+        const reply = r.replyCode || "";
+        const isValid = !["3","4","5","6","7","8","9"].includes(reply);
+        if(isValid) orgStats[key].valid++;
+        if(["4","7"].includes(reply)) orgStats[key].lost++;
+        if(["6","8"].includes(reply)) orgStats[key].telError++;
+
+        const matchJudge = r.matchJudge || r.judgeMatch || "";
+        const fakeCode = r.fakeCode || r.judgeFake || "0";
+        const isUnmatch = matchJudge.includes("不符合") || fakeCode !== "0";
+
+        if(isUnmatch){
+            orgStats[key].unmatch++;
+        } else {
+            orgStats[key].match++;
+            if(isValid && fakeCode === "0"){
+                orgStats[key].standard++;
+            }
+        }
+
+        // 高血压/糖尿病控制率
+        if(project === "高血压" || project === "糖尿病"){
+            const controlJudge = r.judgeControl || "";
+            if(controlJudge.includes("控制满意") && !controlJudge.includes("不满意")){
+                orgStats[key].controlOk++;
+            } else if(controlJudge.includes("控制不满意")){
+                orgStats[key].controlNotOk++;
+            }
+        }
+    });
+
+    // 计算得分
+    const orgScores = [];
+    for(const key in orgStats){
+        const s = orgStats[key];
+        let score;
+        let standardRate = s.valid > 0 ? (s.standard / s.valid) * 100 : 0;
+        let controlRate = s.valid > 0 ? (s.controlOk / s.valid) * 100 : 0;
+
+        if(s.project === "高血压"){
+            // 高血压评分
+            score = hypTotalScore;
+            score -= s.lost * hypLostDeduct;
+            score -= s.telError * hypTelDeduct;
+            score -= s.unmatch * hypUnmatchDeduct;
+            if(standardRate < hypStandardThreshold) score -= hypStandardBonus;
+            if(controlRate < hypControlThreshold) score -= hypControlBonus;
+        } else if(s.project === "糖尿病"){
+            // 糖尿病评分
+            score = dmTotalScore;
+            score -= s.lost * dmLostDeduct;
+            score -= s.telError * dmTelDeduct;
+            score -= s.unmatch * dmUnmatchDeduct;
+            if(standardRate < dmStandardThreshold) score -= dmStandardBonus;
+            if(controlRate < dmControlThreshold) score -= dmControlBonus;
+        } else if(s.project === "慢阻肺" || s.project === "居民"){
+            // 慢阻肺/居民评分
+            score = copdTotalScore;
+            score -= s.lost * copdLostDeduct;
+            score -= s.telError * copdTelDeduct;
+            score -= s.unmatch * copdUnmatchDeduct;
+            if(standardRate < copdStandardThreshold) score -= copdStandardBonus;
+        } else {
+            // 老年人评分
+            score = elderTotalScore;
+            score -= s.lost * elderLostDeduct;
+            score -= s.telError * elderTelDeduct;
+            score -= s.unmatch * elderUnmatchDeduct;
+            if(standardRate < elderStandardThreshold) score -= elderStandardBonus;
+        }
+
+        score = Math.max(0, Math.round(score * 10) / 10);
+        orgScores.push({
+            org: s.org,
+            project: s.project,
+            total: s.total,
+            valid: s.valid,
+            lost: s.lost,
+            telError: s.telError,
+            match: s.match,
+            unmatch: s.unmatch,
+            standardRate: s.valid > 0 ? ((s.standard / s.valid) * 100).toFixed(1) : "0",
+            controlRate: (s.project === "高血压" || s.project === "糖尿病") && s.valid > 0 ? ((s.controlOk / s.valid) * 100).toFixed(1) : "-",
+            score
+        });
+    }
+
+    // 按得分降序排序
+    orgScores.sort((a, b) => b.score - a.score);
+
+    // 渲染表格
+    const tbody = document.getElementById("scoreTableBody");
+    if(orgScores.length === 0){
+        tbody.innerHTML = '<tr><td colspan="12" style="color:#999;text-align:center;padding:20px;">暂无数据，请先保存记录后点击"计算各单位得分"</td></tr>';
+        return;
+    }
+
+    let html = '';
+    orgScores.forEach((s, i) => {
+        const projectColor = s.project === "高血压" ? "#28a745" : "#0066cc";
+        html += `<tr>
+            <td style="font-weight:600;color:#0066cc;">${i + 1}</td>
+            <td style="text-align:left;">${s.org}</td>
+            <td style="color:${projectColor};font-weight:600;">${s.project}</td>
+            <td>${s.total}</td>
+            <td>${s.valid}</td>
+            <td>${s.lost}</td>
+            <td>${s.telError}</td>
+            <td>${s.match}</td>
+            <td>${s.unmatch}</td>
+            <td>${s.standardRate}%</td>
+            <td>${s.controlRate}${s.controlRate !== "-" ? "%" : ""}</td>
+            <td style="font-weight:600;color:#0066cc;">${s.score}</td>
+        </tr>`;
+    });
+    tbody.innerHTML = html;
+}
+
+// 导出得分表Excel
+function exportScoreExcel(){
+    const tbody = document.getElementById("scoreTableBody");
+    if(tbody.querySelector('td[colspan="10"]')){
+        alert("暂无得分数据可导出");
+        return;
+    }
+
+    const rows = [["排名", "单位名称", "录入数", "有效数", "失访数", "电话异常", "符合数", "不符合数", "规范率(%)", "得分"]];
+    tbody.querySelectorAll('tr').forEach(tr => {
+        const tds = tr.querySelectorAll('td');
+        if(tds.length === 10){
+            rows.push(Array.from(tds).map(td => td.innerText));
+        }
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:6},{wch:30},{wch:8},{wch:8},{wch:8},{wch:8},{wch:8},{wch:8},{wch:10},{wch:8}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "考核得分表");
+    XLSX.writeFile(wb, `健康档案考核得分表_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+// 显示各单位存在问题一览表（汇总版）
+function showOrgProblemTable(){
+    if(recordList.length === 0){
+        document.getElementById("problemTableBody").innerHTML = '<tr><td colspan="5" style="color:#999;text-align:center;padding:20px;">暂无数据</td></tr>';
+        return;
+    }
+
+    // 老年人空错项编码映射
+    const errCodeText = {
+        "1":"体检日期、责任医生空项或错项","2":"症状空项或错项","3":"一般状况空项或错项","4":"生活自理能力空项或错项",
+        "5":"生活方式空项或错项","6":"脏器功能空项或错项","7":"体格查体空项或错项","8":"血常规空项","9":"尿常规空项",
+        "10":"血压空项","11":"空腹血糖空项","12":"心电图空项","13":"肝功能空项","14":"肾功能空项",
+        "15":"血脂空项","16":"腹部B超空项","17":"主要用药空项或错项","18":"健康评价空项或错项","19":"健康指导空项或错项",
+        "20":"危险因素控制空项或错项","21":"健康问题空项或错项","22":"糖化血红蛋白空项","23":"住院史空项或错项",
+        "24":"家庭病床史空项或错项","25":"免疫接种史空项或错项","26":"其他空项或错项"
+    };
+
+    // 高血压规范性核查编码映射
+    const hypErrCodeText = {
+        "1":"随访日期","2":"随访方式","3":"症状","4":"血压",
+        "5":"生活方式指导","6":"服药依从性","7":"用药情况",
+        "8":"随访医生签名","9":"此次随访分类","10":"本年度随访方式均为电话随访"
+    };
+
+    // 老年人造假选项
+    const fakeText = {"0":"无","1":"已死亡仍有体检记录","2":"不在本地居住却有本地体检记录","3":"复制往年体检记录","4":"辅助检查3项及以上填0/多项填拒绝"};
+
+    // 高血压造假选项
+    const hypFakeText = {"0":"无","1":"已死亡仍有服务记录","2":"不在本地居住却有面对面服务记录","3":"2026年复制往次服务记录"};
+
+    // 老年人访谈与档案比对问题
+    const matchText = {"2":"访谈为未查体，但档案中有查体记录","3":"访谈为未做心电图，但档案中有心电图记录","4":"访谈为未做B超，但档案中有B超记录","5":"访谈为未做健康体检，但档案中有体检记录","6":"访谈为未做抽血，但档案中有抽血（血脂、肝功能等）记录","7":"档案涉嫌造假"};
+
+    // 高血压符合性核查问题
+    const hypMatchText = {"2":"访谈为非高血压患者，但档案中显示为高血压患者","3":"访谈否认体检，但档案中有体检记录","4":"访谈否认随访，但档案中有随访记录","5":"访谈为随访中未测量血压，但档案中有血压记录","6":"访谈为电话随访，但档案中记录为门诊/家庭随访","7":"实际面对面随访次数少于系统录入的次数","8":"档案涉嫌造假"};
+
+    // 按单位汇总问题
+    const orgProblemMap = {};
+
+    recordList.forEach(r => {
+        const org = r.org || "未知单位";
+        const project = r.project || "";
+        if(!orgProblemMap[org]){
+            orgProblemMap[org] = {};
+        }
+
+        const replyCode = r.replyCode || "";
+        const matchJudge = r.matchJudge || r.judgeMatch || "";
+        const fakeCode = r.fakeCode || r.judgeFake || "0";
+
+        // 无效应答问题
+        if(["3","4","5","6","7","8","9"].includes(replyCode)){
+            const replyProblemText = {
+                "3":"拒访",
+                "4":"关机停机",
+                "5":"停机",
+                "6":"电话号码空号",
+                "7":"电话号码错号",
+                "8":"电话为村医、村干号码",
+                "9":"其他"
+            };
+            const problem = replyProblemText[replyCode] || "无效应答";
+            orgProblemMap[org][problem] = (orgProblemMap[org][problem] || 0) + 1;
+        }
+
+        // 不符合原因
+        if(matchJudge.includes("不符合")){
+            if(project === "高血压"){
+                const hypMatchItems = r.hypMatchItems || [];
+                hypMatchItems.forEach(m => {
+                    if(hypMatchText[m]){
+                        orgProblemMap[org][hypMatchText[m]] = (orgProblemMap[org][hypMatchText[m]] || 0) + 1;
+                    }
+                });
+            } else {
+                const matchItems = r.matchItems || [];
+                matchItems.forEach(m => {
+                    if(matchText[m]){
+                        orgProblemMap[org][matchText[m]] = (orgProblemMap[org][matchText[m]] || 0) + 1;
+                    }
+                });
+            }
+        }
+
+        // 造假
+        if(fakeCode !== "0"){
+            const ft = project === "高血压" ? hypFakeText[fakeCode] : fakeText[fakeCode];
+            if(ft){
+                orgProblemMap[org][ft] = (orgProblemMap[org][ft] || 0) + 1;
+            }
+        }
+
+        // 空错项/规范性核查
+        if(project === "高血压"){
+            const hypErrItems = r.hypErrItems || [];
+            hypErrItems.forEach(e => {
+                if(hypErrCodeText[e]){
+                    orgProblemMap[org][hypErrCodeText[e]] = (orgProblemMap[org][hypErrCodeText[e]] || 0) + 1;
+                }
+            });
+        } else {
+            const errItems = r.errItems || [];
+            errItems.forEach(e => {
+                if(errCodeText[e]){
+                    orgProblemMap[org][errCodeText[e]] = (orgProblemMap[org][errCodeText[e]] || 0) + 1;
+                }
+            });
+        }
+
+        // 备注中的问题（不加前缀）
+        if(r.remark && r.remark.trim()){
+            orgProblemMap[org][r.remark.trim()] = (orgProblemMap[org][r.remark.trim()] || 0) + 1;
+        }
+    });
+
+    const result = [];
+    Object.keys(orgProblemMap).forEach(org => {
+        const problems = orgProblemMap[org];
+        const totalCount = Object.values(problems).reduce((a, b) => a + b, 0);
+        if(totalCount > 0){
+            // 过滤掉undefined问题，按数量降序排列
+            const sortedProblems = Object.entries(problems)
+                .filter(([key]) => key !== "undefined")
+                .sort((a, b) => b[1] - a[1]);
+            result.push({org, totalCount, problems: sortedProblems});
+        }
+    });
+
+    // 按单位名称排序
+    result.sort((a, b) => a.org.localeCompare(b.org));
+
+    const tbody = document.getElementById("problemTableBody");
+    if(result.length === 0){
+        tbody.innerHTML = '<tr><td colspan="5" style="color:#28a745;text-align:center;padding:20px;">✓ 所有档案均无问题</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = result.map(item => {
+        let problemList = '';
+        item.problems.forEach(([problem], index) => {
+            problemList += `<li>${index + 1}. ${problem}</li>`;
+        });
+        return `
+        <tr style="border-bottom:1px solid #eee;">
+          <td style="padding:12px 8px;border:1px solid #e2e8f0;font-weight:600;">${item.org}</td>
+          <td style="padding:12px 8px;border:1px solid #e2e8f0;text-align:center;">${item.totalCount}</td>
+          <td style="padding:12px 8px;border:1px solid #e2e8f0;text-align:left;">
+            <ul style="margin:0;padding-left:20px;font-size:12px;color:#dc3545;line-height:1.8;">
+              ${problemList}
+            </ul>
+          </td>
+        </tr>
+        `;
+    }).join('');
+}
+
+// 导出各单位存在问题一览表（汇总版）
+function exportOrgProblemExcel(){
+    if(recordList.length === 0){
+        alert("暂无数据可导出");
+        return;
+    }
+
+    // 老年人空错项编码映射
+    const errCodeText = {
+        "1":"体检日期、责任医生空项或错项","2":"症状空项或错项","3":"一般状况空项或错项","4":"生活自理能力空项或错项",
+        "5":"生活方式空项或错项","6":"脏器功能空项或错项","7":"体格查体空项或错项","8":"血常规空项","9":"尿常规空项",
+        "10":"血压空项","11":"空腹血糖空项","12":"心电图空项","13":"肝功能空项","14":"肾功能空项",
+        "15":"血脂空项","16":"腹部B超空项","17":"主要用药空项或错项","18":"健康评价空项或错项","19":"健康指导空项或错项",
+        "20":"危险因素控制空项或错项","21":"健康问题空项或错项","22":"糖化血红蛋白空项","23":"住院史空项或错项",
+        "24":"家庭病床史空项或错项","25":"免疫接种史空项或错项","26":"其他空项或错项"
+    };
+
+    // 高血压规范性核查编码映射
+    const hypErrCodeText = {
+        "1":"随访日期","2":"随访方式","3":"症状","4":"血压",
+        "5":"生活方式指导","6":"服药依从性","7":"用药情况",
+        "8":"随访医生签名","9":"此次随访分类","10":"本年度随访方式均为电话随访"
+    };
+
+    // 老年人造假选项
+    const fakeText = {"0":"无","1":"已死亡仍有体检记录","2":"不在本地居住却有本地体检记录","3":"复制往年体检记录","4":"辅助检查3项及以上填0/多项填拒绝"};
+
+    // 高血压造假选项
+    const hypFakeText = {"0":"无","1":"已死亡仍有服务记录","2":"不在本地居住却有面对面服务记录","3":"2026年复制往次服务记录"};
+
+    // 老年人访谈与档案比对问题
+    const matchText = {"2":"访谈为未查体，但档案中有查体记录","3":"访谈为未做心电图，但档案中有心电图记录","4":"访谈为未做B超，但档案中有B超记录","5":"访谈为未做健康体检，但档案中有体检记录","6":"访谈为未做抽血，但档案中有抽血（血脂、肝功能等）记录","7":"档案涉嫌造假"};
+
+    // 高血压符合性核查问题
+    const hypMatchText = {"2":"访谈为非高血压患者，但档案中显示为高血压患者","3":"访谈否认体检，但档案中有体检记录","4":"访谈否认随访，但档案中有随访记录","5":"访谈为随访中未测量血压，但档案中有血压记录","6":"访谈为电话随访，但档案中记录为门诊/家庭随访","7":"实际面对面随访次数少于系统录入的次数","8":"档案涉嫌造假"};
+
+    const orgProblemMap = {};
+
+    recordList.forEach(r => {
+        const org = r.org || "未知单位";
+        const project = r.project || "";
+        if(!orgProblemMap[org]){
+            orgProblemMap[org] = {};
+        }
+
+        const replyCode = r.replyCode || "";
+        const matchJudge = r.matchJudge || r.judgeMatch || "";
+        const fakeCode = r.fakeCode || r.judgeFake || "0";
+
+        if(["3","4","5","6","7","8","9"].includes(replyCode)){
+            const replyProblemText = {
+                "3":"拒访",
+                "4":"关机停机",
+                "5":"停机",
+                "6":"电话号码空号",
+                "7":"电话号码错号",
+                "8":"电话为村医、村干号码",
+                "9":"其他"
+            };
+            const problem = replyProblemText[replyCode] || "无效应答";
+            orgProblemMap[org][problem] = (orgProblemMap[org][problem] || 0) + 1;
+        }
+
+        if(matchJudge.includes("不符合")){
+            if(project === "高血压"){
+                const hypMatchItems = r.hypMatchItems || [];
+                hypMatchItems.forEach(m => {
+                    if(hypMatchText[m]){
+                        orgProblemMap[org][hypMatchText[m]] = (orgProblemMap[org][hypMatchText[m]] || 0) + 1;
+                    }
+                });
+            } else {
+                const matchItems = r.matchItems || [];
+                matchItems.forEach(m => {
+                    if(matchText[m]){
+                        orgProblemMap[org][matchText[m]] = (orgProblemMap[org][matchText[m]] || 0) + 1;
+                    }
+                });
+            }
+        }
+
+        if(fakeCode !== "0"){
+            const ft = project === "高血压" ? hypFakeText[fakeCode] : fakeText[fakeCode];
+            if(ft){
+                orgProblemMap[org][ft] = (orgProblemMap[org][ft] || 0) + 1;
+            }
+        }
+
+        // 空错项/规范性核查
+        if(project === "高血压"){
+            const hypErrItems = r.hypErrItems || [];
+            hypErrItems.forEach(e => {
+                if(hypErrCodeText[e]){
+                    orgProblemMap[org][hypErrCodeText[e]] = (orgProblemMap[org][hypErrCodeText[e]] || 0) + 1;
+                }
+            });
+        } else {
+            const errItems = r.errItems || [];
+            errItems.forEach(e => {
+                if(errCodeText[e]){
+                    orgProblemMap[org][errCodeText[e]] = (orgProblemMap[org][errCodeText[e]] || 0) + 1;
+                }
+            });
+        }
+
+        // 备注中的问题（不加前缀）
+        if(r.remark && r.remark.trim()){
+            orgProblemMap[org][r.remark.trim()] = (orgProblemMap[org][r.remark.trim()] || 0) + 1;
+        }
+    });
+
+    const result = [];
+    Object.keys(orgProblemMap).forEach(org => {
+        const problems = orgProblemMap[org];
+        const totalCount = Object.values(problems).reduce((a, b) => a + b, 0);
+        if(totalCount > 0){
+            const sortedProblems = Object.entries(problems)
+                .filter(([key]) => key !== "undefined")
+                .sort((a, b) => b[1] - a[1]);
+            result.push({org, totalCount, problems: sortedProblems});
+        }
+    });
+
+    result.sort((a, b) => a.org.localeCompare(b.org));
+
+    if(result.length === 0){
+        alert("所有档案均无问题");
+        return;
+    }
+
+    const rows = [["单位名称", "问题总数", "具体问题"]];
+    result.forEach(item => {
+        let problemDesc = '';
+        item.problems.forEach(([problem], index) => {
+            if(index > 0) problemDesc += '\n';
+            problemDesc += `${index + 1}. ${problem}`;
+        });
+        rows.push([item.org, item.totalCount, problemDesc]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:25},{wch:10},{wch:80}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "问题一览表");
+    XLSX.writeFile(wb, `各单位存在问题一览表_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+</script>
+</body>
+</html>
