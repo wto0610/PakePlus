@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>慢阻肺病患者健康管理档案核查系统</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;font-size:14px;}
+body{padding:0;max-width:1600px;margin:0 auto;background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}
+.container{padding:20px;}
+.judge-right{position:fixed;top:50%;right:20px;transform:translateY(-50%);z-index:999;width:70px;}
+.main-content{margin-right:90px;}
+.judge-card{background:#fff;border-radius:8px;padding:8px;box-shadow:0 2px 12px rgba(0,0,0,0.1);text-align:center;}
+.judge-card h4{margin:0 0 6px 0;color:#333;font-size:10px;font-weight:600;}
+.judge-mini{display:flex;flex-direction:column;gap:6px;}
+.judge-mini-item{display:flex;flex-direction:column;gap:2px;padding:3px 4px;background:#f8fafc;border-radius:4px;font-size:9px;}
+.judge-mini-item label{color:#666;font-size:8px;}
+.judge-mini-item .value{font-weight:600;font-size:11px;}
+.header{background:linear-gradient(135deg,#9b59b6 0%,#8e44ad 100%);color:#fff;padding:20px 24px;border-radius:12px;margin-bottom:20px;box-shadow:0 4px 12px rgba(155,89,182,0.3);display:flex;justify-content:space-between;align-items:center;}
+.header-left{flex:1;}
+.header h1{margin:0 0 8px 0;font-size:22px;}
+.header-sub{font-size:13px;opacity:0.9;}
+.back-btn{background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:8px 18px;border-radius:6px;font-size:13px;cursor:pointer;transition:all 0.2s;text-decoration:none;}
+.back-btn:hover{background:rgba(255,255,255,0.35);}
+.tip-red{background:#ffe8e8;color:#d00;padding:12px 16px;border-radius:8px;margin-bottom:14px;font-weight:500;display:none;border-left:4px solid #d00;}
+.tip-green{background:#e8ffe8;color:#060;padding:12px 16px;border-radius:8px;margin-bottom:14px;font-weight:500;display:none;border-left:4px solid #060;}
+.tip-orange{background:#fff3e0;color:#e65100;padding:12px 16px;border-radius:8px;margin-bottom:14px;font-weight:500;display:none;border-left:4px solid #e65100;}
+.block{background:#fff;border-radius:10px;padding:24px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.block h3{margin:0 0 20px 0;color:#333;font-size:15px;border-left:4px solid #9b59b6;padding-left:10px;}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;}
+.form-group{margin-bottom:18px;}
+.form-group label{display:block;min-width:90px;color:#555;font-weight:500;margin-bottom:6px;}
+input[type="text"],input[type="number"],select{padding:8px 12px;width:100%;border:1px solid #ddd;border-radius:6px;font-size:14px;transition:border-color 0.2s;}
+input:focus,select:focus{outline:none;border-color:#9b59b6;box-shadow:0 0 0 3px rgba(155,89,182,0.1);}
+input[type="radio"],input[type="checkbox"]{width:16px;height:16px;cursor:pointer;accent-color:#9b59b6;}
+.option-list{display:flex;flex-direction:column;gap:8px;}
+.option-item{display:flex;align-items:flex-start;padding:10px 14px;background:#f8fafc;border-radius:6px;transition:background 0.2s;}
+.option-item:hover{background:#f3e5f5;}
+.option-item label{cursor:pointer;line-height:1.6;color:#444;margin:0;}
+.err-group{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;padding:12px;background:#f8fafc;border-radius:8px;margin-bottom:10px;}
+.err-group label{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#fff;border-radius:4px;cursor:pointer;font-size:13px;}
+.btn{padding:10px 20px;border:none;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s;}
+.btn-primary{background:#9b59b6;color:#fff;}
+.btn-primary:hover{background:#8e44ad;box-shadow:0 4px 12px rgba(155,89,182,0.3);}
+.btn-success{background:#27ae60;color:#fff;}
+.btn-success:hover{background:#219a52;}
+.btn-danger{background:#e74c3c;color:#fff;}
+.btn-danger:hover{background:#c0392b;}
+.btn-outline{background:#fff;color:#666;border:1px solid #ddd;}
+.btn-outline:hover{background:#f8f9fa;}
+.btn-info{background:#3498db;color:#fff;}
+.btn-info:hover{background:#2980b9;}
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:16px 0;border-top:1px solid #eee;margin-top:20px;}
+.toolbar-left{flex:1;display:flex;gap:10px;flex-wrap:wrap;}
+.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;display:none;}
+.modal.show{display:block;}
+.modal-content{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:24px;border-radius:12px;max-width:95%;max-height:85%;overflow:auto;min-width:400px;}
+.modal h3{margin:0 0 16px 0;color:#333;}
+.green{color:#27ae60;font-weight:600}
+.red{color:#e74c3c;font-weight:600}
+.hide-area{display:none;}
+.form-tip{font-size:12px;color:#999;margin-left:8px;}
+.required{color:#e74c3c;}
+.search-select{position:relative;width:100%;}
+.search-select-input{padding-right:32px;}
+.search-select-arrow{position:absolute;right:8px;top:50%;transform:translateY(-50%);pointer-events:none;color:#999;}
+.search-select-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #ddd;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.1);max-height:200px;overflow-y:auto;z-index:100;display:none;}
+.search-select-dropdown.show{display:block;}
+.search-select-option{padding:10px 12px;cursor:pointer;transition:background 0.2s;}
+.search-select-option:hover{background:#f3e5f5;}
+.search-select-option.selected{background:#9b59b6;color:#fff;}
+.rule-tip{padding:12px;background:#f3e5f5;border-radius:8px;font-size:13px;color:#6a1b9a;margin-top:12px;}
+.inline-input{display:inline-block;width:80px;margin:0 5px;}
+.section-note{font-size:12px;color:#888;margin-bottom:10px;padding:8px 12px;background:#fff9e6;border-radius:6px;border-left:3px solid #f39c12;}
+@media(max-width:768px){
+  .form-grid{grid-template-columns:1fr;}
+  .err-group{grid-template-columns:1fr 1fr;}
+  .judge-right{display:none;}
+  .main-content{margin-right:0;}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="main-content">
+
+<div class="header">
+  <div class="header-left">
+    <h1>慢阻肺病患者健康管理档案核查系统</h1>
+    <div class="header-sub">符合性核查 · 规范性核查 · 数据导出</div>
+  </div>
+  <a href="index.html" class="back-btn">返回首页</a>
+</div>
+
+<div class="tip-red" id="replyDisableTip">当前应答为无效应答，无需填写下方档案核查内容，可直接保存本条记录</div>
+<div class="tip-green" id="matchOkTip">符合性判定全部相符，可继续填写下方核查内容</div>
+
+<div class="block">
+<h3>一、基础信息</h3>
+<div class="form-grid">
+<div class="form-group"><label>核查单位<span class="required">*</span></label>
+<div class="search-select" id="orgSelect">
+<input type="text" id="orgInput" class="search-select-input" placeholder="请输入单位名称搜索">
+<span class="search-select-arrow">▼</span>
+<div class="search-select-dropdown" id="orgDropdown">
+<div class="search-select-option" data-value="">请选择单位</div>
+<div class="search-select-option" data-value="澄城社区卫生服务中心">澄城社区卫生服务中心</div>
+<div class="search-select-option" data-value="金江镇卫生院">金江镇卫生院</div>
+<div class="search-select-option" data-value="山口社区卫生服务中心">山口社区卫生服务中心</div>
+<div class="search-select-option" data-value="仁兴镇卫生院">仁兴镇卫生院</div>
+<div class="search-select-option" data-value="中兴镇卫生院">中兴镇卫生院</div>
+<div class="search-select-option" data-value="太平社区卫生服务中心">太平社区卫生服务中心</div>
+<div class="search-select-option" data-value="加乐镇中心卫生院">加乐镇中心卫生院</div>
+<div class="search-select-option" data-value="文儒镇卫生院">文儒镇卫生院</div>
+<div class="search-select-option" data-value="文儒镇卫生院石浮门诊部">文儒镇卫生院石浮门诊部</div>
+<div class="search-select-option" data-value="金江镇长安卫生院">金江镇长安卫生院</div>
+<div class="search-select-option" data-value="瑞溪镇中心卫生院">瑞溪镇中心卫生院</div>
+<div class="search-select-option" data-value="永发镇中心卫生院">永发镇中心卫生院</div>
+<div class="search-select-option" data-value="永发镇中心卫生院新吴门诊部">永发镇中心卫生院新吴门诊部</div>
+<div class="search-select-option" data-value="大丰镇卫生院">大丰镇卫生院</div>
+<div class="search-select-option" data-value="美亭社区卫生服务中心">美亭社区卫生服务中心</div>
+<div class="search-select-option" data-value="福山镇卫生院">福山镇卫生院</div>
+<div class="search-select-option" data-value="桥头镇卫生院">桥头镇卫生院</div>
+<div class="search-select-option" data-value="老城社区卫生服务中心">老城社区卫生服务中心</div>
+<div class="search-select-option" data-value="老城镇中心卫生院">老城镇中心卫生院</div>
+<div class="search-select-option" data-value="老城镇中心卫生院马村门诊部">老城镇中心卫生院马村门诊部</div>
+<div class="search-select-option" data-value="仁兴镇西达卫生院">仁兴镇西达卫生院</div>
+<div class="search-select-option" data-value="福山镇红光卫生院">福山镇红光卫生院</div>
+<div class="search-select-option" data-value="文儒镇红岗卫生院">文儒镇红岗卫生院</div>
+<div class="search-select-option" data-value="金安社区卫生服务中心">金安社区卫生服务中心</div>
+<div class="search-select-option" data-value="昆仑社区卫生服务中心">昆仑社区卫生服务中心</div>
+<div class="search-select-option" data-value="和岭社区卫生服务中心">和岭社区卫生服务中心</div>
+</div>
+<input type="hidden" id="org" name="org">
+</div></div>
+<div class="form-group"><label>年度<span class="required">*</span></label>
+<input type="number" id="year" placeholder="如2026，默认当前年度"></div>
+<div class="form-group"><label>季度<span class="required">*</span></label>
+<select id="quarter">
+<option value="">请选择季度</option>
+<option value="Q1">一季度</option>
+<option value="Q2">二季度</option>
+<option value="Q3">三季度</option>
+<option value="Q4">四季度</option>
+</select></div>
+<div class="form-group"><label>项目<span class="required">*</span></label>
+<select id="project">
+<option value="慢阻肺" selected>慢阻肺</option>
+</select>
+</div>
+<div class="form-group"><label>姓名<span class="required">*</span></label>
+<input type="text" id="name"></div>
+<div class="form-group"><label>性别</label>
+<div style="display:flex;gap:16px;padding-top:6px;">
+<label><input type="radio" name="sex" value="男"> 男</label>
+<label><input type="radio" name="sex" value="女"> 女</label>
+</div></div>
+<div class="form-group"><label>年龄</label>
+<input type="number" id="age" min="0" max="120"></div>
+<div class="form-group"><label>身份证号</label>
+<input type="text" id="idcard" maxlength="18"><span class="form-tip" id="idTip"></span></div>
+<div class="form-group"><label>联系电话</label>
+<input type="text" id="tel" maxlength="11"><span class="form-tip" id="telTip"></span></div>
+</div>
+</div>
+
+<div class="block">
+<h3>二、应答情况</h3>
+<div class="option-list">
+<div class="option-item"><label><input type="radio" name="reply" value="1"> ①本人应答</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="2"> ②应答人为家属、亲戚等，了解情况</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="3"> ③应答人为家属、亲戚等，不了解核查对象具体情况</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="4"> ④无法接通（不同时间拨打三次，包括关机、停机）</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="5"> ⑤拒绝调查：接听后不配合调查，中途退出</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="6"> ⑥本人应答，记不清情况</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="7"> ⑦空号</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="8"> ⑧错号</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="9"> ⑨电话为村医、村干和养老机构号码</label></div>
+</div>
+</div>
+
+<div id="matchArea" class="hide-area">
+<div class="block">
+<h3>三、符合性核查</h3>
+<div class="section-note">根据访谈记录，与健康档案记录进行比较，全部相符为符合，(2)-(8)中出现任一项不相符，均可判定为不符合。</div>
+<div class="option-list">
+<div class="option-item"><label><input type="checkbox" id="matchAllOk" value="1"> （1）访谈中体检和随访服务提供情况与档案记录一致——判定为符合</label></div>
+<div class="option-item"><label><input type="checkbox" class="matchErr" value="2"> （2）访谈为非慢性呼吸系统疾病患者，但档案中显示为慢阻肺病患者——判定为不符合</label></div>
+<div class="option-item"><label><input type="checkbox" class="matchErr" value="3"> （3）访谈否认体检，但档案中有体检记录——判定为不符合</label></div>
+<div class="option-item"><label><input type="checkbox" class="matchErr" value="4"> （4）访谈否认随访，但档案中有随访记录——判定为不符合</label></div>
+<div class="option-item"><label><input type="checkbox" class="matchErr" value="5"> （5）访谈为随访中未测血氧饱和度，但档案中有血氧饱和度记录——判定为不符合</label></div>
+<div class="option-item"><label><input type="checkbox" class="matchErr" value="6"> （6）访谈为电话随访，但档案中记录为门诊/家庭随访——判定为不符合</label></div>
+<div class="option-item"><label><input type="checkbox" class="matchErr" value="7"> （7）实际随访次数少于系统录入的次数——判定为不符合</label></div>
+<div class="option-item"><label><input type="checkbox" class="matchErr" value="8"> （8）档案涉嫌造假（已死亡仍有服务记录、不在本地居住却有面对面服务记录、2026年复制往次服务记录）——判定为不符合</label></div>
+</div>
+<div class="rule-tip"><strong>符合性判定规则：</strong>选择"（1）访谈中体检和随访服务提供情况与档案记录一致" → 判定为<span class="green">符合</span>；选择任一（2）-（8）项 → 判定为<span class="red">不符合</span></div>
+</div>
+</div>
+
+<div id="normBlock" class="hide-area">
+<div class="block" id="examRecordBlock">
+<h3>四、本年度健康体检记录</h3>
+<div class="section-note">可多选，不选择 → 规范，选择任意一项 → 不规范（注:慢阻肺病体检没有辅助检查要求，此项仅用于年终考核）</div>
+<div class="err-group">
+<label><input type="checkbox" class="examErr" value="2"> ②有小体检记录，体检记录表有3项及3项以上空项或漏项</label>
+<label><input type="checkbox" class="examErr" value="3"> ③未填写任一项（呼吸、血压、血氧、心肺听诊）</label>
+<label><input type="checkbox" class="examErr" value="4"> ④现存主要健康问题未填写慢阻肺病（建专档前可不填）</label>
+<label><input type="checkbox" class="examErr" value="5"> ⑤健康指导未填</label>
+<label><input type="checkbox" class="examErr" value="6"> ⑥危险因素控制（建议接种流感、肺炎球菌疫苗未填）</label>
+<label><input type="checkbox" class="examErr" value="7"> ⑦本年度没有体检</label>
+</div>
+</div>
+
+<div class="block">
+<h3 id="visitNormTitle">四、随访次数记录</h3>
+<div class="form-grid">
+<div class="form-group"><label>纳入慢阻肺病患者管理时间</label>
+<div style="display:flex;gap:8px;align-items:center;">
+<input type="number" id="manageYear" class="inline-input" placeholder="年" min="2000" max="2100">
+年
+<input type="number" id="manageMonth" class="inline-input" placeholder="月" min="1" max="12">
+月
+<input type="number" id="manageDay" class="inline-input" placeholder="日" min="1" max="31">
+日
+</div></div>
+<div class="form-group"><label>本年度截至当前面对面随访次数</label>
+<input type="number" id="faceVisitCount" min="0" placeholder="次"></div>
+<div class="form-group"><label>本年度截至当前电话随访次数</label>
+<input type="number" id="phoneVisitCount" min="0" placeholder="次"></div>
+</div>
+<div class="option-list" style="margin-top:15px;">
+<div class="option-item"><label><input type="radio" name="visitNorm" value="1"> ①规范（达到国家规范要求每年至少提供4次面对面随访）</label></div>
+<div class="option-item"><label><input type="radio" name="visitNorm" value="2"> ②不规范（没有随访或随访达不到国家规范要求次数）</label></div>
+</div>
+<div class="rule-tip"><strong>随访次数判定：</strong>选①或不选择 → 规范；选② → 不规范（与随访记录、转诊随访一起作为随访部分整体判断）</div></div>
+
+<div class="block">
+<h3 id="followErrTitle">五、随访记录空项、漏项或错项判断</h3>
+<div class="option-list">
+<div class="option-item"><label><input type="checkbox" class="followErr" value="1"> ①具体症状、CAT评分、mMRC评估任意一项未填写</label></div>
+<div class="option-item"><label><input type="checkbox" class="followErr" value="2"> ②具体症状、CAT评分、mMRC评估不一致(2项及以上空项、漏项或错项)</label></div>
+<div class="option-item"><label><input type="checkbox" class="followErr" value="3"> ③面对面随访时血氧饱和度未填写</label></div>
+<div class="option-item"><label><input type="checkbox" class="followErr" value="4"> ④用药依从性填写规律/间断用药时，用药情况未填写慢阻肺病相关药物或填写高血压、糖尿病相关用药，或用药方案变化时，但药物变更时间、原因未填</label></div>
+<div class="option-item"><label><input type="checkbox" class="followErr" value="5"> ⑤除辅助检查、药物变更、转诊外，其他项目超过3项及以上空项、漏项或错项（注：其他治疗项及用药情况项没有的情况下都要填无）</label></div>
+</div>
+<div class="rule-tip"><strong>规范性判定规则：</strong>体检记录（仅Q4）：不选择 → 规范，选择任意一项 → 不规范；随访部分：选②→不规范，选①/③或不选→规范</div></div>
+
+<div class="block">
+<h3 id="referralTitle">六、转诊与主动随访</h3>
+<div class="section-note">本年度随访记录中，存在血氧低于90%的患者、对症状控制不满意、出现不良反应及并发症的患者是否进行转诊建议，并在2-4周内进行主动随访。</div>
+<div class="option-list">
+<div class="option-item"><label><input type="radio" name="referral" value="1"> ①是</label></div>
+<div class="option-item"><label><input type="radio" name="referral" value="2"> ②否（视为不规范）</label></div>
+<div class="option-item"><label><input type="radio" name="referral" value="3"> ③不存在上述情况</label></div>
+</div>
+<div class="rule-tip"><strong>转诊随访判定：</strong>选①/③或不选择 → 规范；选② → 不规范（与随访次数、随访记录一起作为随访部分整体判断）</div></div>
+</div>
+
+<div class="tip-orange" id="normSkipTip">符合性判定为不符合，跳过规范性和随访核查，直接判定为不规范</div>
+
+<div class="block">
+<h3 id="fakeTitle">七、是否涉嫌档案造假</h3>
+<div class="option-list">
+<div class="option-item"><label><input type="radio" name="fake" value="0"> （1）无涉嫌造假</label></div>
+<div class="option-item"><label><input type="radio" name="fake" value="1"> （2）死亡仍有服务记录——判定为涉嫌造假</label></div>
+<div class="option-item"><label><input type="radio" name="fake" value="2"> （3）不在本地居住却有面对面服务记录——判定为涉嫌造假</label></div>
+<div class="option-item"><label><input type="radio" name="fake" value="3"> （4）2026年复制往年/次服务记录（呼吸、体温、血压、脉搏、体重中超过3项及以上）——判定为涉嫌造假</label></div>
+</div>
+</div>
+
+<div class="block">
+<h3>八、备注</h3>
+<div class="form-group">
+<textarea id="remark" placeholder="请输入备注信息（选填）" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;min-height:80px;resize:vertical;"></textarea>
+</div>
+</div>
+
+<div class="block">
+<div class="toolbar">
+<div class="toolbar-left">
+<button class="btn btn-primary" onclick="saveRecord()">保存本条记录</button>
+<button class="btn btn-outline" onclick="resetForm()">重置表单</button>
+</div>
+</div>
+</div>
+
+<div class="block">
+<h3>数据管理</h3>
+<div class="toolbar-left">
+<button class="btn btn-success" onclick="viewRecords()">查看已保存记录</button>
+<button class="btn btn-info" onclick="showStatistics()">报表统计</button>
+<button class="btn btn-outline" onclick="exportExcelByFilter()">按年度/季度筛选导出Excel</button>
+<button class="btn btn-outline" onclick="exportAllExcel()">导出全部Excel</button>
+<button class="btn btn-danger" onclick="clearAllRecords()">清空全部记录</button>
+</div>
+</div>
+
+<div class="judge-right">
+<div class="judge-card">
+<h4>判定汇总</h4>
+<div class="judge-mini">
+<div class="judge-mini-item"><label>有效性</label><div class="value" id="res1">待判定</div></div>
+<div class="judge-mini-item"><label>符合性</label><div class="value" id="res2">待判定</div></div>
+<div class="judge-mini-item"><label>规范性</label><div class="value" id="res3">待判定</div></div>
+<div class="judge-mini-item"><label>造假</label><div class="value" id="res4">待选择</div></div>
+</div>
+</div>
+</div>
+
+<div class="modal" id="exportModal">
+<div class="modal-content">
+<h3>筛选导出Excel</h3>
+<div class="form-grid">
+<div class="form-group"><label>选择年度</label>
+<select id="exportYear">
+<option value="">全部年度</option>
+</select></div>
+<div class="form-group"><label>选择季度</label>
+<select id="exportQuarter">
+<option value="">全部季度</option>
+<option value="Q1">一季度</option>
+<option value="Q2">二季度</option>
+<option value="Q3">三季度</option>
+<option value="Q4">四季度</option>
+</select></div>
+</div>
+<button class="btn btn-primary" onclick="doExport()">导出</button>
+<button class="btn btn-outline" onclick="closeExportModal()">关闭</button>
+</div>
+</div>
+
+</div>
+
+<script>
+const orgInput = document.getElementById("orgInput");
+const orgDropdown = document.getElementById("orgDropdown");
+const orgSelect = document.getElementById("orgSelect");
+const orgHidden = document.getElementById("org");
+const yearInput = document.getElementById("year");
+const replyDisableTip = document.getElementById("replyDisableTip");
+const matchOkTip = document.getElementById("matchOkTip");
+const normSkipTip = document.getElementById("normSkipTip");
+const matchArea = document.getElementById("matchArea");
+const normBlock = document.getElementById("normBlock");
+const idcardInput = document.getElementById("idcard");
+const telInput = document.getElementById("tel");
+const idTip = document.getElementById("idTip");
+const telTip = document.getElementById("telTip");
+const matchAllOk = document.getElementById("matchAllOk");
+const matchErrList = document.querySelectorAll(".matchErr");
+const examErrList = document.querySelectorAll(".examErr");
+const followErrList = document.querySelectorAll(".followErr");
+const examRecordBlock = document.getElementById("examRecordBlock");
+const visitNormTitle = document.getElementById("visitNormTitle");
+const followErrTitle = document.getElementById("followErrTitle");
+const referralTitle = document.getElementById("referralTitle");
+const fakeTitle = document.getElementById("fakeTitle");
+
+let matchResult = "待判定";
+let normResult = "待判定";
+let isFakeRecord = false;
+
+yearInput.addEventListener("blur", function(){
+    if(!this.value){
+        this.value = new Date().getFullYear();
+    }
+});
+
+yearInput.value = new Date().getFullYear();
+
+orgInput.addEventListener("input", function(){
+    const val = this.value.toLowerCase();
+    orgDropdown.querySelectorAll(".search-select-option").forEach(opt => {
+        opt.style.display = opt.textContent.toLowerCase().includes(val) ? "block" : "none";
+    });
+    orgDropdown.classList.add("show");
+});
+
+orgInput.addEventListener("focus", function(){
+    orgDropdown.classList.add("show");
+});
+
+orgDropdown.addEventListener("click", function(e){
+    const target = e.target.closest(".search-select-option");
+    if(target){
+        orgInput.value = target.textContent;
+        orgHidden.value = target.dataset.value;
+        orgDropdown.classList.remove("show");
+    }
+});
+
+document.addEventListener("click", function(e){
+    if(!orgSelect.contains(e.target)){
+        orgDropdown.classList.remove("show");
+    }
+});
+
+idcardInput.addEventListener("blur", function(){
+    const val = this.value;
+    if(val && val.length !== 18){
+        idTip.textContent = "身份证号应为18位";
+        idTip.style.color = "#e74c3c";
+    }else if(val){
+        idTip.textContent = "身份证号格式正确";
+        idTip.style.color = "#27ae60";
+    }else{
+        idTip.textContent = "";
+    }
+});
+
+telInput.addEventListener("blur", function(){
+    const val = this.value;
+    if(val && val.length !== 11){
+        telTip.textContent = "手机号应为11位";
+        telTip.style.color = "#e74c3c";
+    }else if(val){
+        telTip.textContent = "手机号格式正确";
+        telTip.style.color = "#27ae60";
+    }else{
+        telTip.textContent = "";
+    }
+});
+
+function getCheckedValues(selector){
+    const arr = [];
+    document.querySelectorAll(selector + ":checked").forEach(el => arr.push(el.value));
+    return arr;
+}
+
+// 1. 有效性判定
+function calcValid(){
+    const replyVal = document.querySelector('input[name="reply"]:checked')?.value || "";
+    
+    if(replyVal === "1" || replyVal === "2"){
+        document.getElementById("res1").innerHTML = `<span class="green">有效</span>`;
+        matchArea.classList.remove("hide-area");
+        replyDisableTip.style.display = "none";
+    }else if(replyVal === "3" || replyVal === "4" || replyVal === "5" || replyVal === "6"){
+        document.getElementById("res1").innerHTML = `<span class="red">失访</span>`;
+        matchArea.classList.add("hide-area");
+        normBlock.classList.add("hide-area");
+        normSkipTip.style.display = "none";
+        replyDisableTip.style.display = "block";
+        matchResult = "待判定";
+        normResult = "待判定";
+        document.getElementById("res3").innerText = "待判定";
+        document.getElementById("res2").innerText = "待判定";
+        matchAllOk.checked = false;
+        matchErrList.forEach(el => el.checked = false);
+        examErrList.forEach(el => el.checked = false);
+        followErrList.forEach(el => el.checked = false);
+    }else if(replyVal === "7" || replyVal === "8" || replyVal === "9"){
+        document.getElementById("res1").innerHTML = `<span class="red">电话异常</span>`;
+        matchArea.classList.add("hide-area");
+        normBlock.classList.add("hide-area");
+        normSkipTip.style.display = "none";
+        replyDisableTip.style.display = "block";
+        matchResult = "待判定";
+        normResult = "待判定";
+        document.getElementById("res3").innerText = "待判定";
+        document.getElementById("res2").innerText = "待判定";
+        matchAllOk.checked = false;
+        matchErrList.forEach(el => el.checked = false);
+        examErrList.forEach(el => el.checked = false);
+        followErrList.forEach(el => el.checked = false);
+    }else{
+        document.getElementById("res1").innerText = "待判定";
+    }
+}
+
+// 2. 符合性判定
+function calcMatch(){
+    matchOkTip.style.display = "none";
+    normSkipTip.style.display = "none";
+    
+    const isMatchAllOk = matchAllOk.checked;
+    const matchErrs = document.querySelectorAll('.matchErr:checked');
+    const hasErrItem = matchErrs.length > 0;
+    
+    if(isMatchAllOk){
+        document.getElementById("res2").innerHTML = `<span class="green">符合</span>`;
+        matchResult = "符合";
+        matchOkTip.style.display = "block";
+        matchErrList.forEach(el => el.disabled = true);
+    }else if(hasErrItem){
+        document.getElementById("res2").innerHTML = `<span class="red">不符合</span>`;
+        matchResult = "不符合";
+        normSkipTip.style.display = "block";
+        normResult = "不规范";
+        document.getElementById("res3").innerHTML = `<span class="red">不规范</span>`;
+        matchErrList.forEach(el => el.disabled = false);
+    }else{
+        document.getElementById("res2").innerText = "待勾选";
+        matchResult = "待判定";
+        normSkipTip.style.display = "none";
+        normResult = "待判定";
+        document.getElementById("res3").innerText = "待判定";
+        matchErrList.forEach(el => el.disabled = false);
+    }
+    
+    // 符合时显示normBlock
+    if(isMatchAllOk){
+        normBlock.classList.remove("hide-area");
+    }else{
+        normBlock.classList.add("hide-area");
+    }
+}
+
+matchAllOk.addEventListener("change", function(){
+    if(this.checked){
+        matchErrList.forEach(el => {
+            el.checked = false;
+            el.disabled = true;
+        });
+    } else {
+        matchErrList.forEach(el => el.disabled = false);
+    }
+    calcAll();
+});
+
+matchErrList.forEach(item => {
+    item.addEventListener("change", function(){
+        const matchErrs = document.querySelectorAll('.matchErr:checked');
+        if(matchErrs.length > 0){
+            matchAllOk.checked = false;
+            matchAllOk.disabled = true;
+            matchErrList.forEach(el => el.disabled = false);
+        } else {
+            matchAllOk.disabled = false;
+        }
+        calcAll();
+    });
+});
+
+// 3. 规范性判定
+function calcNorm(){
+    // 不符合时直接判定为不规范
+    if(matchResult === "不符合"){
+        document.getElementById("res3").innerHTML = `<span class="red">不规范</span>`;
+        normResult = "不规范";
+        return;
+    }
+    
+    const replyVal = document.querySelector('input[name="reply"]:checked')?.value || "";
+    if(replyVal !== "1" && replyVal !== "2"){
+        document.getElementById("res3").innerText = "——";
+        normResult = "待判定";
+        return;
+    }
+    
+    if(matchResult === "待判定"){
+        document.getElementById("res3").innerText = "待判定";
+        normResult = "待判定";
+        return;
+    }
+    
+    const followErrs = document.querySelectorAll('.followErr:checked');
+    const examErrs = document.querySelectorAll('.examErr:checked');
+    const visitNorm = document.querySelector('input[name="visitNorm"]:checked')?.value || "";
+    const referral = document.querySelector('input[name="referral"]:checked')?.value || "";
+    
+    // 本年度健康体检记录：出现任一项 → 不规范（仅Q4）
+    const hasExamErr = examErrs.length > 0;
+    
+    // 随访记录空项、漏项或错项：出现任一项 → 不规范
+    const hasFollowErr = followErrs.length > 0;
+    
+    // 随访次数记录判定：选② → 不规范
+    const hasVisitErr = visitNorm === "2";
+    
+    // 转诊与主动随访判定：选② → 不规范
+    const hasReferralErr = referral === "2";
+    
+    // 整体判断：只要有一个不规范项，整体就不规范
+    if(hasExamErr || hasFollowErr || hasVisitErr || hasReferralErr){
+        let reasons = [];
+        if(hasExamErr) reasons.push("体检记录不规范");
+        if(hasFollowErr) reasons.push("随访记录不规范");
+        if(hasVisitErr) reasons.push("随访次数不达标");
+        if(hasReferralErr) reasons.push("转诊随访不规范");
+        document.getElementById("res3").innerHTML = `<span class="red">不规范（${reasons.join("、")}）</span>`;
+        normResult = "不规范";
+    }else{
+        document.getElementById("res3").innerHTML = `<span class="green">规范</span>`;
+        normResult = "规范";
+    }
+}
+
+// 4. 造假判定
+function calcFake(){
+    const fakeVal = document.querySelector('input[name="fake"]:checked')?.value || "";
+    if(fakeVal === ""){
+        document.getElementById("res4").innerText = "待选择";
+        isFakeRecord = false;
+    }else if(fakeVal !== "0"){
+        document.getElementById("res4").innerHTML = `<span class="red">是</span>`;
+        isFakeRecord = true;
+        // 涉嫌造假时，符合性判定为不符合
+        matchResult = "不符合";
+        document.getElementById("res2").innerHTML = `<span class="red">不符合</span>`;
+        normResult = "不规范";
+        document.getElementById("res3").innerHTML = `<span class="red">不规范</span>`;
+    }else{
+        document.getElementById("res4").innerText = "无";
+        isFakeRecord = false;
+    }
+}
+
+// 控制体检记录模块显示和序号调整
+function updateExamRecordDisplay(){
+    const quarter = document.getElementById("quarter").value;
+    
+    if(quarter === "Q4"){
+        // Q4时显示体检记录模块
+        examRecordBlock.style.display = "block";
+        // 序号：四、五、六、七、八
+        visitNormTitle.textContent = "五、随访次数记录";
+        followErrTitle.textContent = "六、随访记录空项、漏项或错项判断";
+        referralTitle.textContent = "七、转诊与主动随访";
+        fakeTitle.textContent = "八、是否涉嫌档案造假";
+    }else{
+        // 非Q4时隐藏体检记录模块
+        examRecordBlock.style.display = "none";
+        // 序号：四、五、六、七
+        visitNormTitle.textContent = "四、随访次数记录";
+        followErrTitle.textContent = "五、随访记录空项、漏项或错项判断";
+        referralTitle.textContent = "六、转诊与主动随访";
+        fakeTitle.textContent = "七、是否涉嫌档案造假";
+        // 清空体检记录选项
+        examErrList.forEach(el => el.checked = false);
+    }
+}
+
+function calcAll(){
+    updateExamRecordDisplay();
+    calcValid();
+    calcMatch();
+    calcNorm();
+    calcFake();
+}
+
+document.querySelectorAll('input[name="reply"]').forEach(el => {
+    el.addEventListener("change", calcAll);
+});
+
+document.querySelectorAll('input[name="fake"]').forEach(el => {
+    el.addEventListener("change", calcAll);
+});
+
+document.querySelectorAll('.followErr').forEach(el => {
+    el.addEventListener("change", calcAll);
+});
+
+document.querySelectorAll('.examErr').forEach(el => {
+    el.addEventListener("change", calcAll);
+});
+
+document.querySelectorAll('input[name="visitNorm"]').forEach(el => {
+    el.addEventListener("change", calcAll);
+});
+
+document.querySelectorAll('input[name="referral"]').forEach(el => {
+    el.addEventListener("change", calcAll);
+});
+
+function saveRecord(){
+    calcAll();
+    
+    const replyVal = document.querySelector('input[name="reply"]:checked')?.value || "";
+    const fakeVal = document.querySelector('input[name="fake"]:checked')?.value || "";
+    const matchAllOkChecked = matchAllOk.checked;
+    
+    const data = {
+        id: Date.now(),
+        org: orgHidden.value,
+        year: document.getElementById("year").value,
+        quarter: document.getElementById("quarter").value,
+        project: document.getElementById("project").value,
+        name: document.getElementById("name").value,
+        sex: document.querySelector('input[name="sex"]:checked')?.value || "",
+        age: document.getElementById("age").value,
+        idcard: document.getElementById("idcard").value,
+        tel: document.getElementById("tel").value,
+        replyCode: replyVal,
+        matchAllOk: matchAllOkChecked,
+        matchErrs: getCheckedValues('.matchErr'),
+        examErrs: getCheckedValues('.examErr'),
+        followErrs: getCheckedValues('.followErr'),
+        manageYear: document.getElementById("manageYear").value,
+        manageMonth: document.getElementById("manageMonth").value,
+        manageDay: document.getElementById("manageDay").value,
+        faceVisitCount: document.getElementById("faceVisitCount").value,
+        phoneVisitCount: document.getElementById("phoneVisitCount").value,
+        visitNorm: document.querySelector('input[name="visitNorm"]:checked')?.value || "",
+        referral: document.querySelector('input[name="referral"]:checked')?.value || "",
+        fake: fakeVal,
+        remark: document.getElementById("remark").value,
+        validResult: document.getElementById("res1").innerText,
+        matchResult: matchResult,
+        normResult: normResult,
+        fakeResult: fakeVal === "" ? "待选择" : (fakeVal !== "0" ? "是" : "无"),
+        createTime: new Date().toLocaleString()
+    };
+    
+    if(!data.org){
+        alert("请选择核查单位！");
+        return;
+    }
+    if(!data.year){
+        alert("请填写年度！");
+        return;
+    }
+    if(!data.quarter){
+        alert("请选择季度！");
+        return;
+    }
+    if(!data.name){
+        alert("请填写姓名！");
+        return;
+    }
+    
+    if(replyVal === "1" || replyVal === "2"){
+        if(!matchAllOkChecked && getCheckedValues('.matchErr').length === 0){
+            alert("有效应答记录，符合性核查为必填项，请至少选择一项！");
+            return;
+        }
+        // 随访次数记录和转诊与主动随访只有在选择"访谈中体检和随访服务提供情况与档案记录一致"时才是必选项
+        if(matchAllOkChecked){
+            const visitNormVal = document.querySelector('input[name="visitNorm"]:checked')?.value || "";
+            const referralVal = document.querySelector('input[name="referral"]:checked')?.value || "";
+            if(visitNormVal === ""){
+                alert("随访次数记录为必选项，请选择！");
+                return;
+            }
+            if(referralVal === ""){
+                alert("转诊与主动随访为必选项，请选择！");
+                return;
+            }
+        }
+        if(fakeVal === ""){
+            alert("是否涉嫌档案造假为必选项，请选择！");
+            return;
+        }
+        if(fakeVal !== "0"){
+            data.matchResult = "不符合";
+            data.normResult = "不规范";
+        }
+    }
+    
+    const records = JSON.parse(localStorage.getItem("copdCheckRecords") || "[]");
+    records.push(data);
+    localStorage.setItem("copdCheckRecords", JSON.stringify(records));
+    
+    // 保存成功后保持单位和季度
+    const savedOrg = data.org;
+    const savedQuarter = data.quarter;
+    
+    // 重置表单但保持单位和季度
+    document.getElementById("name").value = "";
+    document.getElementById("idcard").value = "";
+    document.getElementById("age").value = "";
+    document.getElementById("tel").value = "";
+    document.querySelectorAll('input[name="sex"]').forEach(el => el.checked = false);
+    
+    // 恢复单位和季度
+    document.getElementById("org").value = savedOrg;
+    document.getElementById("orgInput").value = savedOrg;
+    document.getElementById("quarter").value = savedQuarter;
+    
+    // 重置选择状态
+    matchAllOk.checked = false;
+    matchAllOk.disabled = false;
+    matchErrList.forEach(el => { el.checked = false; el.disabled = false; });
+    examErrList.forEach(el => el.checked = false);
+    followErrList.forEach(el => el.checked = false);
+    // 二、应答情况 - 清空所有选项
+    document.querySelectorAll('input[name="reply"]').forEach(el => el.checked = false);
+    // 是否涉嫌档案造假 - 清空所有选项
+    document.querySelectorAll('input[name="fake"]').forEach(el => el.checked = false);
+    document.getElementById("manageYear").value = "";
+    document.getElementById("manageMonth").value = "";
+    document.getElementById("manageDay").value = "";
+    document.getElementById("faceVisitCount").value = "";
+    document.getElementById("phoneVisitCount").value = "";
+    // 随访次数记录 - 清空所有选项
+    document.querySelectorAll('input[name="visitNorm"]').forEach(el => el.checked = false);
+    // 转诊与主动随访 - 清空所有选项
+    document.querySelectorAll('input[name="referral"]').forEach(el => el.checked = false);
+    // 备注 - 清空
+    document.getElementById("remark").value = "";
+    
+    // 重置判定结果
+    document.getElementById("res1").innerText = "待选择";
+    document.getElementById("res2").innerText = "——";
+    document.getElementById("res3").innerText = "——";
+    document.getElementById("res4").innerText = "——";
+    
+    matchResult = "待判定";
+    normResult = "待判定";
+    isFakeRecord = false;
+    
+    calcAll();
+    alert("记录保存成功！");
+}
+
+function resetForm(){
+    document.querySelectorAll('input, select').forEach(el => {
+        if(el.type === "checkbox" || el.type === "radio"){
+            el.checked = false;
+        }else{
+            el.value = "";
+        }
+    });
+    yearInput.value = new Date().getFullYear();
+    matchAllOk.disabled = false;
+    matchErrList.forEach(el => el.disabled = false);
+    matchResult = "待判定";
+    normResult = "待判定";
+    isFakeRecord = false;
+    calcAll();
+}
+
+function viewRecords(){
+    const records = JSON.parse(localStorage.getItem("copdCheckRecords") || "[]");
+    
+    if(records.length === 0){
+        alert("暂无已保存记录");
+        return;
+    }
+    
+    const years = [...new Set(records.map(item => item.year).filter(y => y))].sort().reverse();
+    const orgs = [...new Set(records.map(item => item.org).filter(o => o))].sort();
+    
+    const replyCodeMap = {
+        "1":"①本人应答","2":"②家属了解情况","3":"③家属不了解情况",
+        "4":"④无法接通","5":"⑤拒绝调查","6":"⑥本人应答，记不清情况","7":"⑦空号","8":"⑧错号","9":"⑨电话为村医、村干和养老机构号码"
+    };
+    
+    const matchCodeMapLocal = {
+        "2":"②访谈为非慢性呼吸系统疾病患者，但档案中显示为慢阻肺病患者",
+        "3":"③访谈否认体检，但档案中有体检记录",
+        "4":"④访谈否认随访，但档案中有随访记录",
+        "5":"⑤访谈为随访中未测血氧饱和度，但档案中有血氧饱和度记录",
+        "6":"⑥访谈为电话随访，但档案中记录为门诊/家庭随访",
+        "7":"⑦实际随访次数少于系统录入的次数",
+        "8":"⑧档案涉嫌造假"
+    };
+    
+    const examCodeMapLocal = {
+        "2":"②有小体检记录，体检记录表有3项及3项以上空项或漏项",
+        "3":"③未填写任一项（呼吸、血压、血氧、心肺听诊）",
+        "4":"④现存主要健康问题未填写慢阻肺病",
+        "5":"⑤健康指导未填",
+        "6":"⑥危险因素控制（建议接种流感、肺炎球菌疫苗未填）",
+        "7":"⑦本年度没有体检"
+    };
+    
+    const followCodeMapLocal = {
+        "1":"①具体症状、CAT评分、mMRC评估任意一项未填写",
+        "2":"②具体症状、CAT评分、mMRC评估不一致",
+        "3":"③面对面随访时血氧饱和度未填写",
+        "4":"④用药依从性填写规律/间断用药时，用药情况未填写慢阻肺病相关药物",
+        "5":"⑤其他项目超过3项及以上空项、漏项或错项"
+    };
+    
+    let html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>慢阻肺核查记录列表</title>
+<style>
+body{font-family:微软雅黑;margin:20px;background:#f5f5f5;}
+h2{text-align:center;color:#333;}
+.search-bar{margin-bottom:15px;padding:15px;background:#fff;border-radius:8px;display:flex;gap:15px;align-items:center;flex-wrap:wrap;}
+.search-bar label{color:#666;font-size:13px;}
+.search-bar input,.search-bar select{padding:8px 12px;border:1px solid #ddd;border-radius:6px;}
+.search-bar input[type="text"]{min-width:150px;}
+.search-bar select{min-width:120px;}
+.btn{display:inline-block;padding:8px 16px;background:#9b59b6;color:#fff;text-decoration:none;border-radius:4px;cursor:pointer;border:none;}
+.btn:hover{background:#8e44ad;}
+.btn-reset{background:#e74c3c;}
+.btn-reset:hover{background:#c0392b;}
+table{width:100%;border-collapse:collapse;background:#fff;font-size:12px;margin-top:10px;}
+th,td{border:1px solid #ddd;padding:8px;text-align:left;}
+th{background:#9b59b6;color:#fff;}
+tr:nth-child(even){background:#f9f9f9;}
+tr:hover{background:#f1f1f1;}
+.action-btn{padding:4px 10px;border:none;border-radius:3px;cursor:pointer;color:#fff;font-size:11px;margin-right:5px;}
+.edit-btn{background:#9b59b6;}
+.del-btn{background:#e74c3c;}
+.back-link{display:inline-block;margin-bottom:15px;color:#9b59b6;text-decoration:underline;}
+.result-count{color:#666;font-size:13px;margin-left:10px;}
+</style>
+</head>
+<body>
+<h2>慢阻肺核查记录列表</h2>
+<a href="javascript:window.close();" class="back-link">← 关闭并返回录入页面</a>
+<div class="search-bar">
+<label>姓名：</label>
+<input type="text" id="searchName" placeholder="输入姓名检索" onkeyup="filterRecords()">
+<label>单位：</label>
+<select id="searchOrg" onchange="filterRecords()">
+<option value="">全部单位</option>`;
+    
+    orgs.forEach(o => {
+        html += `<option value="${o}">${o}</option>`;
+    });
+    
+    html += `</select>
+<label>年度：</label>
+<select id="searchYear" onchange="filterRecords()">
+<option value="">全部年度</option>`;
+    
+    years.forEach(y => {
+        html += `<option value="${y}">${y}年</option>`;
+    });
+    
+    html += `</select>
+<label>季度：</label>
+<select id="searchQuarter" onchange="filterRecords()">
+<option value="">全部季度</option>
+<option value="Q1">一季度</option>
+<option value="Q2">二季度</option>
+<option value="Q3">三季度</option>
+<option value="Q4">四季度</option>
+</select>
+<button class="btn btn-reset" onclick="resetSearch()">重置</button>
+<span class="result-count" id="resultCount"></span>
+</div>
+<div id="recordTable"></div>
+<script>
+var recordList = JSON.parse(localStorage.getItem("copdCheckRecords") || "[]");
+var replyCodeMap = {
+    "1":"①本人应答","2":"②家属了解情况","3":"③家属不了解情况",
+    "4":"④无法接通","5":"⑤拒绝调查","6":"⑥本人应答，记不清情况","7":"⑦空号","8":"⑧错号","9":"⑨电话为村医、村干和养老机构号码"
+};
+var matchCodeMap = {
+    "2":"②访谈为非慢性呼吸系统疾病患者，但档案中显示为慢阻肺病患者",
+    "3":"③访谈否认体检，但档案中有体检记录",
+    "4":"④访谈否认随访，但档案中有随访记录",
+    "5":"⑤访谈为随访中未测血氧饱和度，但档案中有血氧饱和度记录",
+    "6":"⑥访谈为电话随访，但档案中记录为门诊/家庭随访",
+    "7":"⑦实际随访次数少于系统录入的次数",
+    "8":"⑧档案涉嫌造假"
+};
+var examCodeMap = {
+    "2":"②有小体检记录，体检记录表有3项及3项以上空项或漏项",
+    "3":"③未填写任一项（呼吸、血压、血氧、心肺听诊）",
+    "4":"④现存主要健康问题未填写慢阻肺病",
+    "5":"⑤健康指导未填",
+    "6":"⑥危险因素控制（建议接种流感、肺炎球菌疫苗未填）",
+    "7":"⑦本年度没有体检"
+};
+var followCodeMap = {
+    "1":"①具体症状、CAT评分、mMRC评估任意一项未填写",
+    "2":"②具体症状、CAT评分、mMRC评估不一致",
+    "3":"③面对面随访时血氧饱和度未填写",
+    "4":"④用药依从性填写规律/间断用药时，用药情况未填写慢阻肺病相关药物",
+    "5":"⑤其他项目超过3项及以上空项、漏项或错项"
+};
+
+function filterRecords(){
+    var nameVal = document.getElementById("searchName").value.toLowerCase();
+    var orgVal = document.getElementById("searchOrg").value;
+    var yearVal = document.getElementById("searchYear").value;
+    var quarterVal = document.getElementById("searchQuarter").value;
+    
+    var filteredList = recordList.filter(function(item){
+        var matchName = !nameVal || (item.name && item.name.toLowerCase().includes(nameVal));
+        var matchOrg = !orgVal || item.org === orgVal;
+        var matchYear = !yearVal || item.year === yearVal;
+        var matchQuarter = !quarterVal || item.quarter === quarterVal;
+        return matchName && matchOrg && matchYear && matchQuarter;
+    });
+    
+    renderTable(filteredList);
+}
+
+function renderTable(dataList){
+    var headers = ["核查单位","年度","季度","项目","姓名","性别","年龄","身份证号","联系电话",
+        "应答情况","符合性核查","本年度健康体检记录","随访次数记录","随访记录空项漏项错项","转诊与主动随访",
+        "是否涉嫌档案造假","有效性","符合性","规范性","备注","创建时间"];
+    
+    document.getElementById("resultCount").innerText = "共 " + dataList.length + " 条记录";
+    
+    var html = '<table><thead><tr>';
+    headers.forEach(function(h){ html += '<th>' + h + '</th>'; });
+    html += '<th>操作</th></tr></thead><tbody>';
+    
+    dataList.forEach(function(item, index){
+        var originalIndex = recordList.indexOf(item);
+        var replyCode = item.replyCode || "";
+        var isValid = replyCode === "1" || replyCode === "2";
+        var isLost = ["3","4","5","6"].indexOf(replyCode) !== -1;
+        var isPhoneErr = ["7","8","9"].indexOf(replyCode) !== -1;
+        var validity = isValid ? "有效" : (isLost ? "失访" : (isPhoneErr ? "电话异常" : "-"));
+        
+        var matchText = item.matchAllOk ? "①访谈中体检和随访服务提供情况与档案记录一致" : 
+            ((item.matchErrs || []).map(function(v){ return matchCodeMap[v] || v; }).join("；") || "-");
+        var examText = (item.examErrs || []).map(function(v){ return examCodeMap[v] || v; }).join("；") || "-";
+        var followText = (item.followErrs || []).map(function(v){ return followCodeMap[v] || v; }).join("；") || "-";
+        
+        var visitNormText = item.visitNorm === "1" ? "规范" : (item.visitNorm === "2" ? "不规范" : "-");
+        var referralText = item.referral === "1" ? "是" : (item.referral === "2" ? "否（不规范）" : (item.referral === "3" ? "不存在上述情况" : "-"));
+        
+        html += '<tr>';
+        html += '<td>' + (item.org || '-') + '</td>';
+        html += '<td>' + (item.year || '-') + '</td>';
+        html += '<td>' + (item.quarter || '-') + '</td>';
+        html += '<td>' + (item.project || '慢阻肺') + '</td>';
+        html += '<td>' + (item.name || '-') + '</td>';
+        html += '<td>' + (item.sex || '-') + '</td>';
+        html += '<td>' + (item.age || '-') + '</td>';
+        html += '<td>' + (item.idcard || '-') + '</td>';
+        html += '<td>' + (item.tel || '-') + '</td>';
+        html += '<td>' + (replyCodeMap[replyCode] || '-') + '</td>';
+        html += '<td style="max-width:150px;word-break:break-all;">' + matchText + '</td>';
+        html += '<td style="max-width:150px;word-break:break-all;">' + examText + '</td>';
+        html += '<td>' + visitNormText + '</td>';
+        html += '<td style="max-width:150px;word-break:break-all;">' + followText + '</td>';
+        html += '<td>' + referralText + '</td>';
+        html += '<td>' + (item.fakeResult || '-') + '</td>';
+        html += '<td style="color:' + (isValid ? '#27ae60' : '#e74c3c') + ';">' + validity + '</td>';
+        html += '<td>' + (item.matchResult || '-') + '</td>';
+        html += '<td>' + (item.normResult || '-') + '</td>';
+        html += '<td>' + (item.remark || '-') + '</td>';
+        html += '<td>' + (item.createTime || '-') + '</td>';
+        html += '<td>';
+        html += '<button class="action-btn del-btn" onclick="deleteRecordFromList(' + originalIndex + ')">删除</button>';
+        html += '</td>';
+        html += '</tr>';
+    });
+    
+    html += '</tbody></table>';
+    document.getElementById("recordTable").innerHTML = html;
+}
+
+function resetSearch(){
+    document.getElementById("searchName").value = "";
+    document.getElementById("searchOrg").value = "";
+    document.getElementById("searchYear").value = "";
+    document.getElementById("searchQuarter").value = "";
+    filterRecords();
+}
+
+function deleteRecordFromList(index){
+    if(!confirm("确定要删除第 " + (index+1) + " 条记录吗？")) return;
+    recordList.splice(index, 1);
+    localStorage.setItem("copdCheckRecords", JSON.stringify(recordList));
+    alert("删除成功");
+    filterRecords();
+}
+
+filterRecords();
+<\/script>
+</body>
+</html>`;
+    
+    const newWindow = window.open("", "_blank", "width=1400,height=700,scrollbars=yes");
+    newWindow.document.write(html);
+    newWindow.document.close();
+}
+
+function exportExcelByFilter(){
+    const modal = document.getElementById("exportModal");
+    const exportYear = document.getElementById("exportYear");
+    exportYear.innerHTML = "<option value=''>全部年度</option>";
+    
+    const records = JSON.parse(localStorage.getItem("copdCheckRecords") || "[]");
+    const years = [...new Set(records.map(r => r.year))].sort();
+    years.forEach(y => {
+        exportYear.innerHTML += `<option value="${y}">${y}</option>`;
+    });
+    
+    modal.classList.add("show");
+}
+
+function closeExportModal(){
+    document.getElementById("exportModal").classList.remove("show");
+}
+
+// 报表统计功能
+function showStatistics(){
+    const records = JSON.parse(localStorage.getItem("copdCheckRecords") || "[]");
+    
+    if(records.length === 0){
+        alert("暂无已保存记录");
+        return;
+    }
+    
+    const years = [...new Set(records.map(item => item.year).filter(y => y))].sort().reverse();
+    const orgs = [...new Set(records.map(item => item.org).filter(o => o))].sort();
+    
+    let html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>慢阻肺核查报表统计</title>';
+    html += '<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>';
+    html += '<style>';
+    html += 'body{font-family:微软雅黑;margin:20px;background:#f5f5f5;}';
+    html += 'h2{text-align:center;color:#333;margin-bottom:20px;}';
+    html += '.filter-bar{margin-bottom:20px;padding:15px;background:#fff;border-radius:8px;display:flex;gap:15px;align-items:center;flex-wrap:wrap;}';
+    html += '.filter-bar label{color:#666;font-size:13px;}';
+    html += '.filter-bar select{padding:8px 12px;border:1px solid #ddd;border-radius:6px;min-width:120px;}';
+    html += '.btn{padding:8px 16px;border:none;border-radius:6px;font-size:14px;cursor:pointer;margin-right:10px;}';
+    html += '.btn-export{background:#27ae60;color:#fff;}.btn-export:hover{background:#219a52;}';
+    html += 'table{width:100%;border-collapse:collapse;background:#fff;font-size:12px;margin-top:10px;}';
+    html += 'th,td{border:1px solid #ddd;padding:10px;text-align:center;}';
+    html += 'th{background:#9b59b6;color:#fff;}';
+    html += 'tr:nth-child(even){background:#f9f9f9;}';
+    html += 'tr.total-row{background:#fff8e1;font-weight:600;color:#e65100;}';
+    html += '.back-link{display:inline-block;margin-bottom:15px;color:#9b59b6;text-decoration:underline;}';
+    html += '.stat-summary{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px;padding:15px;background:#fff;border-radius:8px;}';
+    html += '.stat-item{text-align:center;padding:10px 20px;background:#f8fafc;border-radius:6px;min-width:120px;}';
+    html += '.stat-item .label{font-size:12px;color:#666;margin-bottom:5px;}';
+    html += '.stat-item .value{font-size:24px;font-weight:700;color:#2c3e50;}';
+    html += '.stat-item.green .value{color:#27ae60;}';
+    html += '.stat-item.orange .value{color:#e65100;}';
+    html += '</style></head><body>';
+    html += '<h2>慢阻肺核查报表统计</h2>';
+    html += '<a href="javascript:window.close();" class="back-link">← 关闭并返回录入页面</a>';
+    html += '<div class="filter-bar">';
+    html += '<label>年度：</label><select id="fYear" onchange="filterAndRender()"><option value="">全部年度</option>';
+    years.forEach(y => { html += '<option value="' + y + '">' + y + '年</option>'; });
+    html += '</select>';
+    html += '<label>季度：</label><select id="fQuarter" onchange="filterAndRender()"><option value="">全部季度</option><option value="Q1">一季度</option><option value="Q2">二季度</option><option value="Q3">三季度</option><option value="Q4">四季度</option></select>';
+    html += '<label>单位：</label><select id="fOrg" onchange="filterAndRender()"><option value="">全部单位</option>';
+    orgs.forEach(o => { html += '<option value="' + o + '">' + o + '</option>'; });
+    html += '</select>';
+    html += '<button class="btn btn-export" onclick="exportReport()">导出Excel</button>';
+    html += '</div>';
+    html += '<div id="statSummary" class="stat-summary"></div>';
+    html += '<div id="statTable"></div>';
+    html += '<script>';
+    html += 'var recordList = ' + JSON.stringify(records) + ';';
+    html += 'function filterAndRender(){';
+    html += 'var yearVal=document.getElementById("fYear").value;';
+    html += 'var quarterVal=document.getElementById("fQuarter").value;';
+    html += 'var orgVal=document.getElementById("fOrg").value;';
+    html += 'var filteredList=recordList.filter(function(item){';
+    html += 'return (!yearVal||item.year===yearVal)&&(!quarterVal||item.quarter===quarterVal)&&(!orgVal||item.org===orgVal);';
+    html += '});';
+    html += 'var orgGroup={};';
+    html += 'filteredList.forEach(function(item){';
+    html += 'if(!orgGroup[item.org]){orgGroup[item.org]={totalAll:0,validTotal:0,lostNum:0,phoneErrNum:0,matchOk:0,matchErr:0,standardOk:0,standardErr:0};}';
+    html += 'var g=orgGroup[item.org];';
+    html += 'g.totalAll++;';
+    html += 'var replyCode=item.replyCode||"";';
+    html += 'var isValid=replyCode==="1"||replyCode==="2";';
+    html += 'var isLost=["3","4","5","6"].indexOf(replyCode)!==-1;';
+    html += 'var isPhoneErr=["7","8","9"].indexOf(replyCode)!==-1;';
+    html += 'if(isLost)g.lostNum++;';
+    html += 'if(isPhoneErr)g.phoneErrNum++;';
+    html += 'if(isValid){';
+    html += 'g.validTotal++;';
+    html += 'var matchErrs=item.matchErrs||[];';
+    html += 'var fakeResult=item.fakeResult||"";';
+    html += 'if(item.matchAllOk&&matchErrs.length===0&&!fakeResult.includes("造假")){g.matchOk++;}else{g.matchErr++;}';
+    html += 'if(item.normResult&&item.normResult.indexOf("规范")!==-1&&item.normResult.indexOf("不规范")===-1){g.standardOk++;}else{g.standardErr++;}';
+    html += '}});';
+    html += 'var headers=["单位","核查数","有效数","有效应答率","失访数","电话异常数","符合数","不符合数","规范数","不规范数","符合率","规范率"];';
+    html += 'var totalAll=0,totalValid=0,totalLost=0,totalPhoneErr=0,totalMatchOk=0,totalMatchErr=0,totalStandardOk=0,totalStandardErr=0;';
+    html += 'Object.keys(orgGroup).forEach(function(orgName){var d=orgGroup[orgName];totalAll+=d.totalAll;totalValid+=d.validTotal;totalLost+=d.lostNum;totalPhoneErr+=d.phoneErrNum;totalMatchOk+=d.matchOk;totalMatchErr+=d.matchErr;totalStandardOk+=d.standardOk;totalStandardErr+=d.standardErr;});';
+    html += 'var validRate=totalAll>0?(totalValid/totalAll*100).toFixed(1)+"%":"-";';
+    html += 'var matchRate=totalValid>0?(totalMatchOk/totalValid*100).toFixed(1)+"%":"-";';
+    html += 'var standardRate=totalValid>0?(totalStandardOk/totalValid*100).toFixed(1)+"%":"-";';
+    html += 'var summaryHtml="";';
+    html += 'summaryHtml+="<div class=\'stat-item\'><div class=\'label\'>核查总数</div><div class=\'value\'>"+totalAll+"</div></div>";';
+    html += 'summaryHtml+="<div class=\'stat-item green\'><div class=\'label\'>有效数</div><div class=\'value\'>"+totalValid+"</div></div>";';
+    html += 'summaryHtml+="<div class=\'stat-item green\'><div class=\'label\'>有效应答率</div><div class=\'value\'>"+validRate+"</div></div>";';
+    html += 'summaryHtml+="<div class=\'stat-item orange\'><div class=\'label\'>失访数</div><div class=\'value\'>"+totalLost+"</div></div>";';
+    html += 'summaryHtml+="<div class=\'stat-item orange\'><div class=\'label\'>电话异常数</div><div class=\'value\'>"+totalPhoneErr+"</div></div>";';
+    html += 'summaryHtml+="<div class=\'stat-item green\'><div class=\'label\'>符合率</div><div class=\'value\'>"+matchRate+"</div></div>";';
+    html += 'summaryHtml+="<div class=\'stat-item green\'><div class=\'label\'>规范率</div><div class=\'value\'>"+standardRate+"</div></div>";';
+    html += 'document.getElementById("statSummary").innerHTML=summaryHtml;';
+    html += 'var tableHtml="<table><thead><tr>";';
+    html += 'headers.forEach(function(h){tableHtml+="<th>"+h+"</th>";});';
+    html += 'tableHtml+="</tr></thead><tbody>";';
+    html += 'Object.keys(orgGroup).sort().forEach(function(orgName){';
+    html += 'var d=orgGroup[orgName];';
+    html += 'var vRate=d.totalAll>0?(d.validTotal/d.totalAll*100).toFixed(1)+"%":"-";';
+    html += 'var mRate=d.validTotal>0?(d.matchOk/d.validTotal*100).toFixed(1)+"%":"-";';
+    html += 'var sRate=d.validTotal>0?(d.standardOk/d.validTotal*100).toFixed(1)+"%":"-";';
+    html += 'tableHtml+="<tr><td>"+orgName+"</td><td>"+d.totalAll+"</td><td>"+d.validTotal+"</td><td>"+vRate+"</td><td>"+d.lostNum+"</td><td>"+d.phoneErrNum+"</td><td>"+d.matchOk+"</td><td>"+d.matchErr+"</td><td>"+d.standardOk+"</td><td>"+d.standardErr+"</td><td>"+mRate+"</td><td>"+sRate+"</td></tr>";';
+    html += '});';
+    html += 'tableHtml+="<tr class=\'total-row\'><td>合计</td><td>"+totalAll+"</td><td>"+totalValid+"</td><td>"+validRate+"</td><td>"+totalLost+"</td><td>"+totalPhoneErr+"</td><td>"+totalMatchOk+"</td><td>"+totalMatchErr+"</td><td>"+totalStandardOk+"</td><td>"+totalStandardErr+"</td><td>"+matchRate+"</td><td>"+standardRate+"</td></tr>";';
+    html += 'tableHtml+="</tbody></table>";';
+    html += 'document.getElementById("statTable").innerHTML=tableHtml;';
+    html += 'window.statData={orgGroup:orgGroup,totals:{totalAll:totalAll,totalValid:totalValid,totalLost:totalLost,totalPhoneErr:totalPhoneErr,totalMatchOk:totalMatchOk,totalMatchErr:totalMatchErr,totalStandardOk:totalStandardOk,totalStandardErr:totalStandardErr,validRate:validRate,matchRate:matchRate,standardRate:standardRate}};';
+    html += '}';
+    html += 'function exportReport(){';
+    html += 'var stat=window.statData;';
+    html += 'if(!stat){alert("请先筛选数据");return;}';
+    html += 'var headers=["单位","核查数","有效数","有效应答率","失访数","电话异常数","符合数","不符合数","规范数","不规范数","符合率","规范率"];';
+    html += 'var rows=[];';
+    html += 'Object.keys(stat.orgGroup).sort().forEach(function(orgName){';
+    html += 'var d=stat.orgGroup[orgName];';
+    html += 'var vRate=d.totalAll>0?(d.validTotal/d.totalAll*100).toFixed(1)+"%":"-";';
+    html += 'var mRate=d.validTotal>0?(d.matchOk/d.validTotal*100).toFixed(1)+"%":"-";';
+    html += 'var sRate=d.validTotal>0?(d.standardOk/d.validTotal*100).toFixed(1)+"%":"-";';
+    html += 'rows.push([orgName,d.totalAll,d.validTotal,vRate,d.lostNum,d.phoneErrNum,d.matchOk,d.matchErr,d.standardOk,d.standardErr,mRate,sRate]);';
+    html += '});';
+    html += 'rows.push(["合计",stat.totals.totalAll,stat.totals.totalValid,stat.totals.validRate,stat.totals.totalLost,stat.totals.totalPhoneErr,stat.totals.totalMatchOk,stat.totals.totalMatchErr,stat.totals.totalStandardOk,stat.totals.totalStandardErr,stat.totals.matchRate,stat.totals.standardRate]);';
+    html += 'var ws=XLSX.utils.aoa_to_sheet([headers,...rows]);';
+    html += 'ws["!cols"]=[{wch:22},{wch:10},{wch:10},{wch:12},{wch:10},{wch:12},{wch:10},{wch:10},{wch:10},{wch:12},{wch:10},{wch:10}];';
+    html += 'var wb=XLSX.utils.book_new();';
+    html += 'XLSX.utils.book_append_sheet(wb,ws,"报表统计");';
+    html += 'var yearVal=document.getElementById("fYear").value;';
+    html += 'var quarterVal=document.getElementById("fQuarter").value;';
+    html += 'var orgVal=document.getElementById("fOrg").value;';
+    html += 'var suffix="";';
+    html += 'if(yearVal)suffix+="_"+yearVal+"年";';
+    html += 'if(quarterVal)suffix+="_"+quarterVal;';
+    html += 'if(orgVal)suffix+="_"+orgVal;';
+    html += 'XLSX.writeFile(wb,"慢阻肺核查报表统计"+suffix+"_"+new Date().toLocaleDateString().replace(/\\//g,"-")+".xlsx");';
+    html += '}';
+    html += 'filterAndRender();';
+    html += '<\/script></body></html>';
+    
+    const newWindow = window.open("", "_blank", "width=1400,height=700,scrollbars=yes");
+    newWindow.document.write(html);
+    newWindow.document.close();
+}
+
+function doExport(){
+    const year = document.getElementById("exportYear").value;
+    const quarter = document.getElementById("exportQuarter").value;
+    
+    let records = JSON.parse(localStorage.getItem("copdCheckRecords") || "[]");
+    if(year){
+        records = records.filter(r => r.year === year);
+    }
+    if(quarter){
+        records = records.filter(r => r.quarter === quarter);
+    }
+    
+    if(records.length === 0){
+        alert("没有符合条件的记录！");
+        return;
+    }
+    
+    exportToExcel(records);
+    closeExportModal();
+}
+
+function exportAllExcel(){
+    const records = JSON.parse(localStorage.getItem("copdCheckRecords") || "[]");
+    if(records.length === 0){
+        alert("没有保存的记录！");
+        return;
+    }
+    exportToExcel(records);
+}
+
+function exportToExcel(records){
+    const replyCodeMapExport = {
+        "1":"本人应答","2":"家属了解情况","3":"家属不了解情况",
+        "4":"无法接通","5":"拒绝调查","6":"本人应答，记不清情况","7":"空号","8":"错号","9":"电话为村医、村干和养老机构号码"
+    };
+    
+    const data = records.map(item => ({
+        "核查单位": item.org,
+        "年度": item.year,
+        "季度": item.quarter,
+        "项目": item.project,
+        "姓名": item.name,
+        "性别": item.sex,
+        "年龄": item.age,
+        "身份证号": item.idcard,
+        "联系电话": item.tel,
+        "应答情况": replyCodeMapExport[item.replyCode] || "",
+        "符合性核查": item.matchAllOk ? "访谈中体检和随访服务提供情况与档案记录一致" : ((item.matchErrs || []).map(v => matchCodeMap[v] || v).join("；") || ""),
+        "本年度健康体检记录": (item.examErrs || []).map(v => examCodeMap[v] || v).join("；"),
+        "随访次数记录": ["","规范","不规范"][parseInt(item.visitNorm) || 0],
+        "随访记录空项漏项错项": (item.followErrs || []).map(v => followCodeMap[v] || v).join("；"),
+        "转诊与主动随访": ["","是","否（不规范）","不存在上述情况"][parseInt(item.referral) || 0],
+        "是否涉嫌档案造假": item.fakeResult,
+        "有效性": item.validResult,
+        "符合性": item.matchResult,
+        "规范性": item.normResult,
+        "备注": item.remark || "",
+        "创建时间": item.createTime
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "慢阻肺核查记录");
+    XLSX.writeFile(wb, "慢阻肺核查记录_" + new Date().toLocaleDateString().replace(/\//g, "-") + ".xlsx");
+}
+
+const matchCodeMap = {
+    "2": "访谈为非慢性呼吸系统疾病患者，但档案中显示为慢阻肺病患者",
+    "3": "访谈否认体检，但档案中有体检记录",
+    "4": "访谈否认随访，但档案中有随访记录",
+    "5": "访谈为随访中未测血氧饱和度，但档案中有血氧饱和度记录",
+    "6": "访谈为电话随访，但档案中记录为门诊/家庭随访",
+    "7": "实际随访次数少于系统录入的次数",
+    "8": "档案涉嫌造假"
+};
+
+const examCodeMap = {
+    "2": "有小体检记录，体检记录表有3项及3项以上空项或漏项",
+    "3": "未填写任一项（呼吸、血压、血氧、心肺听诊）",
+    "4": "现存主要健康问题未填写慢阻肺病",
+    "5": "健康指导未填",
+    "6": "危险因素控制（建议接种流感、肺炎球菌疫苗未填）",
+    "7": "本年度没有体检"
+};
+
+const followCodeMap = {
+    "1": "具体症状、CAT评分、mMRC评估任意一项未填写",
+    "2": "具体症状、CAT评分、mMRC评估不一致",
+    "3": "面对面随访时血氧饱和度未填写",
+    "4": "用药依从性填写规律/间断用药时，用药情况未填写慢阻肺病相关药物",
+    "5": "其他项目超过3项及以上空项、漏项或错项"
+};
+
+function clearAllRecords(){
+    if(confirm("确定要清空所有保存的记录吗？此操作不可恢复！")){
+        localStorage.removeItem("copdCheckRecords");
+        alert("已清空所有记录！");
+    }
+}
+
+// 单位、季度记忆功能
+const copdQuarterSelect = document.getElementById("quarter");
+
+// 恢复记忆的单位
+const copdSavedOrg = localStorage.getItem("copd_lastOrg");
+if(copdSavedOrg){
+    orgHidden.value = copdSavedOrg;
+    orgInput.value = copdSavedOrg;
+}
+
+// 恢复记忆的季度
+const copdSavedQuarter = localStorage.getItem("copd_lastQuarter");
+if(copdSavedQuarter){
+    copdQuarterSelect.value = copdSavedQuarter;
+}
+
+calcAll();
+
+// 单位变化时保存（监听hidden字段变化）
+let copdLastOrgValue = orgHidden.value;
+const copdOrgObserver = new MutationObserver(function(){
+    if(orgHidden.value && orgHidden.value !== copdLastOrgValue){
+        copdLastOrgValue = orgHidden.value;
+        localStorage.setItem("copd_lastOrg", orgHidden.value);
+    }
+});
+copdOrgObserver.observe(orgHidden, { attributes: true });
+
+// 季度变化时保存
+copdQuarterSelect.addEventListener("change", function(){
+    localStorage.setItem("copd_lastQuarter", this.value);
+    calcAll();
+});
+
+// 年度默认为当前年度
+const copdYearInput = document.getElementById("year");
+function copdSetDefaultYear(){
+    if(!copdYearInput.value){
+        copdYearInput.value = new Date().getFullYear();
+    }
+}
+copdSetDefaultYear();
+copdYearInput.addEventListener("blur", copdSetDefaultYear);
+</script>
+</body>
+</html>
