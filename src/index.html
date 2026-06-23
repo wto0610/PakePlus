@@ -1,0 +1,110 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>健康核查问卷录入系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        body {
+            background-color: #f5f7fa;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin: 30px 0 50px;
+            color: #2c3e50;
+        }
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        .card.resident { border-left:5px solid #3498db; }
+        .card.elderly { border-left:5px solid #2ecc71; }
+        .card.hypertension { border-left:5px solid #e74c3c; }
+        .card.diabetes { border-left:5px solid #f39c12; }
+        .card.copd { border-left:5px solid #9b59b6; }
+        .icon {
+            font-size: 42px;
+            margin-bottom: 15px;
+        }
+        .card h3 {
+            font-size: 20px;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .card button {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 15px;
+            cursor: pointer;
+        }
+        .resident button { background:#3498db; }
+        .elderly button { background:#2ecc71; }
+        .hypertension button { background:#e74c3c; }
+        .diabetes button { background:#f39c12; }
+        .copd button { background:#9b59b6; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>健康核查问卷录入系统</h1>
+    </div>
+    <div class="card-container">
+        <div class="card resident">
+            <div class="icon">👥</div>
+            <h3>居民</h3>
+            <button onclick="location.href='question.html'">进入录入</button>
+        </div>
+        <div class="card elderly">
+            <div class="icon">👴👵</div>
+            <h3>老年人</h3>
+            <button onclick="location.href='elderly-check.html'">进入录入</button>
+        </div>
+        <div class="card hypertension">
+            <div class="icon">❤️</div>
+            <h3>高血压</h3>
+            <button onclick="location.href='hypertension-check.html'">进入录入</button>
+        </div>
+        <div class="card diabetes">
+            <div class="icon">💉</div>
+            <h3>糖尿病</h3>
+            <button onclick="location.href='diabetes-check.html'">进入录入</button>
+        </div>
+        <div class="card copd">
+            <div class="icon">🫁</div>
+            <h3>慢阻肺</h3>
+            <button onclick="location.href='copd-check.html'">进入录入</button>
+        </div>
+    </div>
+    <div style="text-align:center;margin-top:40px;">
+        <a href="admin.html" style="display:inline-block;padding:15px 40px;background:#2c3e50;color:#fff;border-radius:8px;text-decoration:none;font-size:16px;font-weight:500;">后台管理</a>
+    </div>
+</body>
+</html>
