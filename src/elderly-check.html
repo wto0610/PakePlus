@@ -1,0 +1,1549 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>老年人健康档案季度核查信息录入系统</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;font-size:14px;}
+body{padding:0;max-width:1600px;margin:0 auto;background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}
+.container{padding:20px;}
+/* 右侧判定栏（固定） */
+.judge-right{position:fixed;top:50%;right:20px;transform:translateY(-50%);z-index:999;width:70px;}
+/* 主内容区 */
+.main-content{margin-right:90px;}
+/* 判定汇总卡片 */
+.judge-card{background:#fff;border-radius:8px;padding:8px;box-shadow:0 2px 12px rgba(0,0,0,0.1);text-align:center;}
+.judge-card h4{margin:0 0 6px 0;color:#333;font-size:10px;font-weight:600;}
+.judge-mini{display:flex;flex-direction:column;gap:6px;}
+.judge-mini-item{display:flex;flex-direction:column;gap:2px;padding:3px 4px;background:#f8fafc;border-radius:4px;font-size:9px;}
+.judge-mini-item label{color:#666;font-size:8px;}
+.judge-mini-item .value{font-weight:600;font-size:11px;}
+.judge-mini-total{margin-top:6px;padding:6px;background:#eef6ff;border-radius:4px;font-weight:600;color:#0066cc;font-size:10px;}
+/* 顶部标题栏 */
+.header{background:linear-gradient(135deg,#27ae60 0%,#1e8449 100%);color:#fff;padding:20px 24px;border-radius:12px;margin-bottom:20px;box-shadow:0 4px 12px rgba(39,174,96,0.3);display:flex;justify-content:space-between;align-items:center;}
+.header-left{flex:1;}
+.header h1{margin:0 0 8px 0;font-size:22px;}
+.header-sub{font-size:13px;opacity:0.9;}
+.back-btn{background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:8px 18px;border-radius:6px;font-size:13px;cursor:pointer;transition:all 0.2s;text-decoration:none;}
+.back-btn:hover{background:rgba(255,255,255,0.35);}
+/* 提示信息 */
+.tip-red{background:#ffe8e8;color:#d00;padding:12px 16px;border-radius:8px;margin-bottom:14px;font-weight:500;display:none;border-left:4px solid #d00;}
+.tip-green{background:#e8ffe8;color:#060;padding:12px 16px;border-radius:8px;margin-bottom:14px;font-weight:500;display:none;border-left:4px solid #060;}
+/* 表单卡片 */
+.block{background:#fff;border-radius:10px;padding:24px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.block h3{margin:0 0 20px 0;color:#333;font-size:15px;border-left:4px solid #27ae60;padding-left:10px;}
+/* 两列布局 */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;}
+.form-group{margin-bottom:18px;}
+.form-group label{display:block;min-width:90px;color:#555;font-weight:500;margin-bottom:6px;}
+input[type="text"],input[type="number"],select{padding:8px 12px;width:100%;border:1px solid #ddd;border-radius:6px;font-size:14px;transition:border-color 0.2s;}
+input:focus,select:focus{outline:none;border-color:#27ae60;box-shadow:0 0 0 3px rgba(39,174,96,0.1);}
+input[type="radio"],input[type="checkbox"]{width:16px;height:16px;cursor:pointer;accent-color:#27ae60;}
+/* 选项列表 */
+.option-list{display:flex;flex-direction:column;gap:8px;}
+.option-item{display:flex;align-items:flex-start;padding:10px 14px;background:#f8fafc;border-radius:6px;transition:background 0.2s;}
+.option-item:hover{background:#eef6ff;}
+.option-item label{cursor:pointer;line-height:1.6;color:#444;margin:0;}
+/* 空错项分组 */
+.err-group{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;padding:12px;background:#f8fafc;border-radius:8px;margin-bottom:10px;}
+.err-group label{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#fff;border-radius:4px;cursor:pointer;font-size:13px;}
+/* 按钮样式 */
+.btn{padding:10px 20px;border:none;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s;}
+.btn-primary{background:#27ae60;color:#fff;}
+.btn-primary:hover{background:#219a52;box-shadow:0 4px 12px rgba(39,174,96,0.3);}
+.btn-success{background:#3498db;color:#fff;}
+.btn-success:hover{background:#2980b9;}
+.btn-danger{background:#e74c3c;color:#fff;}
+.btn-danger:hover{background:#c0392b;}
+.btn-outline{background:#fff;color:#666;border:1px solid #ddd;}
+.btn-outline:hover{background:#f8f9fa;}
+/* 工具栏 */
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:16px 0;border-top:1px solid #eee;margin-top:20px;}
+.toolbar-left{flex:1;display:flex;gap:10px;flex-wrap:wrap;}
+/* 模态框 */
+.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;display:none;}
+.modal.show{display:block;}
+.modal-content{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:24px;border-radius:12px;max-width:95%;max-height:85%;overflow:auto;min-width:400px;}
+.modal h3{margin:0 0 16px 0;color:#333;}
+/* 颜色 */
+.green{color:#27ae60;font-weight:600}
+.red{color:#e74c3c;font-weight:600}
+.orange{color:#f39c12;font-weight:600}
+.hide-area{display:none;}
+/* 辅助 */
+.form-tip{font-size:12px;color:#999;margin-left:8px;}
+.required{color:#e74c3c;}
+/* 搜索下拉组件 */
+.search-select{position:relative;width:100%;}
+.search-select-input{padding-right:32px;}
+.search-select-arrow{position:absolute;right:8px;top:50%;transform:translateY(-50%);pointer-events:none;color:#999;}
+.search-select-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #ddd;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.1);max-height:200px;overflow-y:auto;z-index:100;display:none;}
+.search-select-dropdown.show{display:block;}
+.search-select-option{padding:10px 12px;cursor:pointer;transition:background 0.2s;}
+.search-select-option:hover{background:#eef6ff;}
+.search-select-option.selected{background:#27ae60;color:#fff;}
+/* 档案比对选项 */
+.match-checklist{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px;background:#f8fafc;border-radius:8px;}
+.match-checklist label{display:flex;align-items:center;gap:6px;padding:8px 10px;background:#fff;border-radius:4px;cursor:pointer;font-size:13px;}
+/* 造假选项 */
+.fake-options{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;}
+/* 规则提示框 */
+.rule-tip{padding:12px;background:#e8f5e9;border-radius:8px;font-size:13px;color:#2e7d32;margin-top:12px;}
+/* 其他输入框 */
+#otherInput{display:none;margin-top:8px;padding:8px 12px;width:100%;border:1px solid #ddd;border-radius:6px;}
+@media(max-width:768px){
+  .form-grid{grid-template-columns:1fr;}
+  .err-group{grid-template-columns:1fr 1fr;}
+  .match-checklist{grid-template-columns:1fr 1fr;}
+  .judge-right{display:none;}
+  .main-content{margin-right:0;}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<!-- 主内容区 -->
+<div class="main-content">
+
+<!-- 顶部标题 -->
+<div class="header">
+  <div class="header-left">
+    <h1>老年人健康档案季度核查信息录入系统</h1>
+    <div class="header-sub">录入、判定、导出全流程管理</div>
+  </div>
+  <a href="index.html" class="back-btn">返回首页</a>
+</div>
+
+<!-- 提示信息 -->
+<div class="tip-red" id="replyDisableTip">当前应答为无效应答，无需填写下方档案核查内容，可直接保存本条记录</div>
+<div class="tip-red" id="matchDisableTip">符合性判定为不符合，本次问卷结束，下方体检相关内容隐藏不可填写</div>
+<div class="tip-green" id="matchOkTip">符合性判定全部相符，可继续填写下方体检核查内容</div>
+
+<!-- 一、基础信息 -->
+<div class="block">
+<h3>一、基础信息</h3>
+<div class="form-grid">
+<div class="form-group"><label>核查单位<span class="required">*</span></label>
+<div class="search-select" id="orgSelect">
+<input type="text" id="orgInput" class="search-select-input" placeholder="请输入单位名称搜索">
+<span class="search-select-arrow">▼</span>
+<div class="search-select-dropdown" id="orgDropdown">
+<div class="search-select-option" data-value="">请选择单位</div>
+<div class="search-select-option" data-value="澄城社区卫生服务中心">澄城社区卫生服务中心</div>
+<div class="search-select-option" data-value="金江镇卫生院">金江镇卫生院</div>
+<div class="search-select-option" data-value="山口社区卫生服务中心">山口社区卫生服务中心</div>
+<div class="search-select-option" data-value="仁兴镇卫生院">仁兴镇卫生院</div>
+<div class="search-select-option" data-value="中兴镇卫生院">中兴镇卫生院</div>
+<div class="search-select-option" data-value="太平社区卫生服务中心">太平社区卫生服务中心</div>
+<div class="search-select-option" data-value="加乐镇中心卫生院">加乐镇中心卫生院</div>
+<div class="search-select-option" data-value="文儒镇卫生院">文儒镇卫生院</div>
+<div class="search-select-option" data-value="文儒镇卫生院石浮门诊部">文儒镇卫生院石浮门诊部</div>
+<div class="search-select-option" data-value="金江镇长安卫生院">金江镇长安卫生院</div>
+<div class="search-select-option" data-value="瑞溪镇中心卫生院">瑞溪镇中心卫生院</div>
+<div class="search-select-option" data-value="永发镇中心卫生院">永发镇中心卫生院</div>
+<div class="search-select-option" data-value="永发镇中心卫生院新吴门诊部">永发镇中心卫生院新吴门诊部</div>
+<div class="search-select-option" data-value="大丰镇卫生院">大丰镇卫生院</div>
+<div class="search-select-option" data-value="美亭社区卫生服务中心">美亭社区卫生服务中心</div>
+<div class="search-select-option" data-value="福山镇卫生院">福山镇卫生院</div>
+<div class="search-select-option" data-value="桥头镇卫生院">桥头镇卫生院</div>
+<div class="search-select-option" data-value="老城社区卫生服务中心">老城社区卫生服务中心</div>
+<div class="search-select-option" data-value="老城镇中心卫生院">老城镇中心卫生院</div>
+<div class="search-select-option" data-value="老城镇中心卫生院马村门诊部">老城镇中心卫生院马村门诊部</div>
+<div class="search-select-option" data-value="仁兴镇西达卫生院">仁兴镇西达卫生院</div>
+<div class="search-select-option" data-value="福山镇红光卫生院">福山镇红光卫生院</div>
+<div class="search-select-option" data-value="文儒镇红岗卫生院">文儒镇红岗卫生院</div>
+<div class="search-select-option" data-value="金安社区卫生服务中心">金安社区卫生服务中心</div>
+<div class="search-select-option" data-value="昆仑社区卫生服务中心">昆仑社区卫生服务中心</div>
+<div class="search-select-option" data-value="和岭社区卫生服务中心">和岭社区卫生服务中心</div>
+</div>
+<input type="hidden" id="org" name="org">
+</div></div>
+<div class="form-group"><label>年度<span class="required">*</span></label>
+<input type="number" id="year" placeholder="如2026，默认当前年度"></div>
+<div class="form-group"><label>季度<span class="required">*</span></label>
+<select id="quarter">
+<option value="">请选择季度</option>
+<option value="Q1">一季度</option>
+<option value="Q2">二季度</option>
+<option value="Q3">三季度</option>
+<option value="Q4">四季度</option>
+</select></div>
+<div class="form-group"><label>项目<span class="required">*</span></label>
+<select id="project">
+<option value="老年人" selected>老年人</option>
+</select>
+</div>
+<div class="form-group"><label>姓名<span class="required">*</span></label>
+<input type="text" id="name"></div>
+<div class="form-group"><label>性别</label>
+<div style="display:flex;gap:16px;padding-top:6px;">
+<label><input type="radio" name="sex" value="男"> 男</label>
+<label><input type="radio" name="sex" value="女"> 女</label>
+</div></div>
+<div class="form-group"><label>年龄</label>
+<input type="number" id="age" min="0" max="120"></div>
+<div class="form-group"><label>身份证号</label>
+<input type="text" id="idcard" maxlength="18"><span class="form-tip" id="idTip"></span></div>
+<div class="form-group"><label>联系电话</label>
+<input type="text" id="tel" maxlength="11"><span class="form-tip" id="telTip"></span></div>
+</div>
+</div>
+
+<!-- 二、应答情况 -->
+<div class="block">
+<h3>二、应答情况</h3>
+<div class="option-list">
+<div class="option-item"><label><input type="radio" name="reply" value="1"> ①本人应答</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="2"> ②应答人为家属、亲戚等，了解情况</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="3"> ③应答人为家属、亲戚等，不了解核查对象具体情况</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="4"> ④无法接通（不同时间拨打三次，包括关机、停机）</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="5"> ⑤拒绝调查：接听后不配合调查，中途退出</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="6"> ⑥本人应答，记不清情况</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="7"> ⑦空号</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="8"> ⑧错号</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="9"> ⑨电话为村医、村干和养老机构号码</label></div>
+</div>
+</div>
+
+<!-- 三、访谈记录与健康档案比对（符合性）- 仅有效应答①②显示 -->
+<div id="matchArea" class="hide-area">
+<div class="block">
+<h3>三、访谈记录与健康档案比对 <span style="font-size:12px;color:#999;font-weight:normal;">（符合性核查，可多选）</span></h3>
+<div class="option-list">
+<div class="option-item"><label><input type="checkbox" id="matchAllOk" value="1"> （1）访谈情况与健康档案相符：姓名、查体（血压、体重、心肺听诊）和辅助检查记录均相符——判定为符合</label></div>
+<div class="option-item"><label><input type="checkbox" class="matchErr" value="2"> （2）访谈为未查体（血压、体重、心肺听诊），但档案中有查体记录——判定为不符合</label></div>
+<div class="option-item"><label><input type="checkbox" class="matchErr" value="3"> （3）访谈为未做心电图，但档案中有心电图记录——判定为不符合</label></div>
+<div class="option-item"><label><input type="checkbox" class="matchErr" value="4"> （4）访谈为未做B超，但档案中有B超记录——判定为不符合</label></div>
+<div class="option-item"><label><input type="checkbox" class="matchErr" value="5"> （5）访谈为未做健康体检，但档案中有体检记录——判定为不符合</label></div>
+<div class="option-item"><label><input type="checkbox" class="matchErr" value="6"> （6）访谈为未做抽血，但档案中有抽血（血脂、肝功能等）记录——判定为不符合</label></div>
+<div class="option-item"><label><input type="checkbox" class="matchErr" value="7"> （7）档案涉嫌造假：死亡仍体检/异地体检/复制往年记录/3项及以上填0或拒绝——判定不符合</label></div>
+</div>
+<div class="rule-tip"><strong>符合性判定规则：</strong>选择"访谈情况与健康档案相符"（第一项）→ 判定为<span class="green">符合</span>；选择任一②-⑦项 → 判定为<span class="red">不符合</span></div>
+</div>
+
+<!-- 四、体检结果发放情况（符合时显示） -->
+<div id="sendResBlock" class="hide-area">
+<div class="block">
+<h3>四、体检结果发放情况</h3>
+<div class="option-list">
+<div class="option-item"><label><input type="radio" name="sendRes" value="1"> ①没有发放或没有通知</label></div>
+<div class="option-item"><label><input type="radio" name="sendRes" value="2"> ②没有发放，仅口头告知</label></div>
+<div class="option-item"><label><input type="radio" name="sendRes" value="3"> ③15天内通知、发放并解读健康指导</label></div>
+<div class="option-item"><label><input type="radio" name="sendRes" value="4"> ④15天后通知、发放并解读健康指导</label></div>
+<div class="option-item"><label><input type="radio" name="sendRes" value="5"> ⑤已通知领取，但未解读结果</label></div>
+<div class="option-item"><label><input type="radio" name="sendRes" value="6"> ⑥15天内通知解读，个人原因晚领取</label></div>
+<div class="option-item"><label><input type="radio" name="sendRes" value="7"> ⑦记不清（失访）</label></div>
+</div>
+</div>
+</div>
+
+<!-- 五、体检记录填写空项、错项（符合时显示） -->
+<div id="errBlock" class="hide-area">
+<div class="block">
+<h3>五、体检记录填写空项、错项 <span style="font-size:12px;color:#999;font-weight:normal;">（可多选）</span></h3>
+<div class="err-group">
+<label><input type="checkbox" class="errItem" value="1">①体检日期、责任医生</label>
+<label><input type="checkbox" class="errItem" value="2">②症状</label>
+</div>
+<div class="err-group" style="background:#f0f8ff;padding:10px;border-radius:6px;margin-bottom:8px;">
+<label style="font-weight:600;color:#333;margin-bottom:8px;display:block;">③一般状况</label>
+<label><input type="checkbox" class="errItem" value="3b">体温</label>
+<label><input type="checkbox" class="errItem" value="3c">脉率</label>
+<label><input type="checkbox" class="errItem" value="3d">呼吸频率</label>
+<label><input type="checkbox" class="errItem" value="3e">身高</label>
+<label><input type="checkbox" class="errItem" value="3f">体重</label>
+<label><input type="checkbox" class="errItem" value="3g">腰围</label>
+<label><input type="checkbox" class="errItem" value="3h">体质指数</label>
+</div>
+<div class="err-group">
+<label><input type="checkbox" class="errItem" value="4">④老年人生活自理能力评估</label>
+</div>
+<div class="err-group" style="background:#f0f8ff;padding:10px;border-radius:6px;margin-bottom:8px;">
+<label style="font-weight:600;color:#333;margin-bottom:8px;display:block;">⑤生活方式情况</label>
+<label><input type="checkbox" class="errItem" value="5a">锻炼</label>
+<label><input type="checkbox" class="errItem" value="5b">饮食</label>
+<label><input type="checkbox" class="errItem" value="5c">吸烟</label>
+<label><input type="checkbox" class="errItem" value="5d">职业危险因素接触史</label>
+</div>
+<div class="err-group" style="background:#f0f8ff;padding:10px;border-radius:6px;margin-bottom:8px;">
+<label style="font-weight:600;color:#333;margin-bottom:8px;display:block;">⑥脏器功能</label>
+<label><input type="checkbox" class="errItem" value="6a">口腔</label>
+<label><input type="checkbox" class="errItem" value="6b">视力</label>
+<label><input type="checkbox" class="errItem" value="6c">听力</label>
+<label><input type="checkbox" class="errItem" value="6d">运动功能</label>
+</div>
+<div class="err-group" style="background:#f0f8ff;padding:10px;border-radius:6px;margin-bottom:8px;">
+<label style="font-weight:600;color:#333;margin-bottom:8px;display:block;">⑦查体</label>
+<label><input type="checkbox" class="errItem" value="7a">皮肤</label>
+<label><input type="checkbox" class="errItem" value="7b">巩膜</label>
+<label><input type="checkbox" class="errItem" value="7c">淋巴</label>
+<label><input type="checkbox" class="errItem" value="7d">心脏</label>
+<label><input type="checkbox" class="errItem" value="7e">肺</label>
+<label><input type="checkbox" class="errItem" value="7f">腹部</label>
+<label><input type="checkbox" class="errItem" value="7g">下肢水肿</label>
+</div>
+<div class="err-group">
+<label><input type="checkbox" class="errItem checkLab" value="8">⑧血常规</label>
+<label><input type="checkbox" class="errItem" value="9">⑨尿常规</label>
+<label><input type="checkbox" class="errItem checkLab" value="10">⑩血压</label>
+<label><input type="checkbox" class="errItem checkLab" value="11">⑪空腹血糖</label>
+<label><input type="checkbox" class="errItem checkLab" value="12">⑫心电图</label>
+<label><input type="checkbox" class="errItem checkLab" value="13">⑬肝功能</label>
+<label><input type="checkbox" class="errItem checkLab" value="14">⑭肾功能</label>
+<label><input type="checkbox" class="errItem checkLab" value="15">⑮血脂</label>
+<label><input type="checkbox" class="errItem checkLab" value="16">⑯腹部B超</label>
+<label><input type="checkbox" class="errItem checkLab" value="17">㉑糖化血红蛋白</label>
+</div>
+<div class="err-group">
+<label><input type="checkbox" class="errItem" value="18">⑱主要用药情况</label>
+<label><input type="checkbox" class="errItem" value="19">⑲健康评价</label>
+<label><input type="checkbox" class="errItem" value="20">⑳健康指导</label>
+<label><input type="checkbox" class="errItem" value="21">㉑危险因素控制</label>
+<label><input type="checkbox" class="errItem" value="22">㉒现存主要健康问题</label>
+<label><input type="checkbox" class="errItem" value="24">㉔住院史</label>
+<label><input type="checkbox" class="errItem" value="25">㉕家庭病床史</label>
+<label><input type="checkbox" class="errItem" value="26">㉖免疫接种史</label>
+<label><input type="checkbox" class="errItem" id="errOther" value="27">㉗其他</label>
+<input type="text" id="otherInput" placeholder="请填写其他空项/错项说明">
+</div>
+<div class="rule-tip"><strong>规范性判定规则：</strong>血压/B超/心电图/血常规/肝功能/肾功能/空腹血糖/血脂/糖化血红蛋白任一项未填 → <span class="red">不规范</span>；其他项目4项（含）以上空错项 → <span class="red">不规范</span>；其他项目&le;4项空错项 → <span class="green">规范</span></div>
+</div>
+</div>
+</div>
+
+<!-- 六、是否涉嫌档案造假（始终显示） -->
+<div class="block">
+<h3>六、是否涉嫌档案造假</h3>
+<div class="fake-options">
+<div class="option-item" style="background:#e8f5e9;"><label><input type="radio" name="fake" value="0" checked> 无涉嫌造假</label></div>
+<div class="option-item"><label><input type="radio" name="fake" value="1"> 已死亡仍有体检记录</label></div>
+<div class="option-item"><label><input type="radio" name="fake" value="2"> 不在本地居住却有本地体检记录</label></div>
+<div class="option-item"><label><input type="radio" name="fake" value="3"> 复制往年体检记录</label></div>
+<div class="option-item"><label><input type="radio" name="fake" value="4"> 辅助检查3项及以上填0/多项填拒绝</label></div>
+</div>
+</div>
+
+<!-- 备注 -->
+<div class="block" style="margin-top:16px;">
+<h3>七、备注</h3>
+<textarea id="remark" placeholder="请填写其他问题或说明（选填）" style="width:100%;min-height:80px;padding:10px;border:1px solid #ddd;border-radius:6px;resize:vertical;font-size:13px;"></textarea>
+</div>
+
+<!-- 操作按钮区 -->
+<div class="block">
+<div class="toolbar">
+<div class="toolbar-left">
+<button class="btn btn-primary" onclick="saveRecord()">保存本条记录</button>
+<button class="btn btn-outline" onclick="clearForm()">清空表单</button>
+</div>
+<div>
+<span style="color:#666;font-size:13px;">已保存记录：</span>
+<span id="recordCount" style="color:#27ae60;font-weight:600;">0</span>
+<span style="color:#666;font-size:13px;">条</span>
+</div>
+</div>
+</div>
+
+<!-- 数据管理操作区 -->
+<div class="block">
+<h3>数据管理</h3>
+<div class="toolbar" style="border-top:none;margin-top:0;padding-top:0;">
+<div class="toolbar-left" style="flex-wrap:wrap;align-items:center;">
+<button class="btn btn-primary" onclick="showRecordList()">查看已保存记录</button>
+<button class="btn btn-primary" onclick="showReportStatistics()">报表统计</button>
+<select id="exportYear" style="width:auto;min-width:100px;">
+<option value="">全部年度</option>
+</select>
+<select id="exportQuarter" style="width:auto;min-width:100px;">
+<option value="">全部季度</option>
+<option value="Q1">一季度</option>
+<option value="Q2">二季度</option>
+<option value="Q3">三季度</option>
+<option value="Q4">四季度</option>
+</select>
+<button class="btn btn-success" onclick="exportExcelByQuarter()">按条件导出Excel</button>
+<button class="btn btn-success" onclick="exportAllExcel()">导出全部Excel</button>
+<button class="btn btn-danger" onclick="clearAllRecords()">清空全部记录</button>
+</div>
+</div>
+</div>
+
+<!-- 右侧实时判定面板 -->
+<div class="judge-right" id="judgePanel">
+<div class="judge-card">
+  <h4>实时判定</h4>
+  <div class="judge-mini">
+    <div class="judge-mini-item"><label>有效性</label><span class="value green" id="res1">待选择</span></div>
+    <div class="judge-mini-item"><label>符合性</label><span class="value" id="res2">待判定</span></div>
+    <div class="judge-mini-item"><label>规范性</label><span class="value" id="res3">待判定</span></div>
+    <div class="judge-mini-item"><label>是否造假</label><span class="value green" id="res6">无</span></div>
+  </div>
+  <div id="resTotal" class="judge-mini-total"></div>
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- 记录列表模态框 -->
+<div id="recordModal" class="modal">
+<div class="modal-content">
+<h3>已保存记录列表 <button class="btn btn-outline" onclick="closeRecordModal()" style="float:right;">关闭</button></h3>
+<div id="recordTableArea"></div>
+</div>
+</div>
+
+<script>
+// 记录存储
+let recordList = [];
+try {
+    const stored = localStorage.getItem("elderlyCheckRecords");
+    if (stored) recordList = JSON.parse(stored);
+} catch (e) {
+    console.error("读取本地存储失败", e);
+    recordList = [];
+}
+
+// DOM元素
+const replyDisableTip = document.getElementById("replyDisableTip");
+const matchDisableTip = document.getElementById("matchDisableTip");
+const matchOkTip = document.getElementById("matchOkTip");
+const matchArea = document.getElementById("matchArea");
+const sendResBlock = document.getElementById("sendResBlock");
+const errBlock = document.getElementById("errBlock");
+const idcardInput = document.getElementById("idcard");
+const telInput = document.getElementById("tel");
+const idTip = document.getElementById("idTip");
+const telTip = document.getElementById("telTip");
+const errOther = document.getElementById("errOther");
+const otherInput = document.getElementById("otherInput");
+const matchAllOk = document.getElementById("matchAllOk");
+const matchErrList = document.querySelectorAll(".matchErr");
+
+let matchResult = "待判定";
+let isFakeRecord = false;
+
+// 全部计算入口
+function calcAll(){
+    checkIdTelFormat();
+    calcReply();
+    calcMatch();
+    calcFake();
+    calcNorm();
+    calcTotal();
+}
+
+// 身份证、手机号格式校验
+function checkIdTelFormat(){
+    const idVal = idcardInput.value.trim();
+    if(idVal === ""){
+        idTip.innerText = "";
+    }else if(/(^\d{18}$)|(^\d{17}(\d|X|x)$)/.test(idVal)){
+        idTip.className = "form-tip green";
+        idTip.innerText = "身份证格式正确";
+    }else{
+        idTip.className = "form-tip red";
+        idTip.innerText = "身份证格式错误";
+    }
+    const telVal = telInput.value.trim();
+    if(telVal === ""){
+        telTip.innerText = "";
+    }else if(/^1[3-9]\d{9}$/.test(telVal) || /^\d{7,12}$/.test(telVal)){
+        telTip.className = "form-tip green";
+        telTip.innerText = "号码格式正确";
+    }else{
+        telTip.className = "form-tip red";
+        telTip.innerText = "号码格式错误";
+    }
+}
+
+// 1. 应答有效性判定
+function calcReply(){
+    const val = document.querySelector('input[name="reply"]:checked')?.value;
+    if(!val){
+        document.getElementById("res1").innerText = "待选择";
+        replyDisableTip.style.display = "none";
+        matchArea.classList.add("hide-area");
+        return;
+    }
+    
+    if(val === "1" || val === "2"){
+        document.getElementById("res1").innerHTML = `<span class="green">有效应答</span>`;
+        replyDisableTip.style.display = "none";
+        matchArea.classList.remove("hide-area");
+    }else{
+        const type = ["3","4","5","9"].includes(val) ? "失访" : "电话异常";
+        document.getElementById("res1").innerHTML = `<span class="red">无效应答 - ${type}</span>`;
+        replyDisableTip.style.display = "block";
+        matchArea.classList.add("hide-area");
+        sendResBlock.classList.add("hide-area");
+        errBlock.classList.add("hide-area");
+        matchResult = "待判定";
+        clearExamSection();
+    }
+}
+
+// 清空体检区域选择
+function clearExamSection(){
+    document.querySelectorAll('input[name="sendRes"]').forEach(el => el.checked = false);
+    document.querySelectorAll('.errItem').forEach(el => el.checked = false);
+    document.querySelectorAll('input[name="matchType"]').forEach(el => el.checked = false);
+    otherInput.style.display = "none";
+    otherInput.value = "";
+    errOther.checked = false;
+    document.getElementById("res3").innerText = "——";
+    document.getElementById("res6").innerHTML = `<span class="green">无</span>`;
+    isFakeRecord = false;
+}
+
+// 2. 符合性判定
+function calcMatch(){
+    matchDisableTip.style.display = "none";
+    matchOkTip.style.display = "none";
+    
+    const isMatchAllOk = matchAllOk.checked;
+    const matchErrs = document.querySelectorAll('.matchErr:checked');
+    const hasErrItem = matchErrs.length > 0;
+    const fakeVal = document.querySelector('input[name="fake"]:checked')?.value || "0";
+    const isFake = fakeVal !== "0";
+    
+    // 符合性判定：三、访谈记录与健康档案比对 和 六、是否涉嫌档案造假 都符合 → 才判定符合
+    if(isMatchAllOk && !isFake){
+        // 两者都符合
+        document.getElementById("res2").innerHTML = `<span class="green">符合</span>`;
+        matchResult = "符合";
+        matchOkTip.style.display = "block";
+        matchErrList.forEach(el => el.disabled = true);
+    }else if(hasErrItem || isFake){
+        // 访谈记录不符合 或 涉嫌造假
+        document.getElementById("res2").innerHTML = `<span class="red">不符合</span>`;
+        matchResult = "不符合";
+        matchDisableTip.style.display = "block";
+        matchErrList.forEach(el => el.disabled = false);
+    }else{
+        // 待判定
+        document.getElementById("res2").innerText = "待勾选";
+        matchResult = "待判定";
+        matchErrList.forEach(el => el.disabled = false);
+    }
+    
+    // 四、体检结果发放情况和五、体检记录填写空项、错项：根据三是否选择①显示
+    if(isMatchAllOk){
+        // 选择①时显示四和五
+        sendResBlock.classList.remove("hide-area");
+        errBlock.classList.remove("hide-area");
+    }else{
+        // 未选择①时隐藏四和五
+        sendResBlock.classList.add("hide-area");
+        errBlock.classList.add("hide-area");
+    }
+}
+
+// 第1项选择逻辑：选中1时清空2-7，取消1时直接取消
+matchAllOk.addEventListener("change", function(){
+    if(this.checked){
+        // 选中第1项时，清空并禁用2-7项
+        matchErrList.forEach(el => {
+            el.checked = false;
+            el.disabled = true;
+        });
+    } else {
+        // 取消第1项时，启用2-7项
+        matchErrList.forEach(el => el.disabled = false);
+    }
+    calcAll();
+});
+
+// 2-7项选中时取消并禁用第1项
+matchErrList.forEach(item => {
+    item.addEventListener("change", function(){
+        const matchErrs = document.querySelectorAll('.matchErr:checked');
+        if(matchErrs.length > 0){
+            matchAllOk.checked = false;
+            matchAllOk.disabled = true;
+            matchErrList.forEach(el => el.disabled = false);
+        } else {
+            matchAllOk.disabled = false;
+        }
+        calcAll();
+    });
+});
+
+// 3. 规范性判定
+function calcNorm(){
+    // 无效应答或不符时规范性不判定
+    const replyVal = document.querySelector('input[name="reply"]:checked')?.value;
+    if(!replyVal || (replyVal !== "1" && replyVal !== "2")){
+        document.getElementById("res3").innerText = "——";
+        return;
+    }
+    
+    const fakeVal = document.querySelector('input[name="fake"]:checked')?.value || "0";
+    // 造假或不符时直接不规范
+    if(fakeVal !== "0" || matchResult === "不符合"){
+        document.getElementById("res3").innerHTML = `<span class="red">不规范</span>`;
+        return;
+    }
+    
+    // 区块隐藏时待判定
+    if(errBlock.classList.contains("hide-area") && matchResult !== "符合"){
+        document.getElementById("res3").innerText = "——";
+        return;
+    }
+    
+    // 五、体检记录填写空项、错项判定规则
+    const errErrs = document.querySelectorAll('.errItem:checked');
+    const labErrs = document.querySelectorAll('.checkLab:checked');
+    const allChecked = getCheckedValues('.errItem');
+    
+    // 辅助检查关键项：血压、B超、心电图、血常规、肝功能、肾功能、空腹血糖、血脂、糖化血红蛋白
+    const keyLabItems = ['10', '11', '12', '13', '14', '15', '16', '17'];  // 血压、空腹血糖、心电图、肝功能、肾功能、血脂、腹部B超、糖化血红蛋白
+    const hasKeyLabEmpty = keyLabItems.some(v => allChecked.includes(v));  // 任一关键项未填 → 不规范
+    
+    // 非关键项空错项数量
+    const nonKeyErrs = allChecked.filter(v => !keyLabItems.includes(v));
+    
+    // 四、体检结果发放情况：选择①、②、④、⑤中任一项 → 不规范
+    // ③15天内通知、发放并解读健康指导；⑥15天内通知解读，个人原因晚领取 → 规范
+    const sendResVal = document.querySelector('input[name="sendRes"]:checked')?.value;
+    const isSendResNonStandard = ['1', '2', '4', '5'].includes(sendResVal);  // ①、②、④、⑤ 不规范
+    
+    // 规范性判定：五、体检记录填写空项、错项 和 四、体检结果发放情况 都规范 → 才判定规范
+    if(hasKeyLabEmpty){
+        // 关键辅助检查项任一未填 → 不规范
+        const keyLabNames = keyLabItems.filter(v => allChecked.includes(v));
+        document.getElementById("res3").innerHTML = `<span class="red">不规范（${keyLabNames.length}项关键辅助检查未填）</span>`;
+    }else if(nonKeyErrs.length > 4){
+        // 其他项目4项以上错项 → 不规范
+        document.getElementById("res3").innerHTML = `<span class="red">不规范（其他项目空错项${nonKeyErrs.length}项，超过4项）</span>`;
+    }else if(isSendResNonStandard){
+        // 四选择①、②、④、⑤ → 不规范
+        const sendResMap = {"1":"没有发放或没有通知","2":"没有发放仅口头告知","4":"15天后通知发放","5":"已通知但未解读"};
+        document.getElementById("res3").innerHTML = `<span class="red">不规范（${sendResMap[sendResVal]}）</span>`;
+    }else if(sendResVal && ['3', '6'].includes(sendResVal) && nonKeyErrs.length <= 4){
+        // 体检记录：关键辅助检查无空项 + 非关键项≤4项 且 体检结果发放规范(③或⑥)
+        const errInfo = nonKeyErrs.length > 0 ? `（其他项目空错项${nonKeyErrs.length}项）` : '';
+        document.getElementById("res3").innerHTML = `<span class="green">规范${errInfo}</span>`;
+    }else{
+        document.getElementById("res3").innerText = "待完善";
+    }
+}
+
+// 6. 造假判定
+function calcFake(){
+    const fakeMap = {
+        "0":"无涉嫌造假",
+        "1":"已死亡仍有体检记录",
+        "2":"不在本地居住却有本地体检记录",
+        "3":"复制往年体检记录",
+        "4":"辅助检查3项及以上填0/拒绝"
+    };
+    const v = document.querySelector('input[name="fake"]:checked')?.value || "0";
+    isFakeRecord = v !== "0";
+    
+    if(isFakeRecord){
+        document.getElementById("res6").innerHTML = `<span class="red">${fakeMap[v]}</span>`;
+    }else{
+        document.getElementById("res6").innerHTML = `<span class="green">无</span>`;
+    }
+}
+
+// 4. 总判定
+function calcTotal(){
+    const reply = document.getElementById("res1").innerText;
+    const match = document.getElementById("res2").innerText;
+    const norm = document.getElementById("res3").innerText;
+    const fake = document.getElementById("res6").innerText;
+    
+    if(reply.includes("无效应答")){
+        document.getElementById("resTotal").innerHTML = `<span class="orange">★ 档案判定：待完善（无效应答）</span>`;
+        return;
+    }
+    
+    if(reply === "待选择"){
+        document.getElementById("resTotal").innerHTML = `<span class="orange">★ 档案判定：待完善</span>`;
+        return;
+    }
+    
+    const hasFake = !fake.includes("无涉嫌造假");
+    const hasMatchFail = match.includes("不符合");
+    const hasNormErr = norm.includes("不规范");
+    
+    if(hasFake || hasMatchFail || hasNormErr){
+        document.getElementById("resTotal").innerHTML = `<span class="red">★ 档案判定：不规范档案</span>`;
+    }else if(match === "待勾选" || norm === "待完善" || norm === "——"){
+        document.getElementById("resTotal").innerHTML = `<span class="orange">★ 档案判定：待完善</span>`;
+    }else{
+        document.getElementById("resTotal").innerHTML = `<span class="green">★ 档案判定：规范档案</span>`;
+    }
+}
+
+// 其他选项勾选
+errOther.onchange = function(){
+    otherInput.style.display = this.checked ? "block" : "none";
+    if(!this.checked) otherInput.value = "";
+}
+
+// 获取勾选项值
+function getCheckedValues(selector){
+    return Array.from(document.querySelectorAll(selector + ':checked')).map(el => el.value);
+}
+
+// 保存记录
+function saveRecord(){
+    calcAll();
+    
+    const replyVal = document.querySelector('input[name="reply"]:checked')?.value || "";
+    const sendResVal = document.querySelector('input[name="sendRes"]:checked')?.value || "";
+    const fakeVal = document.querySelector('input[name="fake"]:checked')?.value || "";
+    const matchAllOkChecked = matchAllOk.checked;
+    
+    const data = {
+        org: document.getElementById("org").value,
+        year: document.getElementById("year").value || new Date().getFullYear().toString(),
+        quarter: document.getElementById("quarter").value || "",
+        project: document.getElementById("project").value,
+        name: document.getElementById("name").value,
+        sex: document.querySelector('input[name="sex"]:checked')?.value || "",
+        age: document.getElementById("age").value,
+        idcard: document.getElementById("idcard").value,
+        tel: document.getElementById("tel").value,
+        replyCode: replyVal,
+        matchAllOk: matchAllOkChecked,
+        matchErrs: getCheckedValues('.matchErr'),
+        sendResCode: sendResVal,
+        errItems: getCheckedValues('.errItem'),
+        otherDesc: otherInput.value || "",
+        fakeCode: fakeVal,
+        remark: document.getElementById("remark").value || "",
+        judgeReply: document.getElementById("res1").innerText,
+        judgeMatch: document.getElementById("res2").innerText,
+        judgeNorm: document.getElementById("res3").innerText,
+        judgeFake: document.getElementById("res6").innerText,
+        judgeTotal: document.getElementById("resTotal").innerText,
+        saveTime: formatDate(new Date())
+    };
+    
+    // 必填项验证
+    if(!data.org || !data.year || !data.name){
+        alert("核查单位、年度、姓名为必填项，无法保存！");
+        return;
+    }
+    
+    const isInvalidReply = ["3","4","5","6","7","8","9"].includes(replyVal);
+    if(isInvalidReply){
+        recordList.push(data);
+        try {
+            localStorage.setItem("elderlyCheckRecords", JSON.stringify(recordList));
+            updateRecordCount();
+            updateExportYearOptions();
+            alert("本条核查记录保存成功！");
+        } catch (e) {
+            alert("保存失败，本地存储空间可能已满");
+            console.error(e);
+        }
+        return;
+    }
+    
+    // 有效应答记录验证
+    if(replyVal === "1" || replyVal === "2"){
+        // 访谈记录与健康档案比对：必填
+        if(!matchAllOkChecked && getCheckedValues('.matchErr').length === 0){
+            alert("有效应答记录，访谈记录与健康档案比对为必填项，请至少选择一项！");
+            return;
+        }
+        // 涉嫌造假（除"无涉嫌造假"外）仍然可以保存，但会判定为不符合
+        // 三、访谈记录与健康档案比对 和 六、是否涉嫌档案造假 都符合 → 才判定符合
+        if(matchAllOkChecked && fakeVal === "0"){
+            // 两者都符合时，需要验证体检结果发放情况
+            if(!sendResVal){
+                alert("档案比对符合，体检结果发放情况为必填项！");
+                return;
+            }
+        }
+    }
+    
+    recordList.push(data);
+    try {
+        localStorage.setItem("elderlyCheckRecords", JSON.stringify(recordList));
+        updateRecordCount();
+        updateExportYearOptions();
+        
+        // 保存成功后保持单位和季度，清空其他字段
+        const savedOrg = data.org;
+        const savedQuarter = data.quarter;
+        
+        // 清空姓名及以下字段
+        document.getElementById("name").value = "";
+        document.getElementById("idcard").value = "";
+        document.getElementById("age").value = "";
+        document.getElementById("tel").value = "";
+        document.querySelectorAll('input[name="sex"]').forEach(el => el.checked = false);
+        document.getElementById("remark").value = "";
+        
+        // 恢复单位和季度
+        document.getElementById("org").value = savedOrg;
+        document.getElementById("orgInput").value = savedOrg;
+        document.getElementById("quarter").value = savedQuarter;
+        
+        // 重置选择状态
+        matchAllOk.checked = false;
+        document.querySelectorAll('.matchErr').forEach(el => { el.checked = false; el.disabled = false; });
+        document.querySelectorAll('input[name="sendRes"]').forEach(el => el.checked = false);
+        document.querySelectorAll('.errItem').forEach(el => el.checked = false);
+        document.querySelectorAll('input[name="fake"]').forEach(el => el.checked = el.value === "0");
+        otherInput.style.display = "none";
+        otherInput.value = "";
+        errOther.checked = false;
+        
+        // 重置判定结果
+        document.getElementById("res1").innerText = "待选择";
+        document.getElementById("res2").innerText = "待勾选";
+        document.getElementById("res3").innerText = "——";
+        document.getElementById("res6").innerHTML = `<span class="green">无</span>`;
+        document.getElementById("resTotal").innerText = "——";
+        
+        matchResult = "待判定";
+        isFakeRecord = false;
+        calcAll();
+        
+        alert("本条核查记录保存成功！");
+    } catch (e) {
+        alert("保存失败，本地存储空间可能已满");
+        console.error(e);
+    }
+}
+
+// 格式化日期
+function formatDate(date){
+    const pad = n => n < 10 ? '0' + n : n;
+    return date.getFullYear() + '-' + pad(date.getMonth()+1) + '-' + pad(date.getDate()) + ' ' + pad(date.getHours()) + ':' + pad(date.getMinutes()) + ':' + pad(date.getSeconds());
+}
+
+// 清空表单
+function clearForm(){
+    document.querySelectorAll("input,select,textarea").forEach(el => {
+        if(el.type === "radio" || el.type === "checkbox"){
+            el.checked = false;
+            if(el.classList.contains("matchErr")) el.disabled = false;
+        }
+        if(el.tagName === "SELECT") el.value = "";
+        if(el.type === "text" || el.type === "number") el.value = "";
+        if(el.tagName === "TEXTAREA") el.value = "";
+    });
+    idTip.innerText = "";
+    telTip.innerText = "";
+    otherInput.style.display = "none";
+    otherInput.value = "";
+    matchResult = "待判定";
+    isFakeRecord = false;
+    calcAll();
+}
+
+// 更新记录数量
+function updateRecordCount(){
+    document.getElementById("recordCount").innerText = recordList.length;
+}
+
+// 更新年度选择器
+function updateExportYearOptions(){
+    const years = [...new Set(recordList.map(item => item.year).filter(y => y))];
+    const select = document.getElementById("exportYear");
+    select.innerHTML = '<option value="">全部年度</option>';
+    years.sort().reverse().forEach(year => {
+        select.innerHTML += `<option value="${year}">${year}年</option>`;
+    });
+}
+
+// 导出Excel（按条件）
+function exportExcelByQuarter(){
+    const yearVal = document.getElementById("exportYear").value;
+    const quarterVal = document.getElementById("exportQuarter").value;
+    
+    let filteredList = recordList;
+    if(yearVal){
+        filteredList = filteredList.filter(item => item.year === yearVal);
+    }
+    if(quarterVal){
+        filteredList = filteredList.filter(item => item.quarter === quarterVal);
+    }
+    
+    if(filteredList.length === 0){
+        alert("没有符合筛选条件的记录");
+        return;
+    }
+    
+    const fileNameSuffix = (yearVal || "全部年度") + (quarterVal ? "_" + quarterVal : "");
+    exportExcelWithData(filteredList, fileNameSuffix);
+}
+
+// 导出全部Excel
+function exportAllExcel(){
+    if(recordList.length === 0){
+        alert("暂无已保存记录，无法导出");
+        return;
+    }
+    exportExcelWithData(recordList, "全部");
+}
+
+// 核心导出函数
+function exportExcelWithData(dataList, nameSuffix){
+    if(dataList.length === 0){
+        alert("没有可导出的记录");
+        return;
+    }
+    
+    const replyCodeMap = {
+        "1":"本人应答","2":"应答人为家属、亲戚等，了解情况",
+        "3":"应答人为家属、亲戚等，不了解核查对象具体情况","4":"无法接通（关机、停机）",
+        "5":"拒绝调查","6":"本人应答，记不清情况","7":"空号","8":"错号","9":"电话为村医、村干和养老机构号码"
+    };
+    
+    const matchCodeMap = {
+        "2":"访谈为未查体，但档案中有查体记录","3":"访谈为未做心电图，但档案中有心电图记录",
+        "4":"访谈为未做B超，但档案中有B超记录","5":"访谈为未做健康体检，但档案中有体检记录",
+        "6":"访谈为未做抽血，但档案中有抽血记录","7":"档案涉嫌造假"
+    };
+    
+    const sendCodeMap = {
+        "1":"没有发放或没有通知","2":"没有发放，仅口头告知",
+        "3":"15天内通知、发放并解读健康指导","4":"15天后通知、发放并解读健康指导",
+        "5":"已通知领取，但未解读结果","6":"15天内通知解读，个人原因晚领取","7":"记不清（失访）"
+    };
+    
+    const errCodeMap = {
+        "1":"体检日期、责任医生空项或错项","2":"症状空项或错项",
+        "3b":"体温空项或错项","3c":"脉率空项或错项","3d":"呼吸频率空项或错项",
+        "3e":"身高空项或错项","3f":"体重空项或错项","3g":"腰围空项或错项","3h":"体质指数空项或错项",
+        "4":"老年人生活自理能力评估空项或错项",
+        "5a":"锻炼空项或错项","5b":"饮食空项或错项","5c":"吸烟空项或错项","5d":"职业危险因素接触史空项或错项",
+        "6a":"口腔空项或错项","6b":"视力空项或错项","6c":"听力空项或错项","6d":"运动功能空项或错项",
+        "7a":"皮肤空项或错项","7b":"巩膜空项或错项","7c":"淋巴空项或错项","7d":"心脏空项或错项",
+        "7e":"肺空项或错项","7f":"腹部空项或错项","7g":"下肢水肿空项或错项",
+        "8":"血常规空项","9":"尿常规空项","10":"血压空项","11":"空腹血糖空项","12":"心电图空项",
+        "13":"肝功能空项","14":"肾功能空项","15":"血脂空项","16":"腹部B超空项",
+        "17":"糖化血红蛋白空项",
+        "18":"主要用药情况空项或错项","19":"健康评价空项或错项","20":"健康指导空项或错项",
+        "21":"危险因素控制空项或错项","22":"现存主要健康问题空项或错项",
+        "24":"住院史空项或错项","25":"家庭病床史空项或错项","26":"免疫接种史空项或错项","27":"其他空项或错项"
+    };
+    
+    const fakeCodeMap = {
+        "0":"无涉嫌造假","1":"已死亡仍有体检记录","2":"不在本地居住却有本地体检记录",
+        "3":"复制往年体检记录","4":"辅助检查3项及以上填0/多项填拒绝"
+    };
+    
+    const detailHeader = [
+        "核查单位","年度","季度","项目","姓名","性别","年龄","身份证","联系电话",
+        "应答情况","访谈记录与健康档案比对","体检结果发放情况","体检记录填写空项、错项",
+        "是否涉嫌档案造假","有效性","符合性","规范性","备注"
+    ];
+    
+    const detailData = dataList.map(item => {
+        const replyText = replyCodeMap[item.replyCode] || item.replyCode || "";
+        const isValid = item.replyCode === "1" || item.replyCode === "2";
+        const isLost = ["3","4","5","6"].includes(item.replyCode);
+        const isPhoneErr = ["7","8","9"].includes(item.replyCode);
+        const validity = isValid ? "有效" : (isLost ? "失访" : (isPhoneErr ? "电话异常" : ""));
+        
+        const matchText = item.matchAllOk ? "访谈情况与健康档案相符" :
+            ((item.matchErrs || []).map(v => matchCodeMap[v] || v).join("；") || "");
+        const sendText = sendCodeMap[item.sendResCode] || item.sendResCode || "";
+        const errText = (item.errItems || []).map(v => errCodeMap[v] || v).join("；") || "";
+        const fakeText = fakeCodeMap[item.fakeCode] || item.fakeCode || "";
+        
+        const matchJudge = item.judgeMatch || "";
+        const normJudge = item.judgeNorm || "";
+        
+        return [
+            item.org, item.year, item.quarter, item.project, item.name,
+            item.sex, item.age, item.idcard, item.tel,
+            replyText,
+            matchText,
+            sendText,
+            errText + (item.otherDesc ? (errText ? "；" : "") + item.otherDesc : ""),
+            fakeText,
+            validity,
+            matchJudge,
+            normJudge,
+            item.remark || ""
+        ];
+    });
+    
+    const detailSheet = XLSX.utils.aoa_to_sheet([detailHeader, ...detailData]);
+    detailSheet["!cols"] = [
+        {wch:22},{wch:6},{wch:6},{wch:8},{wch:8},
+        {wch:4},{wch:4},{wch:20},{wch:13},
+        {wch:20},{wch:28},{wch:28},{wch:30},
+        {wch:16},{wch:8},{wch:8},{wch:8},{wch:20}
+    ];
+    
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, detailSheet, "老年人核查明细");
+    XLSX.writeFile(workbook, `老年人健康档案核查记录_${nameSuffix}_${formatDate(new Date()).split(' ')[0]}.xlsx`);
+}
+
+// 显示记录列表（新窗口打开，格式与Excel明细一致，支持检索）
+function showRecordList(){
+    if(recordList.length === 0){
+        alert("暂无已保存记录");
+        return;
+    }
+    
+    // 获取所有年度和单位
+    const years = [...new Set(recordList.map(item => item.year).filter(y => y))].sort().reverse();
+    const orgs = [...new Set(recordList.map(item => item.org).filter(o => o))].sort();
+    
+    const replyCodeMap = {
+        "1":"①本人应答","2":"②应答人为家属、亲戚等，了解情况",
+        "3":"③应答人为家属、亲戚等，不了解核查对象具体情况","4":"④无法接通",
+        "5":"⑤拒绝调查","6":"⑥本人应答，记不清情况","7":"⑦空号","8":"⑧错号","9":"⑨电话为村医、村干和养老机构号码"
+    };
+    
+    const matchCodeMap = {
+        "2":"②访谈为未查体，但档案中有查体记录","3":"③访谈为未做心电图，但档案中有心电图记录",
+        "4":"④访谈为未做B超，但档案中有B超记录","5":"⑤访谈为未做健康体检，但档案中有体检记录",
+        "6":"⑥访谈为未做抽血，但档案中有抽血记录","7":"⑦档案涉嫌造假"
+    };
+    
+    const sendCodeMap = {
+        "1":"①没有发放或没有通知","2":"②没有发放，仅口头告知",
+        "3":"③15天内通知、发放并解读健康指导","4":"④15天后通知、发放并解读健康指导",
+        "5":"⑤已通知领取，但未解读结果","6":"⑥15天内通知解读，个人原因晚领取","7":"⑦记不清（失访）"
+    };
+    
+    const errCodeMap = {
+        "1":"①体检日期、责任医生","2":"②症状",
+        "3b":"体温","3c":"脉率","3d":"呼吸频率",
+        "3e":"身高","3f":"体重","3g":"腰围","3h":"体质指数",
+        "4":"④生活自理能力评估",
+        "5a":"锻炼","5b":"饮食","5c":"吸烟","5d":"职业危险因素接触史",
+        "6a":"口腔","6b":"视力","6c":"听力","6d":"运动功能",
+        "7a":"皮肤","7b":"巩膜","7c":"淋巴","7d":"心脏",
+        "7e":"肺","7f":"腹部","7g":"下肢水肿",
+        "8":"⑧血常规","9":"⑨尿常规","10":"⑩血压","11":"⑪空腹血糖","12":"⑫心电图",
+        "13":"⑬肝功能","14":"⑭肾功能","15":"⑮血脂","16":"⑯腹部B超",
+        "17":"㉑糖化血红蛋白",
+        "18":"⑰主要用药情况","19":"⑱健康评价","20":"⑲健康指导",
+        "21":"⑳危险因素控制","22":"㉑现存主要健康问题",
+        "24":"㉒住院史","25":"㉓家庭病床史","26":"㉔免疫接种史","27":"㉕其他"
+    };
+    
+    const fakeCodeMap = {
+        "0":"无涉嫌造假","1":"已死亡仍有体检记录","2":"不在本地居住却有本地体检记录",
+        "3":"复制往年体检记录","4":"辅助检查3项及以上填0/拒绝"
+    };
+    
+    const headers = [
+        "核查单位","年度","季度","项目","姓名","性别","年龄","身份证","联系电话",
+        "应答情况","访谈记录与健康档案比对","体检结果发放情况","体检记录填写空项、错项",
+        "是否涉嫌档案造假","有效性","符合性","规范性","备注"
+    ];
+    
+    let html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>老年人核查记录列表</title>
+<style>
+body{font-family:微软雅黑;margin:20px;background:#f5f5f5;}
+h2{text-align:center;color:#333;}
+.search-bar{margin-bottom:15px;padding:15px;background:#fff;border-radius:8px;display:flex;gap:15px;align-items:center;flex-wrap:wrap;}
+.search-bar label{color:#666;font-size:13px;}
+.search-bar input,.search-bar select{padding:8px 12px;border:1px solid #ddd;border-radius:6px;}
+.search-bar input[type="text"]{min-width:150px;}
+.search-bar select{min-width:120px;}
+.btn{display:inline-block;padding:8px 16px;background:#3498db;color:#fff;text-decoration:none;border-radius:4px;cursor:pointer;border:none;}
+.btn:hover{background:#2980b9;}
+.btn-reset{background:#e74c3c;}
+.btn-reset:hover{background:#c0392b;}
+table{width:100%;border-collapse:collapse;background:#fff;font-size:12px;margin-top:10px;}
+th,td{border:1px solid #ddd;padding:8px;text-align:left;}
+th{background:#27ae60;color:#fff;}
+tr:nth-child(even){background:#f9f9f9;}
+tr:hover{background:#f1f1f1;}
+.action-btn{padding:4px 10px;border:none;border-radius:3px;cursor:pointer;color:#fff;font-size:11px;}
+.edit-btn{background:#3498db;}
+.del-btn{background:#e74c3c;}
+.back-link{display:inline-block;margin-bottom:15px;color:#3498db;text-decoration:underline;}
+.result-count{color:#666;font-size:13px;margin-left:10px;}
+</style>
+</head>
+<body>
+<h2>老年人核查记录列表</h2>
+<a href="javascript:window.close();" class="back-link">← 关闭并返回录入页面</a>
+<div class="search-bar">
+<label>姓名：</label>
+<input type="text" id="searchName" placeholder="输入姓名检索" onkeyup="filterRecords()">
+<label>单位：</label>
+<select id="searchOrg" onchange="filterRecords()">
+<option value="">全部单位</option>`;
+    
+    orgs.forEach(o => {
+        html += `<option value="${o}">${o}</option>`;
+    });
+    
+    html += `</select>
+<label>年度：</label>
+<select id="searchYear" onchange="filterRecords()">
+<option value="">全部年度</option>`;
+    
+    years.forEach(y => {
+        html += `<option value="${y}">${y}年</option>`;
+    });
+    
+    html += `</select>
+<label>季度：</label>
+<select id="searchQuarter" onchange="filterRecords()">
+<option value="">全部季度</option>
+<option value="Q1">一季度</option>
+<option value="Q2">二季度</option>
+<option value="Q3">三季度</option>
+<option value="Q4">四季度</option>
+</select>
+<button class="btn btn-reset" onclick="resetSearch()">重置</button>
+<span class="result-count" id="resultCount"></span>
+</div>
+<div id="recordTable"></div>
+<script>
+var recordList = JSON.parse(localStorage.getItem("elderlyCheckRecords") || "[]");
+var replyCodeMap = {
+    "1":"①本人应答","2":"②应答人为家属、亲戚等，了解情况",
+    "3":"③应答人为家属、亲戚等，不了解核查对象具体情况","4":"④无法接通",
+    "5":"⑤拒绝调查","6":"⑥本人应答，记不清情况","7":"⑦空号","8":"⑧错号","9":"⑨电话为村医、村干和养老机构号码"
+};
+var matchCodeMap = {
+    "2":"②访谈为未查体，但档案中有查体记录","3":"③访谈为未做心电图，但档案中有心电图记录",
+    "4":"④访谈为未做B超，但档案中有B超记录","5":"⑤访谈为未做健康体检，但档案中有体检记录",
+    "6":"⑥访谈为未做抽血，但档案中有抽血记录","7":"⑦档案涉嫌造假"
+};
+var sendCodeMap = {
+    "1":"①没有发放或没有通知","2":"②没有发放，仅口头告知",
+    "3":"③15天内通知、发放并解读健康指导","4":"④15天后通知、发放并解读健康指导",
+    "5":"⑤已通知领取，但未解读结果","6":"⑥15天内通知解读，个人原因晚领取","7":"⑦记不清（失访）"
+};
+var errCodeMap = {
+    "1":"①体检日期、责任医生","2":"②症状",
+    "3b":"体温","3c":"脉率","3d":"呼吸频率",
+    "3e":"身高","3f":"体重","3g":"腰围","3h":"体质指数",
+    "4":"④生活自理能力评估",
+    "5a":"锻炼","5b":"饮食","5c":"吸烟","5d":"职业危险因素接触史",
+    "6a":"口腔","6b":"视力","6c":"听力","6d":"运动功能",
+    "7a":"皮肤","7b":"巩膜","7c":"淋巴","7d":"心脏",
+    "7e":"肺","7f":"腹部","7g":"下肢水肿",
+    "8":"⑧血常规","9":"⑨尿常规","10":"⑩血压","11":"⑪空腹血糖","12":"⑫心电图",
+    "13":"⑬肝功能","14":"⑭肾功能","15":"⑮血脂","16":"⑯腹部B超",
+    "17":"㉑糖化血红蛋白",
+    "18":"⑰主要用药情况","19":"⑱健康评价","20":"⑲健康指导",
+    "21":"⑳危险因素控制","22":"㉑现存主要健康问题",
+    "24":"㉒住院史","25":"㉓家庭病床史","26":"㉔免疫接种史","27":"㉕其他"
+};
+var fakeCodeMap = {
+    "0":"无涉嫌造假","1":"已死亡仍有体检记录","2":"不在本地居住却有本地体检记录",
+    "3":"复制往年体检记录","4":"辅助检查3项及以上填0/拒绝"
+};
+
+function filterRecords(){
+    var nameVal = document.getElementById("searchName").value.toLowerCase();
+    var orgVal = document.getElementById("searchOrg").value;
+    var yearVal = document.getElementById("searchYear").value;
+    var quarterVal = document.getElementById("searchQuarter").value;
+    
+    var filteredList = recordList.filter(function(item){
+        var matchName = !nameVal || (item.name && item.name.toLowerCase().includes(nameVal));
+        var matchOrg = !orgVal || item.org === orgVal;
+        var matchYear = !yearVal || item.year === yearVal;
+        var matchQuarter = !quarterVal || item.quarter === quarterVal;
+        return matchName && matchOrg && matchYear && matchQuarter;
+    });
+    
+    renderTable(filteredList);
+}
+
+function renderTable(dataList){
+    var headers = ["核查单位","年度","季度","项目","姓名","性别","年龄","身份证","联系电话",
+        "应答情况","访谈记录与健康档案比对","体检结果发放情况","体检记录填写空项、错项",
+        "是否涉嫌档案造假","有效性","符合性","规范性","备注"];
+    
+    document.getElementById("resultCount").innerText = "共 " + dataList.length + " 条记录";
+    
+    var html = '<table><thead><tr>';
+    headers.forEach(function(h){ html += '<th>' + h + '</th>'; });
+    html += '<th>操作</th></tr></thead><tbody>';
+    
+    dataList.forEach(function(item, index){
+        var originalIndex = recordList.indexOf(item);
+        var replyText = replyCodeMap[item.replyCode] || '-';
+        var isValid = item.replyCode === "1" || item.replyCode === "2";
+        var isLost = ["3","4","5","6"].includes(item.replyCode);
+        var isPhoneErr = ["7","8","9"].includes(item.replyCode);
+        var validity = isValid ? "有效" : (isLost ? "失访" : (isPhoneErr ? "电话异常" : ""));
+        
+        var matchText = item.matchAllOk ? "访谈情况与健康档案相符" :
+            ((item.matchErrs || []).map(function(v){ return matchCodeMap[v] || v; }).join("；") || "-");
+        var sendText = sendCodeMap[item.sendResCode] || item.sendResCode || "-";
+        var errText = (item.errItems || []).map(function(v){ return errCodeMap[v] || v; }).join("；") || "-";
+        if(item.otherDesc) errText += (errText !== "-" ? "；" : "") + item.otherDesc;
+        var fakeText = fakeCodeMap[item.fakeCode] || item.fakeCode || "-";
+        
+        var matchJudge = item.judgeMatch || "-";
+        var normJudge = item.judgeNorm || "-";
+        
+        html += '<tr>';
+        html += '<td>' + (item.org || '-') + '</td>';
+        html += '<td>' + (item.year || '-') + '</td>';
+        html += '<td>' + (item.quarter || '-') + '</td>';
+        html += '<td>' + (item.project || '-') + '</td>';
+        html += '<td>' + (item.name || '-') + '</td>';
+        html += '<td>' + (item.sex || '-') + '</td>';
+        html += '<td>' + (item.age || '-') + '</td>';
+        html += '<td>' + (item.idcard || '-') + '</td>';
+        html += '<td>' + (item.tel || '-') + '</td>';
+        html += '<td style="max-width:150px;word-break:break-all;">' + replyText + '</td>';
+        html += '<td style="max-width:150px;word-break:break-all;">' + matchText + '</td>';
+        html += '<td style="max-width:150px;word-break:break-all;">' + sendText + '</td>';
+        html += '<td style="max-width:150px;word-break:break-all;">' + errText + '</td>';
+        html += '<td style="max-width:150px;word-break:break-all;">' + fakeText + '</td>';
+        html += '<td style="color:' + (isValid ? '#27ae60' : '#e74c3c') + ';">' + validity + '</td>';
+        html += '<td>' + matchJudge + '</td>';
+        html += '<td>' + normJudge + '</td>';
+        html += '<td>' + (item.remark || '-') + '</td>';
+        html += '<td>';
+        html += '<button class="action-btn edit-btn" onclick="editRecordInList(' + originalIndex + ')">编辑</button>';
+        html += '<button class="action-btn del-btn" onclick="deleteRecordFromList(' + originalIndex + ')">删除</button>';
+        html += '</td>';
+        html += '</tr>';
+    });
+    
+    html += '</tbody></table>';
+    document.getElementById("recordTable").innerHTML = html;
+}
+
+function resetSearch(){
+    document.getElementById("searchName").value = "";
+    document.getElementById("searchOrg").value = "";
+    document.getElementById("searchYear").value = "";
+    document.getElementById("searchQuarter").value = "";
+    filterRecords();
+}
+
+function editRecordInList(index){
+    var record = recordList[index];
+    if(!record) return;
+    sessionStorage.setItem("editingRecord", JSON.stringify(record));
+    sessionStorage.setItem("editingIndex", index);
+    window.open("elderly_edit.html", "_blank", "width=1200,height=800,scrollbars=yes");
+}
+
+function deleteRecordFromList(index){
+    if(!confirm("确定要删除第 " + (index+1) + " 条记录吗？")) return;
+    recordList.splice(index, 1);
+    localStorage.setItem("elderlyCheckRecords", JSON.stringify(recordList));
+    alert("删除成功");
+    filterRecords();
+}
+
+if(sessionStorage.getItem("justSaved")){
+    sessionStorage.removeItem("justSaved");
+    alert("保存成功");
+    filterRecords();
+}
+
+filterRecords();
+<\/script>
+</body>
+</html>`;
+    
+    const newWindow = window.open("", "_blank", "width=1400,height=700,scrollbars=yes");
+    newWindow.document.write(html);
+    newWindow.document.close();
+    newWindow.recordList = recordList;
+}
+
+// 关闭记录列表
+function closeRecordModal(){
+    document.getElementById("recordModal").classList.remove("show");
+}
+
+// 删除记录
+function deleteRecord(index){
+    if(!confirm(`确定要删除第 ${index + 1} 条记录（${recordList[index].name}）吗？`)){
+        return;
+    }
+    recordList.splice(index, 1);
+    try {
+        localStorage.setItem("elderlyCheckRecords", JSON.stringify(recordList));
+        updateRecordCount();
+        updateExportYearOptions();
+        alert("删除成功");
+        if(recordList.length > 0){
+            showRecordList();
+        }else{
+            closeRecordModal();
+        }
+    } catch (e) {
+        alert("删除失败");
+        console.error(e);
+    }
+}
+
+// 报表统计
+function showReportStatistics(){
+    if(recordList.length === 0){
+        alert("暂无已保存记录");
+        return;
+    }
+    
+    const years = [...new Set(recordList.map(item => item.year).filter(y => y))].sort().reverse();
+    const orgs = [...new Set(recordList.map(item => item.org).filter(o => o))].sort();
+    
+    let html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>老年人核查报表统计</title>';
+    html += '<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>';
+    html += '<style>';
+    html += 'body{font-family:微软雅黑;margin:20px;background:#f5f5f5;}';
+    html += 'h2{text-align:center;color:#333;margin-bottom:20px;}';
+    html += '.filter-bar{margin-bottom:20px;padding:15px;background:#fff;border-radius:8px;display:flex;gap:15px;align-items:center;flex-wrap:wrap;}';
+    html += '.filter-bar label{color:#666;font-size:13px;}';
+    html += '.filter-bar select{padding:8px 12px;border:1px solid #ddd;border-radius:6px;min-width:120px;}';
+    html += '.btn{padding:8px 16px;border:none;border-radius:6px;font-size:14px;cursor:pointer;margin-right:10px;}';
+    html += '.btn-export{background:#27ae60;color:#fff;}.btn-export:hover{background:#219a52;}';
+    html += 'table{width:100%;border-collapse:collapse;background:#fff;font-size:12px;margin-top:10px;}';
+    html += 'th,td{border:1px solid #ddd;padding:10px;text-align:center;}';
+    html += 'th{background:#27ae60;color:#fff;}';
+    html += 'tr:nth-child(even){background:#f9f9f9;}';
+    html += 'tr.total-row{background:#e8f4f8;font-weight:600;color:#2c3e50;}';
+    html += '.back-link{display:inline-block;margin-bottom:15px;color:#27ae60;text-decoration:underline;}';
+    html += '.stat-summary{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px;padding:15px;background:#fff;border-radius:8px;}';
+    html += '.stat-item{text-align:center;padding:10px 20px;background:#f8fafc;border-radius:6px;min-width:120px;}';
+    html += '.stat-item .label{font-size:12px;color:#666;margin-bottom:5px;}';
+    html += '.stat-item .value{font-size:24px;font-weight:700;color:#2c3e50;}';
+    html += '.stat-item.green .value{color:#27ae60;}';
+    html += '</style></head><body>';
+    html += '<h2>老年人核查报表统计</h2>';
+    html += '<a href="javascript:window.close();" class="back-link">← 关闭并返回录入页面</a>';
+    html += '<div class="filter-bar">';
+    html += '<label>年度：</label><select id="fYear" onchange="filterAndRender()"><option value="">全部年度</option>';
+    years.forEach(y => { html += '<option value="' + y + '">' + y + '年</option>'; });
+    html += '</select>';
+    html += '<label>季度：</label><select id="fQuarter" onchange="filterAndRender()"><option value="">全部季度</option><option value="Q1">一季度</option><option value="Q2">二季度</option><option value="Q3">三季度</option><option value="Q4">四季度</option></select>';
+    html += '<label>单位：</label><select id="fOrg" onchange="filterAndRender()"><option value="">全部单位</option>';
+    orgs.forEach(o => { html += '<option value="' + o + '">' + o + '</option>'; });
+    html += '</select>';
+    html += '<button class="btn btn-export" onclick="exportReport()">导出Excel</button>';
+    html += '</div>';
+    html += '<div id="statSummary" class="stat-summary"></div>';
+    html += '<div id="statTable"></div>';
+    html += '<script>';
+    html += 'var recordList = ' + JSON.stringify(recordList) + ';';
+    html += 'function filterAndRender(){';
+    html += 'var yearVal=document.getElementById("fYear").value;';
+    html += 'var quarterVal=document.getElementById("fQuarter").value;';
+    html += 'var orgVal=document.getElementById("fOrg").value;';
+    html += 'var filteredList=recordList.filter(function(item){';
+    html += 'return (!yearVal||item.year===yearVal)&&(!quarterVal||item.quarter===quarterVal)&&(!orgVal||item.org===orgVal);';
+    html += '});';
+    html += 'var orgGroup={};';
+    html += 'filteredList.forEach(function(item){';
+    html += 'if(!orgGroup[item.org]){orgGroup[item.org]={totalAll:0,validTotal:0,lostNum:0,phoneErrNum:0,matchOk:0,matchErr:0,standardOk:0,standardErr:0};}';
+    html += 'var g=orgGroup[item.org];';
+    html += 'g.totalAll++;';
+    html += 'var replyCode=item.replyCode||"";';
+    html += 'var isValid=replyCode==="1"||replyCode==="2";';
+    html += 'var isLost=["3","4","5","6"].indexOf(replyCode)!==-1;';
+    html += 'var isPhoneErr=["7","8","9"].indexOf(replyCode)!==-1;';
+    html += 'if(isLost)g.lostNum++;';
+    html += 'if(isPhoneErr)g.phoneErrNum++;';
+    html += 'if(isValid){';
+    html += 'g.validTotal++;';
+    html += 'var matchErrs=item.matchErrs||[];';
+    html += 'var fakeCode=item.fakeCode||"0";';
+    html += 'if(item.matchAllOk&&fakeCode==="0"&&matchErrs.length===0){g.matchOk++;}else{g.matchErr++;}';
+    html += 'var errItems=item.errItems||[];';
+    html += 'var keyLabItems=["10","11","12","13","14","15","16","17"];';
+    html += 'var hasKeyLabEmpty=keyLabItems.some(function(v){return errItems.indexOf(v)!==-1;});';
+    html += 'var nonKeyErrs=errItems.filter(function(v){return keyLabItems.indexOf(v)===-1;});';
+    html += 'var sendResCode=item.sendResCode||"";';
+    html += 'var isSendResNonStandard=["1","2","4","5"].indexOf(sendResCode)!==-1;';
+    html += 'if(fakeCode!=="0"||matchErrs.length>0||!item.matchAllOk){g.standardErr++;}else if(hasKeyLabEmpty||nonKeyErrs.length>4||isSendResNonStandard){g.standardErr++;}else{g.standardOk++;}';
+    html += '}});';
+    html += 'var headers=["单位","核查数","有效数","有效应答率","失访数","电话异常数","符合数","不符合数","规范数","不规范数","符合率","规范率"];';
+    html += 'var totalAll=0,totalValid=0,totalLost=0,totalPhoneErr=0,totalMatchOk=0,totalMatchErr=0,totalStandardOk=0,totalStandardErr=0;';
+    html += 'Object.keys(orgGroup).forEach(function(orgName){var d=orgGroup[orgName];totalAll+=d.totalAll;totalValid+=d.validTotal;totalLost+=d.lostNum;totalPhoneErr+=d.phoneErrNum;totalMatchOk+=d.matchOk;totalMatchErr+=d.matchErr;totalStandardOk+=d.standardOk;totalStandardErr+=d.standardErr;});';
+    html += 'var validRate=totalAll>0?(totalValid/totalAll*100).toFixed(1)+"%":"-";';
+    html += 'var matchRate=totalValid>0?(totalMatchOk/totalValid*100).toFixed(1)+"%":"-";';
+    html += 'var standardRate=totalValid>0?(totalStandardOk/totalValid*100).toFixed(1)+"%":"-";';
+    html += 'var summaryHtml="";';
+    html += 'summaryHtml+="<div class=\'stat-item\'><div class=\'label\'>核查总数</div><div class=\'value\'>"+totalAll+"</div></div>";';
+    html += 'summaryHtml+="<div class=\'stat-item green\'><div class=\'label\'>有效数</div><div class=\'value\'>"+totalValid+"</div></div>";';
+    html += 'summaryHtml+="<div class=\'stat-item green\'><div class=\'label\'>有效应答率</div><div class=\'value\'>"+validRate+"</div></div>";';
+    html += 'summaryHtml+="<div class=\'stat-item\'><div class=\'label\'>失访数</div><div class=\'value\'>"+totalLost+"</div></div>";';
+    html += 'summaryHtml+="<div class=\'stat-item\'><div class=\'label\'>电话异常数</div><div class=\'value\'>"+totalPhoneErr+"</div></div>";';
+    html += 'summaryHtml+="<div class=\'stat-item green\'><div class=\'label\'>符合率</div><div class=\'value\'>"+matchRate+"</div></div>";';
+    html += 'summaryHtml+="<div class=\'stat-item green\'><div class=\'label\'>规范率</div><div class=\'value\'>"+standardRate+"</div></div>";';
+    html += 'document.getElementById("statSummary").innerHTML=summaryHtml;';
+    html += 'var tableHtml="<table><thead><tr>";';
+    html += 'headers.forEach(function(h){tableHtml+="<th>"+h+"</th>";});';
+    html += 'tableHtml+="</tr></thead><tbody>";';
+    html += 'Object.keys(orgGroup).sort().forEach(function(orgName){';
+    html += 'var d=orgGroup[orgName];';
+    html += 'var vRate=d.totalAll>0?(d.validTotal/d.totalAll*100).toFixed(1)+"%":"-";';
+    html += 'var mRate=d.validTotal>0?(d.matchOk/d.validTotal*100).toFixed(1)+"%":"-";';
+    html += 'var sRate=d.validTotal>0?(d.standardOk/d.validTotal*100).toFixed(1)+"%":"-";';
+    html += 'tableHtml+="<tr><td>"+orgName+"</td><td>"+d.totalAll+"</td><td>"+d.validTotal+"</td><td>"+vRate+"</td><td>"+d.lostNum+"</td><td>"+d.phoneErrNum+"</td><td>"+d.matchOk+"</td><td>"+d.matchErr+"</td><td>"+d.standardOk+"</td><td>"+d.standardErr+"</td><td>"+mRate+"</td><td>"+sRate+"</td></tr>";';
+    html += '});';
+    html += 'tableHtml+="<tr class=\'total-row\'><td>合计</td><td>"+totalAll+"</td><td>"+totalValid+"</td><td>"+validRate+"</td><td>"+totalLost+"</td><td>"+totalPhoneErr+"</td><td>"+totalMatchOk+"</td><td>"+totalMatchErr+"</td><td>"+totalStandardOk+"</td><td>"+totalStandardErr+"</td><td>"+matchRate+"</td><td>"+standardRate+"</td></tr>";';
+    html += 'tableHtml+="</tbody></table>";';
+    html += 'document.getElementById("statTable").innerHTML=tableHtml;';
+    html += 'window.statData={orgGroup:orgGroup,totals:{totalAll:totalAll,totalValid:totalValid,totalLost:totalLost,totalPhoneErr:totalPhoneErr,totalMatchOk:totalMatchOk,totalMatchErr:totalMatchErr,totalStandardOk:totalStandardOk,totalStandardErr:totalStandardErr,validRate:validRate,matchRate:matchRate,standardRate:standardRate}};';
+    html += '}';
+    html += 'function exportReport(){';
+    html += 'var stat=window.statData;';
+    html += 'if(!stat){alert("请先筛选数据");return;}';
+    html += 'var headers=["单位","核查数","有效数","有效应答率","失访数","电话异常数","符合数","不符合数","规范数","不规范数","符合率","规范率"];';
+    html += 'var rows=[];';
+    html += 'Object.keys(stat.orgGroup).sort().forEach(function(orgName){';
+    html += 'var d=stat.orgGroup[orgName];';
+    html += 'var vRate=d.totalAll>0?(d.validTotal/d.totalAll*100).toFixed(1)+"%":"-";';
+    html += 'var mRate=d.validTotal>0?(d.matchOk/d.validTotal*100).toFixed(1)+"%":"-";';
+    html += 'var sRate=d.validTotal>0?(d.standardOk/d.validTotal*100).toFixed(1)+"%":"-";';
+    html += 'rows.push([orgName,d.totalAll,d.validTotal,vRate,d.lostNum,d.phoneErrNum,d.matchOk,d.matchErr,d.standardOk,d.standardErr,mRate,sRate]);';
+    html += '});';
+    html += 'rows.push(["合计",stat.totals.totalAll,stat.totals.totalValid,stat.totals.validRate,stat.totals.totalLost,stat.totals.totalPhoneErr,stat.totals.totalMatchOk,stat.totals.totalMatchErr,stat.totals.totalStandardOk,stat.totals.totalStandardErr,stat.totals.matchRate,stat.totals.standardRate]);';
+    html += 'var ws=XLSX.utils.aoa_to_sheet([headers,...rows]);';
+    html += 'ws["!cols"]=[{wch:22},{wch:10},{wch:10},{wch:12},{wch:10},{wch:12},{wch:10},{wch:10},{wch:10},{wch:12},{wch:10},{wch:10}];';
+    html += 'var wb=XLSX.utils.book_new();';
+    html += 'XLSX.utils.book_append_sheet(wb,ws,"报表统计");';
+    html += 'var yearVal=document.getElementById("fYear").value;';
+    html += 'var quarterVal=document.getElementById("fQuarter").value;';
+    html += 'var orgVal=document.getElementById("fOrg").value;';
+    html += 'var suffix="";';
+    html += 'if(yearVal)suffix+="_"+yearVal+"年";';
+    html += 'if(quarterVal)suffix+="_"+quarterVal;';
+    html += 'if(orgVal)suffix+="_"+orgVal;';
+    html += 'XLSX.writeFile(wb,"老年人核查报表统计"+suffix+"_"+new Date().toLocaleDateString().replace(/\\//g,"-")+".xlsx");';
+    html += '}';
+    html += 'filterAndRender();';
+    html += '<\/script></body></html>';
+    
+    const newWindow = window.open("", "_blank", "width=1200,height=700,scrollbars=yes");
+    newWindow.document.write(html);
+    newWindow.document.close();
+}
+
+// 清空全部记录
+function clearAllRecords(){
+    if(recordList.length === 0){
+        alert("暂无记录可清空");
+        return;
+    }
+    if(!confirm(`确定要清空全部 ${recordList.length} 条记录吗？此操作不可恢复！`)){
+        return;
+    }
+    recordList = [];
+    try {
+        localStorage.removeItem("elderlyCheckRecords");
+        updateRecordCount();
+        updateExportYearOptions();
+        alert("已清空全部记录");
+    } catch (e) {
+        alert("清空失败");
+        console.error(e);
+    }
+}
+
+// 单位搜索下拉组件
+const orgInput = document.getElementById("orgInput");
+const orgDropdown = document.getElementById("orgDropdown");
+const orgSelect = document.getElementById("orgSelect");
+const orgHidden = document.getElementById("org");
+
+orgInput.addEventListener("click", function(e){
+    e.stopPropagation();
+    orgDropdown.classList.add("show");
+});
+
+orgInput.addEventListener("input", function(){
+    const keyword = this.value.toLowerCase();
+    document.querySelectorAll(".search-select-option").forEach(opt => {
+        const text = opt.textContent.toLowerCase();
+        opt.style.display = text.includes(keyword) ? "" : "none";
+    });
+});
+
+document.querySelectorAll(".search-select-option").forEach(opt => {
+    opt.addEventListener("click", function(){
+        const value = this.getAttribute("data-value");
+        const text = this.textContent;
+        orgHidden.value = value;
+        orgInput.value = text === "请选择单位" ? "" : text;
+        orgDropdown.classList.remove("show");
+        calcAll();
+    });
+});
+
+document.addEventListener("click", function(e){
+    if(!orgSelect.contains(e.target)){
+        orgDropdown.classList.remove("show");
+    }
+});
+
+// 监听所有输入变化
+document.querySelectorAll("input,select").forEach(el => {
+    const type = el.type;
+    if(type === "radio" || type === "checkbox" || el.tagName === "SELECT"){
+        el.addEventListener("change", calcAll);
+    }else{
+        el.addEventListener("input", calcAll);
+    }
+});
+
+// 初始化
+calcAll();
+updateRecordCount();
+updateExportYearOptions();
+
+// 单位、季度记忆功能
+const quarterSelect = document.getElementById("quarter");
+
+// 恢复记忆的单位
+const savedOrg = localStorage.getItem("elderly_lastOrg");
+if(savedOrg){
+    orgHidden.value = savedOrg;
+    orgInput.value = savedOrg;
+}
+
+// 恢复记忆的季度
+const savedQuarter = localStorage.getItem("elderly_lastQuarter");
+if(savedQuarter){
+    quarterSelect.value = savedQuarter;
+}
+
+// 单位变化时保存（监听hidden字段变化）
+let lastOrgValue = orgHidden.value;
+const orgObserver = new MutationObserver(function(){
+    if(orgHidden.value && orgHidden.value !== lastOrgValue){
+        lastOrgValue = orgHidden.value;
+        localStorage.setItem("elderly_lastOrg", orgHidden.value);
+    }
+});
+orgObserver.observe(orgHidden, { attributes: true });
+
+// 季度变化时保存
+quarterSelect.addEventListener("change", function(){
+    localStorage.setItem("elderly_lastQuarter", this.value);
+});
+
+// 年度默认为当前年度
+const yearInput = document.getElementById("year");
+function setDefaultYear(){
+    if(!yearInput.value){
+        yearInput.value = new Date().getFullYear();
+    }
+}
+setDefaultYear();
+yearInput.addEventListener("blur", setDefaultYear);
+</script>
+</body>
+</html>
