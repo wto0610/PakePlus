@@ -1,0 +1,411 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>问题台账 - 健康核查后台</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;font-size:14px;}
+body{padding:0;max-width:1600px;margin:0 auto;background:#f5f7fa;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Microsoft YaHei",sans-serif;}
+.container{padding:20px;}
+.header{background:linear-gradient(135deg,#2c3e50 0%,#34495e 100%);color:#fff;padding:20px 24px;border-radius:12px;margin-bottom:20px;box-shadow:0 4px 12px rgba(44,62,80,0.3);display:flex;justify-content:space-between;align-items:center;}
+.header h1{margin:0;font-size:22px;}
+.breadcrumb{font-size:13px;opacity:0.85;margin-top:6px;}
+.breadcrumb a{color:#fff;text-decoration:none;margin:0 6px;}
+.back-btn{background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:8px 18px;border-radius:6px;font-size:13px;cursor:pointer;text-decoration:none;}
+.back-btn:hover{background:rgba(255,255,255,0.35);}
+.filter-bar{display:flex;gap:15px;flex-wrap:wrap;align-items:center;padding:15px;background:#fff;border-radius:8px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+.filter-bar label{font-weight:500;color:#555;}
+.filter-bar select{padding:8px 12px;border:1px solid #ddd;border-radius:6px;min-width:120px;}
+.btn{padding:9px 20px;border:none;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s;}
+.btn-primary{background:#3498db;color:#fff;}
+.btn-primary:hover{background:#2980b9;}
+.btn-success{background:#27ae60;color:#fff;}
+.btn-success:hover{background:#219a52;}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;padding:15px;background:#fff;border-radius:8px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+.stat-item{text-align:center;padding:12px 8px;border-radius:8px;background:#f8fafc;}
+.stat-item h4{font-size:11px;color:#666;margin:0 0 6px 0;font-weight:500;}
+.stat-item .num{font-size:22px;font-weight:700;color:#2c3e50;}
+.stat-item .sub{font-size:10px;color:#999;margin-top:2px;}
+.stat-item.red{background:#ffebee;}
+.stat-item.red .num{color:#c62828;}
+.stat-item.green{background:#e8f5e9;}
+.stat-item.green .num{color:#2e7d32;}
+.stat-item.orange{background:#fff3e0;}
+.stat-item.orange .num{color:#e65100;}
+.stat-item.blue{background:#e3f2fd;}
+.stat-item.blue .num{color:#1565c0;}
+.stat-item.purple{background:#f3e5f5;}
+.stat-item.purple .num{color:#7b1fa2;}
+.table-container{background:#fff;border-radius:8px;padding:15px;box-shadow:0 2px 8px rgba(0,0,0,0.04);overflow-x:auto;}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px;}
+th,td{border:1px solid #ddd;padding:8px 6px;text-align:center;}
+th{background:#f8fafc;font-weight:600;color:#333;position:sticky;top:0;}
+tr:hover{background:#f8f9fa;}
+tr.problem-row{background:#ffebee !important;}
+.tag{padding:3px 6px;border-radius:3px;font-size:11px;display:inline-block;}
+.tag-green{background:#e8f5e9;color:#2e7d32;}
+.tag-red{background:#ffebee;color:#c62828;}
+.tag-gray{background:#f5f5f5;color:#666;}
+.tag-orange{background:#fff3e0;color:#e65100;}
+.empty-tip{padding:30px;text-align:center;color:#999;}
+.filter-summary{margin-bottom:15px;padding:10px 15px;background:#e8f4f8;border-radius:6px;font-size:13px;color:#333;}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <div>
+    <h1>📋 问题台账</h1>
+    <div class="breadcrumb"><a href="admin.html">后台首页</a> / 问题台账</div>
+  </div>
+  <a href="admin.html" class="back-btn">返回后台</a>
+</div>
+
+<div class="filter-bar">
+  <label>项目：</label>
+  <select id="problemProject">
+    <option value="">全部项目</option>
+    <option value="居民">居民</option>
+    <option value="老年人">老年人</option>
+    <option value="高血压">高血压</option>
+    <option value="糖尿病">糖尿病</option>
+    <option value="慢阻肺">慢阻肺</option>
+  </select>
+  <label>单位：</label>
+  <select id="problemOrg"><option value="">全部单位</option></select>
+  <label>年度：</label>
+  <select id="problemYear"><option value="">全部年度</option></select>
+  <label>季度：</label>
+  <select id="problemQuarter">
+    <option value="">全部季度</option>
+    <option value="Q1">一季度</option>
+    <option value="Q2">二季度</option>
+    <option value="Q3">三季度</option>
+    <option value="Q4">四季度</option>
+  </select>
+  <button class="btn btn-primary" onclick="loadProblemList()">查询</button>
+  <button class="btn btn-success" onclick="exportProblemList()">导出明细</button>
+</div>
+
+<div class="filter-summary" id="filterSummary"></div>
+
+<div class="stats-grid" id="statsGrid"></div>
+
+<div class="table-container">
+<table>
+  <thead>
+    <tr>
+      <th>序号</th><th>单位</th><th>项目</th><th>姓名</th><th>性别</th>
+      <th>年龄</th><th>身份证</th><th>年度</th><th>季度</th>
+      <th>应答情况</th><th>有效性</th><th>符合性</th><th>规范性</th>
+      <th>涉嫌造假</th><th>控制情况</th><th>问题类型</th><th>时间</th>
+    </tr>
+  </thead>
+  <tbody id="problemTableBody">
+    <tr><td colspan="17" class="empty-tip">请查询</td></tr>
+  </tbody>
+</table>
+</div>
+
+</div>
+
+<script>
+const projects = {
+  '居民': { key: 'residentCheckRecords', hasControl: false },
+  '老年人': { key: 'elderlyCheckRecords', hasControl: false },
+  '高血压': { key: 'hypertensionCheckRecords', hasControl: true },
+  '糖尿病': { key: 'diabetesCheckRecords', hasControl: true },
+  '慢阻肺': { key: 'copdCheckRecords', hasControl: false }
+};
+
+const replyMap = {'':'','1':'本人应答','2':'家属了解','3':'家属不了解','4':'无法接通','5':'拒绝调查','6':'空号','7':'错号','8':'村医号码','9':'记不清'};
+const validMap = {'':'','1':'有效','2':'有效','3':'失访','4':'失访','5':'失访','6':'电话异常','7':'电话异常','8':'电话异常','9':'失访'};
+
+let currentProblemList = [];
+let currentStats = {};
+
+function getRecords(project){
+  return JSON.parse(localStorage.getItem(projects[project].key) || '[]');
+}
+
+function getAllRecords(){
+  let all = [];
+  Object.keys(projects).forEach(p => {
+    getRecords(p).forEach(r => all.push({...r, projectName: p, _project: p}));
+  });
+  return all;
+}
+
+function getMatchResult(r){ return r.matchResult || r.judgeMatch || ''; }
+function getNormResult(r){ return r.normResult || r.judgeNorm || r.normCheck || ''; }
+function getFakeResult(r){ return r.fakeResult || r.judgeFake || ''; }
+
+function getControlResult(r){
+  if(r.bpControl === '1') return '已控制';
+  if(r.bpControl === '2') return '未控制';
+  if(r.glucoseControl === '1') return '已控制';
+  if(r.glucoseControl === '2') return '未控制';
+  return '';
+}
+
+function getValidType(code){
+  if(code === '1' || code === '2') return '有效';
+  if(['3','4','5','6'].includes(code)) return '失访';
+  if(['7','8','9'].includes(code)) return '电话异常';
+  return '';
+}
+
+function formatQuarter(q){
+  const map = {Q1:'一季度',Q2:'二季度',Q3:'三季度',Q4:'四季度'};
+  return map[q] || q || '';
+}
+
+function loadOrgOptions(){
+  const orgs = new Set();
+  getAllRecords().forEach(r => { if(r.org) orgs.add(r.org); });
+  const sorted = [...orgs].sort();
+  const sel = document.getElementById('problemOrg');
+  sel.innerHTML = '<option value="">全部单位</option>';
+  sorted.forEach(o => sel.innerHTML += '<option value="' + o + '">' + o + '</option>');
+}
+
+function loadYearOptions(){
+  const years = new Set();
+  getAllRecords().forEach(r => { if(r.year) years.add(String(r.year)); });
+  const sorted = [...years].sort().reverse();
+  const sel = document.getElementById('problemYear');
+  sel.innerHTML = '<option value="">全部年度</option>';
+  sorted.forEach(y => sel.innerHTML += '<option value="' + y + '">' + y + '</option>');
+}
+
+function getTagClass(val, type){
+  if(type === 'valid'){
+    if(val === '有效') return 'tag-green';
+    if(val === '失访') return 'tag-orange';
+    if(val === '电话异常') return 'tag-red';
+    return 'tag-gray';
+  }
+  if(type === 'match'){
+    if(val.includes('符合')) return 'tag-green';
+    if(val.includes('不符合')) return 'tag-red';
+    return 'tag-gray';
+  }
+  if(type === 'norm'){
+    if(val.includes('规范')) return 'tag-green';
+    if(val.includes('不规范')) return 'tag-red';
+    return 'tag-gray';
+  }
+  if(type === 'fake'){
+    if(val.includes('是') || val.includes('涉嫌')) return 'tag-red';
+    return 'tag-gray';
+  }
+  if(type === 'control'){
+    if(val === '已控制') return 'tag-green';
+    if(val === '未控制') return 'tag-red';
+    return 'tag-gray';
+  }
+  return 'tag-gray';
+}
+
+function loadProblemList(){
+  const project = document.getElementById('problemProject').value;
+  const org = document.getElementById('problemOrg').value;
+  const year = document.getElementById('problemYear').value;
+  const quarter = document.getElementById('problemQuarter').value;
+  
+  let all = getAllRecords();
+  if(project) all = all.filter(r => r.projectName === project);
+  if(org) all = all.filter(r => r.org === org);
+  if(year) all = all.filter(r => String(r.year) === year);
+  if(quarter) all = all.filter(r => r.quarter === quarter);
+  
+  currentProblemList = all.sort((a,b) => new Date(b.saveTime||b.createTime||0) - new Date(a.saveTime||a.createTime||0));
+  
+  // 计算统计
+  const stats = {
+    total: all.length,
+    valid: 0,
+    invalid: 0,
+    lost: 0,
+    telError: 0,
+    matchOk: 0,
+    matchNo: 0,
+    standard: 0,
+    nonStandard: 0,
+    fake: 0,
+    control: 0
+  };
+  
+  all.forEach(r => {
+    const code = r.replyCode || r.reply || '';
+    const validType = getValidType(code);
+    const match = getMatchResult(r);
+    const norm = getNormResult(r);
+    const fake = getFakeResult(r);
+    const control = getControlResult(r);
+    const hasFake = fake.includes('是') || fake.includes('涉嫌');
+    
+    if(code === '1' || code === '2'){
+      stats.valid++;
+    } else if(['3','4','5','9'].includes(code)){
+      stats.invalid++;
+      stats.lost++;
+    } else if(['6','7','8'].includes(code)){
+      stats.invalid++;
+      stats.telError++;
+    }
+    
+    if(match.includes('符合')) stats.matchOk++;
+    else if(match.includes('不符合')) stats.matchNo++;
+    
+    if(norm.includes('规范')) stats.standard++;
+    else if(norm.includes('不规范')) stats.nonStandard++;
+    
+    if(hasFake) stats.fake++;
+    if(control === '已控制') stats.control++;
+  });
+  
+  currentStats = stats;
+  
+  // 显示筛选条件摘要
+  const filterText = [];
+  if(project) filterText.push('项目：' + project);
+  if(org) filterText.push('单位：' + org);
+  if(year) filterText.push('年度：' + year);
+  if(quarter) filterText.push('季度：' + formatQuarter(quarter));
+  document.getElementById('filterSummary').innerHTML = filterText.length > 0 ? '当前筛选条件：' + filterText.join(' | ') : '显示全部记录';
+  
+  // 显示统计
+  const grid = document.getElementById('statsGrid');
+  grid.innerHTML = 
+    '<div class="stat-item"><h4>核查总数</h4><div class="num">' + stats.total + '</div></div>' +
+    '<div class="stat-item green"><h4>有效数</h4><div class="num">' + stats.valid + '</div></div>' +
+    '<div class="stat-item orange"><h4>失访数</h4><div class="num">' + stats.lost + '</div></div>' +
+    '<div class="stat-item red"><h4>电话异常</h4><div class="num">' + stats.telError + '</div></div>' +
+    '<div class="stat-item blue"><h4>符合数</h4><div class="num">' + stats.matchOk + '</div></div>' +
+    '<div class="stat-item red"><h4>不符合数</h4><div class="num">' + stats.matchNo + '</div></div>' +
+    '<div class="stat-item green"><h4>规范数</h4><div class="num">' + stats.standard + '</div></div>' +
+    '<div class="stat-item red"><h4>不规范数</h4><div class="num">' + stats.nonStandard + '</div></div>' +
+    '<div class="stat-item purple"><h4>涉嫌造假</h4><div class="num">' + stats.fake + '</div></div>';
+  
+  if(project && projects[project] && projects[project].hasControl){
+    grid.innerHTML += '<div class="stat-item green"><h4>已控制</h4><div class="num">' + stats.control + '</div></div>';
+  }
+  
+  // 显示明细表格
+  const tbody = document.getElementById('problemTableBody');
+  if(currentProblemList.length === 0){
+    tbody.innerHTML = '<tr><td colspan="17" class="empty-tip">暂无记录</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = currentProblemList.map((r,i) => {
+    const code = r.replyCode || r.reply || '';
+    const replyText = replyMap[code] || code;
+    const validType = getValidType(code);
+    const match = getMatchResult(r);
+    const norm = getNormResult(r);
+    const fake = getFakeResult(r);
+    const control = getControlResult(r);
+    const hasFake = fake.includes('是') || fake.includes('涉嫌');
+    
+    const problems = [];
+    if(match.includes('不符合')) problems.push('不符合');
+    if(norm.includes('不规范')) problems.push('不规范');
+    if(hasFake) problems.push('涉嫌造假');
+    
+    const isProblem = problems.length > 0;
+    
+    const matchTag = match ? '<span class="tag ' + getTagClass(match,'match') + '">' + match + '</span>' : '-';
+    const normTag = norm ? '<span class="tag ' + getTagClass(norm,'norm') + '">' + norm + '</span>' : '-';
+    const fakeTag = fake && fake !== '无' && fake !== '否' ? '<span class="tag ' + getTagClass(fake,'fake') + '">' + fake + '</span>' : '-';
+    const controlTag = control ? '<span class="tag ' + getTagClass(control,'control') + '">' + control + '</span>' : '-';
+    const validTag = validType ? '<span class="tag ' + getTagClass(validType,'valid') + '">' + validType + '</span>' : '-';
+    
+    return '<tr class="' + (isProblem?'problem-row':'') + '">' +
+      '<td>' + (i+1) + '</td>' +
+      '<td>' + (r.org||'') + '</td>' +
+      '<td>' + r.projectName + '</td>' +
+      '<td>' + (r.name||'') + '</td>' +
+      '<td>' + (r.sex||'') + '</td>' +
+      '<td>' + (r.age||'') + '</td>' +
+      '<td>' + (r.idcard||'') + '</td>' +
+      '<td>' + (r.year||'') + '</td>' +
+      '<td>' + formatQuarter(r.quarter) + '</td>' +
+      '<td>' + replyText + '</td>' +
+      '<td>' + validTag + '</td>' +
+      '<td>' + matchTag + '</td>' +
+      '<td>' + normTag + '</td>' +
+      '<td>' + fakeTag + '</td>' +
+      '<td>' + controlTag + '</td>' +
+      '<td>' + (problems.length > 0 ? '<span class="tag tag-red">' + problems.join(',') + '</span>' : '-') + '</td>' +
+      '<td>' + (r.saveTime||r.createTime||'') + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function exportProblemList(){
+  if(currentProblemList.length === 0){ alert('没有记录可导出'); return; }
+  
+  const project = document.getElementById('problemProject').value;
+  const year = document.getElementById('problemYear').value;
+  const quarter = document.getElementById('problemQuarter').value;
+  
+  const data = currentProblemList.map((r,i) => {
+    const code = r.replyCode || r.reply || '';
+    const replyText = replyMap[code] || code;
+    const validType = getValidType(code);
+    const match = getMatchResult(r);
+    const norm = getNormResult(r);
+    const fake = getFakeResult(r);
+    const control = getControlResult(r);
+    const hasFake = fake.includes('是') || fake.includes('涉嫌');
+    
+    const problems = [];
+    if(match.includes('不符合')) problems.push('不符合');
+    if(norm.includes('不规范')) problems.push('不规范');
+    if(hasFake) problems.push('涉嫌造假');
+    
+    return {
+      '序号':i+1,
+      '单位':r.org,
+      '项目':r.projectName,
+      '姓名':r.name,
+      '性别':r.sex,
+      '年龄':r.age,
+      '身份证':r.idcard,
+      '年度':r.year,
+      '季度':formatQuarter(r.quarter),
+      '应答情况':replyText,
+      '有效性':validType,
+      '符合性':match,
+      '规范性':norm,
+      '涉嫌造假':fake && fake !== '无' && fake !== '否' ? fake : '无',
+      '控制情况':control,
+      '问题类型':problems.join(','),
+      '错项明细':Array.isArray(r.errItems)?r.errItems.join(','):(r.errItems||''),
+      '时间':r.saveTime||r.createTime||''
+    };
+  });
+  
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), '问题台账明细');
+  
+  let filename = '问题台账明细';
+  if(project) filename += '_' + project;
+  if(year) filename += '_' + year;
+  if(quarter) filename += '_' + formatQuarter(quarter);
+  filename += '_' + new Date().toLocaleDateString().replace(/\//g,'-');
+  
+  XLSX.writeFile(wb, filename + '.xlsx');
+}
+
+loadOrgOptions();
+loadYearOptions();
+loadProblemList();
+</script>
+</body>
+</html>
