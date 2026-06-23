@@ -1,0 +1,321 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>报表统计 - 健康核查后台</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;font-size:14px;}
+body{padding:0;max-width:1600px;margin:0 auto;background:#f5f7fa;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Microsoft YaHei",sans-serif;}
+.container{padding:20px;}
+.header{background:linear-gradient(135deg,#2c3e50 0%,#34495e 100%);color:#fff;padding:20px 24px;border-radius:12px;margin-bottom:20px;box-shadow:0 4px 12px rgba(44,62,80,0.3);display:flex;justify-content:space-between;align-items:center;}
+.header h1{margin:0;font-size:22px;}
+.breadcrumb{font-size:13px;opacity:0.85;margin-top:6px;}
+.breadcrumb a{color:#fff;text-decoration:none;margin:0 6px;}
+.back-btn{background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:8px 18px;border-radius:6px;font-size:13px;cursor:pointer;text-decoration:none;}
+.back-btn:hover{background:rgba(255,255,255,0.35);}
+.filter-bar{display:flex;gap:15px;flex-wrap:wrap;align-items:center;padding:15px;background:#fff;border-radius:8px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+.filter-bar label{font-weight:500;color:#555;}
+.filter-bar select{padding:8px 12px;border:1px solid #ddd;border-radius:6px;min-width:120px;}
+.btn{padding:9px 20px;border:none;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s;}
+.btn-primary{background:#3498db;color:#fff;}
+.btn-primary:hover{background:#2980b9;}
+.btn-success{background:#27ae60;color:#fff;}
+.btn-success:hover{background:#219a52;}
+.btn-outline{background:#fff;color:#666;border:1px solid #ddd;}
+.btn-outline:hover{background:#f8f9fa;}
+.report-section{background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:20px;}
+.report-section h3{margin:0 0 20px 0;color:#333;font-size:16px;border-left:4px solid #3498db;padding-left:12px;}
+.report-section.elderly h3{border-color:#2ecc71;}
+.report-section.hypertension h3{border-color:#e74c3c;}
+.report-section.diabetes h3{border-color:#f39c12;}
+.report-section.copd h3{border-color:#9b59b6;}
+.report-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px;padding:15px;background:#f8fafc;border-radius:8px;margin-bottom:15px;}
+.report-item{text-align:center;}
+.report-item .label{font-size:12px;color:#666;margin-bottom:5px;}
+.report-item .value{font-size:24px;font-weight:700;color:#2c3e50;}
+.table-container{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px;}
+th,td{border:1px solid #ddd;padding:10px 6px;text-align:center;}
+th{background:#f8fafc;font-weight:600;color:#333;}
+tr:hover{background:#f8f9fa;}
+tr.total-row{background:#e8f4f8;font-weight:600;}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <div>
+    <h1>📊 报表统计</h1>
+    <div class="breadcrumb"><a href="admin.html">后台首页</a> / 报表统计</div>
+  </div>
+  <a href="admin.html" class="back-btn">返回后台</a>
+</div>
+
+<div class="filter-bar">
+  <label>年度：</label>
+  <select id="reportYear"><option value="">全部年度</option></select>
+  <label>季度：</label>
+  <select id="reportQuarter">
+    <option value="">全部季度</option>
+    <option value="Q1">一季度</option>
+    <option value="Q2">二季度</option>
+    <option value="Q3">三季度</option>
+    <option value="Q4">四季度</option>
+  </select>
+  <button class="btn btn-primary" onclick="generateAllReports()">生成报表</button>
+  <button class="btn btn-success" onclick="exportAllReports()">导出全部报表</button>
+  <button class="btn btn-outline" onclick="window.print()">打印</button>
+</div>
+
+<div id="reportContainer"></div>
+
+</div>
+
+<script>
+const projects = {
+  '居民': { key: 'residentCheckRecords', hasControl: false, cls: '', color: '#3498db' },
+  '老年人': { key: 'elderlyCheckRecords', hasControl: false, cls: 'elderly', color: '#2ecc71' },
+  '高血压': { key: 'hypertensionCheckRecords', hasControl: true, cls: 'hypertension', color: '#e74c3c' },
+  '糖尿病': { key: 'diabetesCheckRecords', hasControl: true, cls: 'diabetes', color: '#f39c12' },
+  '慢阻肺': { key: 'copdCheckRecords', hasControl: false, cls: 'copd', color: '#9b59b6' }
+};
+
+const projectIcons = {'居民':'👥','老年人':'👴','高血压':'❤️','糖尿病':'💉','慢阻肺':'🫁'};
+let currentReportData = {};
+
+function getRecords(project){
+  const key = projects[project].key;
+  return JSON.parse(localStorage.getItem(key) || '[]');
+}
+
+function getAllRecords(){
+  let all = [];
+  Object.keys(projects).forEach(p => {
+    getRecords(p).forEach(r => all.push({...r, projectName: p}));
+  });
+  return all;
+}
+
+function getMatchResult(r){ return r.matchResult || r.judgeMatch || ''; }
+function getNormResult(r){ return r.normResult || r.judgeNorm || r.normCheck || ''; }
+function getValidResult(r){ return r.validResult || r.judgeReply || r.replyResult || ''; }
+function getFakeResult(r){ return r.fakeResult || r.judgeFake || ''; }
+
+function formatQuarter(q){
+  const map = {Q1:'一季度',Q2:'二季度',Q3:'三季度',Q4:'四季度'};
+  return map[q] || q || '';
+}
+
+function loadYearOptions(){
+  const years = new Set();
+  getAllRecords().forEach(r => { if(r.year) years.add(String(r.year)); });
+  const sorted = [...years].sort().reverse();
+  const sel = document.getElementById('reportYear');
+  sel.innerHTML = '<option value="">全部年度</option>';
+  sorted.forEach(y => sel.innerHTML += '<option value="' + y + '">' + y + '</option>');
+}
+
+function calcStats(group, hasControl){
+  const total = group.length;
+  const valid = group.filter(r => {
+    const c = r.replyCode || r.reply || '';
+    return c === '1' || c === '2';
+  }).length;
+  const lost = group.filter(r => {
+    const c = r.replyCode || r.reply || '';
+    return ['3','4','6'].includes(c);
+  }).length;
+  const telError = group.filter(r => {
+    const c = r.replyCode || r.reply || '';
+    return ['5','7','8','9'].includes(c);
+  }).length;
+  
+  const validGroup = group.filter(r => {
+    const c = r.replyCode || r.reply || '';
+    return c === '1' || c === '2';
+  });
+  
+  const match = validGroup.filter(r => {
+    if(r.matchErrs && Array.isArray(r.matchErrs) && r.matchErrs.length > 0) return false;
+    if(getMatchResult(r).includes('不符合')) return false;
+    return getMatchResult(r).includes('符合') || (!getMatchResult(r) && !r.matchErrs);
+  }).length;
+  
+  const unmatch = validGroup.filter(r => {
+    if(r.matchErrs && Array.isArray(r.matchErrs) && r.matchErrs.length > 0) return true;
+    return getMatchResult(r).includes('不符合');
+  }).length;
+  
+  const standard = validGroup.filter(r => {
+    const matchErr = r.matchErrs && Array.isArray(r.matchErrs) && r.matchErrs.length > 0;
+    const normErr = r.normErrs && Array.isArray(r.normErrs) && r.normErrs.length > 0;
+    const deathNotEnd = r.deathNotEnd || false;
+    const m = getMatchResult(r);
+    const n = getNormResult(r);
+    const fake = getFakeResult(r);
+    
+    if(matchErr || m.includes('不符合')) return false;
+    if(normErr || n.includes('不规范')) return false;
+    if(deathNotEnd) return false;
+    if(fake && !fake.includes('无涉嫌造假')) return false;
+    
+    return n.includes('规范') || (!n && !normErr && !matchErr && !deathNotEnd);
+  }).length;
+  
+  const nonStandard = validGroup.filter(r => {
+    const matchErr = r.matchErrs && Array.isArray(r.matchErrs) && r.matchErrs.length > 0;
+    const normErr = r.normErrs && Array.isArray(r.normErrs) && r.normErrs.length > 0;
+    const deathNotEnd = r.deathNotEnd || false;
+    const m = getMatchResult(r);
+    const n = getNormResult(r);
+    const fake = getFakeResult(r);
+    
+    if(matchErr || m.includes('不符合')) return true;
+    if(normErr || n.includes('不规范')) return true;
+    if(deathNotEnd) return true;
+    if(fake && !fake.includes('无涉嫌造假')) return true;
+    
+    return false;
+  }).length;
+  
+  let control = 0;
+  if(hasControl){
+    control = validGroup.filter(r => {
+      if(r.bpControl === '1' || r.glucoseControl === '1') return true;
+      return false;
+    }).length;
+  }
+  return {total, valid, lost, telError, match, unmatch, standard, nonStandard, control};
+}
+
+function generateProjectReport(project, year, quarter, hasControl){
+  let records = getRecords(project);
+  if(year) records = records.filter(r => String(r.year) === year);
+  if(quarter) records = records.filter(r => r.quarter === quarter);
+  
+  const orgMap = {};
+  records.forEach(r => {
+    const org = r.org || '未知单位';
+    if(!orgMap[org]) orgMap[org] = [];
+    orgMap[org].push(r);
+  });
+  
+  const results = [];
+  let totalAll = {total:0,valid:0,lost:0,telError:0,unmatch:0,match:0,standard:0,nonStandard:0,control:0};
+  
+  Object.keys(orgMap).sort().forEach(org => {
+    const stats = calcStats(orgMap[org], hasControl);
+    results.push({org, ...stats});
+    Object.keys(totalAll).forEach(k => totalAll[k] += stats[k]);
+  });
+  
+  if(results.length > 0){
+    results.push({org:'合计', ...totalAll, isTotal:true});
+  }
+  return results;
+}
+
+function renderReport(project){
+  const data = currentReportData[project] || [];
+  const cfg = projects[project];
+  const hasControl = cfg.hasControl;
+  const container = document.getElementById('reportContainer');
+  
+  let html = '<div class="report-section ' + cfg.cls + '">';
+  html += '<h3>' + projectIcons[project] + ' ' + project + '档案核查统计</h3>';
+  
+  if(data.length === 0){
+    html += '<p style="color:#999;text-align:center;padding:30px;">暂无数据</p>';
+    html += '</div>';
+    return html;
+  }
+  
+  const totals = data[data.length-1];
+  const matchRate = totals.valid>0 ? (totals.match/totals.valid*100).toFixed(1)+'%' : '-';
+  const standardRate = totals.valid>0 ? (totals.standard/totals.valid*100).toFixed(1)+'%' : '-';
+  const controlRate = hasControl && totals.valid>0 ? (totals.control/totals.valid*100).toFixed(1)+'%' : '-';
+  
+  html += '<div class="report-summary">';
+  html += '<div class="report-item"><div class="label">核查总数</div><div class="value">' + totals.total + '</div></div>';
+  html += '<div class="report-item"><div class="label">有效数</div><div class="value">' + totals.valid + '</div></div>';
+  html += '<div class="report-item"><div class="label">有效应答率</div><div class="value" style="color:#27ae60;">' + (totals.total>0?(totals.valid/totals.total*100).toFixed(1)+'%':'-') + '</div></div>';
+  html += '<div class="report-item"><div class="label">失访数</div><div class="value">' + totals.lost + '</div></div>';
+  html += '<div class="report-item"><div class="label">电话异常数</div><div class="value">' + totals.telError + '</div></div>';
+  html += '<div class="report-item"><div class="label">符合率</div><div class="value" style="color:#27ae60;">' + matchRate + '</div></div>';
+  html += '<div class="report-item"><div class="label">规范率</div><div class="value" style="color:#27ae60;">' + standardRate + '</div></div>';
+  if(hasControl) html += '<div class="report-item"><div class="label">控制率</div><div class="value" style="color:#e67e22;">' + controlRate + '</div></div>';
+  html += '</div>';
+  
+  html += '<div class="table-container"><table><thead><tr>';
+  html += '<th>单位</th><th>核查数</th><th>有效数</th><th>有效应答率</th><th>失访数</th><th>电话异常数</th><th>符合数</th><th>不符合数</th><th>规范数</th><th>不规范数</th><th>符合率</th><th>规范率</th>';
+  if(hasControl) html += '<th>控制人数</th><th>控制率</th>';
+  html += '</tr></thead><tbody>';
+  
+  data.forEach(r => {
+    const validRate = r.total>0 ? (r.valid/r.total*100).toFixed(1)+'%' : '-';
+    const mr = r.valid>0 ? (r.match/r.valid*100).toFixed(1)+'%' : '-';
+    const sr = r.valid>0 ? (r.standard/r.valid*100).toFixed(1)+'%' : '-';
+    const cr = hasControl && r.valid>0 ? (r.control/r.valid*100).toFixed(1)+'%' : '-';
+    html += '<tr class="' + (r.isTotal?'total-row':'') + '">';
+    html += '<td>' + r.org + '</td><td>' + r.total + '</td><td>' + r.valid + '</td>';
+    html += '<td>' + validRate + '</td><td>' + r.lost + '</td><td>' + r.telError + '</td>';
+    html += '<td>' + r.match + '</td><td>' + r.unmatch + '</td>';
+    html += '<td>' + r.standard + '</td><td>' + r.nonStandard + '</td>';
+    html += '<td>' + mr + '</td><td>' + sr + '</td>';
+    if(hasControl) html += '<td>' + r.control + '</td><td>' + cr + '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table></div></div>';
+  return html;
+}
+
+function generateAllReports(){
+  const year = document.getElementById('reportYear').value;
+  const quarter = document.getElementById('reportQuarter').value;
+  
+  let html = '';
+  Object.keys(projects).forEach(p => {
+    currentReportData[p] = generateProjectReport(p, year, quarter, projects[p].hasControl);
+    html += renderReport(p);
+  });
+  document.getElementById('reportContainer').innerHTML = html;
+}
+
+function exportAllReports(){
+  const wb = XLSX.utils.book_new();
+  let hasData = false;
+  Object.keys(projects).forEach(p => {
+    const data = currentReportData[p] || [];
+    if(data.length === 0) return;
+    hasData = true;
+    const hasControl = projects[p].hasControl;
+    const exportData = data.map(r => {
+      const row = {
+        '单位':r.org,'核查数':r.total,'有效数':r.valid,
+        '有效应答率':r.total>0?(r.valid/r.total*100).toFixed(1)+'%':'-',
+        '失访数':r.lost,'电话异常数':r.telError,
+        '符合数':r.match,'不符合数':r.unmatch,
+        '规范数':r.standard,'不规范数':r.nonStandard,
+        '符合率':r.valid>0?(r.match/r.valid*100).toFixed(1)+'%':'-',
+        '规范率':r.valid>0?(r.standard/r.valid*100).toFixed(1)+'%':'-'
+      };
+      if(hasControl){
+        row['控制人数'] = r.control;
+        row['控制率'] = r.valid>0 ? (r.control/r.valid*100).toFixed(1)+'%' : '-';
+      }
+      return row;
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exportData), p + '报表');
+  });
+  if(!hasData){ alert('请先生成报表'); return; }
+  XLSX.writeFile(wb, '统计报表_' + new Date().toLocaleDateString().replace(/\//g,'-') + '.xlsx');
+}
+
+loadYearOptions();
+generateAllReports();
+</script>
+</body>
+</html>
