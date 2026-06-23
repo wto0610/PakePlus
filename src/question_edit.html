@@ -1,0 +1,577 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>编辑居民核查记录</title>
+<style>
+*{box-sizing:border-box;font-size:14px;}
+body{padding:20px;max-width:1400px;margin:0 auto;background:#f0f2f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}
+.container{padding:20px;}
+/* 顶部标题栏 */
+.header{background:linear-gradient(135deg,#3498db 0%,#2980b9 100%);color:#fff;padding:20px 24px;border-radius:12px;margin-bottom:20px;box-shadow:0 4px 12px rgba(52,152,219,0.3);display:flex;justify-content:space-between;align-items:center;}
+.header h1{margin:0;font-size:22px;}
+/* 提示信息 */
+.tip-red{background:#ffe8e8;color:#d00;padding:12px 16px;border-radius:8px;margin-bottom:14px;font-weight:500;display:none;border-left:4px solid #d00;}
+.tip-green{background:#e8ffe8;color:#060;padding:12px 16px;border-radius:8px;margin-bottom:14px;font-weight:500;display:none;border-left:4px solid #060;}
+/* 表单卡片 */
+.block{background:#fff;border-radius:10px;padding:24px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.block h3{margin:0 0 20px 0;color:#333;font-size:15px;border-left:4px solid #3498db;padding-left:10px;}
+/* 两列布局 */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;}
+.form-group{margin-bottom:18px;}
+.form-group label{display:block;min-width:90px;color:#555;font-weight:500;margin-bottom:6px;}
+input[type="text"],input[type="number"],select{padding:8px 12px;width:100%;border:1px solid #ddd;border-radius:6px;font-size:14px;transition:border-color 0.2s;}
+input:focus,select:focus{outline:none;border-color:#3498db;box-shadow:0 0 0 3px rgba(52,152,219,0.1);}
+input[type="radio"],input[type="checkbox"]{width:16px;height:16px;cursor:pointer;accent-color:#3498db;}
+/* 选项列表 */
+.option-list{display:flex;flex-direction:column;gap:8px;}
+.option-item{display:flex;align-items:flex-start;padding:10px 14px;background:#f8fafc;border-radius:6px;transition:background 0.2s;}
+.option-item:hover{background:#eef6ff;}
+.option-item label{cursor:pointer;line-height:1.6;color:#444;margin:0;}
+/* 规范性错误选项分组 */
+.err-group{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;padding:12px;background:#f8fafc;border-radius:8px;margin-bottom:10px;}
+.err-group label{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#fff;border-radius:4px;cursor:pointer;font-size:13px;}
+/* 按钮样式 */
+.btn{padding:10px 20px;border:none;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s;}
+.btn-primary{background:#3498db;color:#fff;}
+.btn-primary:hover{background:#2980b9;}
+.btn-success{background:#27ae60;color:#fff;}
+.btn-success:hover{background:#219a52;}
+.btn-danger{background:#e74c3c;color:#fff;}
+.btn-danger:hover{background:#c0392b;}
+/* 工具栏 */
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:16px 0;border-top:1px solid #eee;margin-top:20px;}
+/* 搜索下拉组件 */
+.search-select{position:relative;width:100%;}
+.search-select-input{padding-right:32px;}
+.search-select-arrow{position:absolute;right:8px;top:50%;transform:translateY(-50%);pointer-events:none;color:#999;}
+.search-select-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #ddd;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.1);max-height:200px;overflow-y:auto;z-index:100;display:none;}
+.search-select-dropdown.show{display:block;}
+.search-select-option{padding:10px 12px;cursor:pointer;transition:background 0.2s;}
+.search-select-option:hover{background:#eef6ff;}
+/* 符合性勾选区域 */
+.match-checklist{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px;background:#f8fafc;border-radius:8px;}
+.match-checklist label{display:flex;align-items:center;gap:6px;padding:8px 10px;background:#fff;border-radius:4px;cursor:pointer;font-size:13px;}
+/* 辅助 */
+.form-tip{font-size:12px;color:#999;margin-left:8px;}
+.required{color:#e74c3c;}
+/* 判定结果 */
+.judge-result{background:#eef6ff;padding:12px 16px;border-radius:8px;margin-top:10px;font-size:13px;}
+.judge-result div{margin:4px 0;}
+/* 右侧判定栏 */
+.judge-right{position:fixed;top:50%;right:20px;transform:translateY(-50%);z-index:999;width:70px;}
+.judge-card{background:#fff;border-radius:8px;padding:8px;box-shadow:0 2px 12px rgba(0,0,0,0.1);text-align:center;}
+.judge-card h4{margin:0 0 6px 0;color:#333;font-size:10px;font-weight:600;}
+.judge-mini{display:flex;flex-direction:column;gap:6px;}
+.judge-mini-item{display:flex;flex-direction:column;gap:2px;padding:3px 4px;background:#f8fafc;border-radius:4px;font-size:9px;}
+.judge-mini-item label{color:#666;font-size:8px;}
+.judge-mini-item .value{font-weight:600;font-size:11px;}
+.judge-mini-total{margin-top:6px;padding:6px;background:#eef6ff;border-radius:4px;font-weight:600;color:#0066cc;font-size:10px;}
+.green{color:#27ae60;font-weight:600}
+.red{color:#e74c3c;font-weight:600}
+.orange{color:#f39c12;font-weight:600}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="main-content">
+
+<!-- 顶部标题 -->
+<div class="header">
+  <h1>编辑居民核查记录</h1>
+  <button class="btn btn-danger" onclick="window.close()">关闭</button>
+</div>
+
+<!-- 提示信息 -->
+<div class="tip-red" id="replyDisableTip">当前应答为无效益答，无需填写下方档案核查内容，可直接保存</div>
+
+<!-- 一、基础信息 -->
+<div class="block">
+<h3>一、基础信息</h3>
+<div class="form-grid">
+<div class="form-group"><label>核查单位<span class="required">*</span></label>
+<div class="search-select" id="orgSelect">
+<input type="text" id="orgInput" class="search-select-input" placeholder="请输入单位名称搜索">
+<span class="search-select-arrow">▼</span>
+<div class="search-select-dropdown" id="orgDropdown">
+<div class="search-select-option" data-value="">请选择单位</div>
+<div class="search-select-option" data-value="澄城社区卫生服务中心">澄城社区卫生服务中心</div>
+<div class="search-select-option" data-value="金江镇卫生院">金江镇卫生院</div>
+<div class="search-select-option" data-value="山口社区卫生服务中心">山口社区卫生服务中心</div>
+<div class="search-select-option" data-value="仁兴镇卫生院">仁兴镇卫生院</div>
+<div class="search-select-option" data-value="中兴镇卫生院">中兴镇卫生院</div>
+<div class="search-select-option" data-value="太平社区卫生服务中心">太平社区卫生服务中心</div>
+<div class="search-select-option" data-value="加乐镇中心卫生院">加乐镇中心卫生院</div>
+<div class="search-select-option" data-value="文儒镇卫生院">文儒镇卫生院</div>
+<div class="search-select-option" data-value="文儒镇卫生院石浮门诊部">文儒镇卫生院石浮门诊部</div>
+<div class="search-select-option" data-value="金江镇长安卫生院">金江镇长安卫生院</div>
+<div class="search-select-option" data-value="瑞溪镇中心卫生院">瑞溪镇中心卫生院</div>
+<div class="search-select-option" data-value="永发镇中心卫生院">永发镇中心卫生院</div>
+<div class="search-select-option" data-value="永发镇中心卫生院新吴门诊部">永发镇中心卫生院新吴门诊部</div>
+<div class="search-select-option" data-value="大丰镇卫生院">大丰镇卫生院</div>
+<div class="search-select-option" data-value="美亭社区卫生服务中心">美亭社区卫生服务中心</div>
+<div class="search-select-option" data-value="福山镇卫生院">福山镇卫生院</div>
+<div class="search-select-option" data-value="桥头镇卫生院">桥头镇卫生院</div>
+<div class="search-select-option" data-value="老城社区卫生服务中心">老城社区卫生服务中心</div>
+<div class="search-select-option" data-value="老城镇中心卫生院">老城镇中心卫生院</div>
+<div class="search-select-option" data-value="老城镇中心卫生院马村门诊部">老城镇中心卫生院马村门诊部</div>
+<div class="search-select-option" data-value="仁兴镇西达卫生院">仁兴镇西达卫生院</div>
+<div class="search-select-option" data-value="福山镇红光卫生院">福山镇红光卫生院</div>
+<div class="search-select-option" data-value="文儒镇红岗卫生院">文儒镇红岗卫生院</div>
+<div class="search-select-option" data-value="金安社区卫生服务中心">金安社区卫生服务中心</div>
+<div class="search-select-option" data-value="昆仑社区卫生服务中心">昆仑社区卫生服务中心</div>
+<div class="search-select-option" data-value="和岭社区卫生服务中心">和岭社区卫生服务中心</div>
+</div>
+<input type="hidden" id="org" name="org">
+</div></div>
+<div class="form-group"><label>年度<span class="required">*</span></label>
+<input type="number" id="year" placeholder="如2026，默认当前年度"></div>
+<div class="form-group"><label>季度<span class="required">*</span></label>
+<select id="quarter">
+<option value="">请选择季度</option>
+<option value="Q1">一季度</option>
+<option value="Q2">二季度</option>
+<option value="Q3">三季度</option>
+<option value="Q4">四季度</option>
+</select></div>
+<div class="form-group"><label>项目<span class="required">*</span></label>
+<select id="project">
+<option value="居民" selected>居民</option>
+</select></div>
+<div class="form-group"><label>姓名<span class="required">*</span></label>
+<input type="text" id="name"></div>
+<div class="form-group"><label>性别</label>
+<div style="display:flex;gap:16px;padding-top:6px;">
+<label><input type="radio" name="sex" value="男"> 男</label>
+<label><input type="radio" name="sex" value="女"> 女</label>
+</div></div>
+<div class="form-group"><label>身份证号</label>
+<input type="text" id="idcard" maxlength="18"><span class="form-tip" id="idTip"></span></div>
+<div class="form-group"><label>电话号码</label>
+<input type="text" id="tel" maxlength="11"></div>
+<div class="form-group"><label>年龄</label>
+<input type="number" id="age" min="0" max="120"></div>
+</div>
+</div>
+
+<!-- 二、应答情况 -->
+<div class="block">
+<h3>二、应答情况</h3>
+<div class="option-list">
+<div class="option-item"><label><input type="radio" name="reply" value="1"> ①本人应答</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="2"> ②应答人为家属、亲戚等，了解情况</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="3"> ③应答人为家属、亲戚等，不了解核查对象具体情况</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="4"> ④无法接通（不同时间拨打三次，包括关机、停机）</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="5"> ⑤拒绝调查：接听后不配合调查，中途退出</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="6"> ⑥本人应答，记不清情况</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="7"> ⑦空号</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="8"> ⑧错号</label></div>
+<div class="option-item"><label><input type="radio" name="reply" value="9"> ⑨电话为村医、村干号码</label></div>
+</div>
+<div class="judge-result" id="res1"></div>
+</div>
+
+<!-- 三、访谈记录与健康档案比对 -->
+<div class="block" id="matchBlock">
+<h3>三、访谈记录与健康档案比对</h3>
+<div class="match-checklist">
+<label><input type="checkbox" class="matchErr" value="name"> 姓名不相符</label>
+<label><input type="checkbox" class="matchErr" value="sex"> 性别不相符</label>
+<label><input type="checkbox" class="matchErr" value="idcard"> 身份证不相符</label>
+</div>
+<div class="judge-result" id="res2"></div>
+</div>
+
+<!-- 四、档案填写规范性核查 -->
+<div class="block" id="normBlock">
+<h3>四、档案填写规范性核查</h3>
+<div class="err-group">
+<label><input type="checkbox" class="normErr" value="cover_unit"> 封面建档单位错</label>
+<label><input type="checkbox" class="normErr" value="cover_addr"> 封面户籍地址错</label>
+<label><input type="checkbox" class="normErr" value="info_addr"> 现住址错</label>
+<label><input type="checkbox" class="normErr" value="info_nation"> 民族错</label>
+<label><input type="checkbox" class="normErr" value="info_edu"> 文化程度错</label>
+<label><input type="checkbox" class="normErr" value="info_job"> 职业错</label>
+<label><input type="checkbox" class="normErr" value="info_marriage"> 婚姻状况错</label>
+<label><input type="checkbox" class="normErr" value="info_allergy"> 药物过敏史错</label>
+<label><input type="checkbox" class="normErr" value="info_expose"> 暴露史错</label>
+<label><input type="checkbox" class="normErr" value="info_history"> 既往史错</label>
+<label><input type="checkbox" class="normErr" value="info_family"> 家族史错</label>
+<label><input type="checkbox" class="normErr" value="info_genetic"> 遗传史错</label>
+<label><input type="checkbox" class="normErr" value="info_disability"> 残疾情况错</label>
+</div>
+<label style="display:flex;align-items:center;gap:8px;padding:10px;background:#fff3cd;border-radius:6px;margin-top:10px;">
+<input type="checkbox" id="deathNotEnd">
+<span style="color:#856404;">死亡档案未终止</span>
+</label>
+<div class="judge-result" id="res3"></div>
+</div>
+
+<!-- 五、备注 -->
+<div class="block">
+<h3>五、备注</h3>
+<textarea id="remark" style="width:100%;min-height:80px;padding:10px;border:1px solid #ddd;border-radius:6px;resize:vertical;" placeholder="如有其他情况说明，请在此填写"></textarea>
+</div>
+
+<!-- 操作按钮 -->
+<div class="toolbar">
+<button class="btn btn-primary" onclick="saveEditRecord()">保存修改</button>
+<button class="btn btn-danger" onclick="deleteEditRecord()">删除此记录</button>
+</div>
+
+</div>
+</div>
+
+<!-- 右侧判定栏 -->
+<div class="judge-right">
+<div class="judge-card">
+<h4>判定结果</h4>
+<div class="judge-mini">
+<div class="judge-mini-item"><label>应答判定</label><div class="value" id="judge1"></div></div>
+<div class="judge-mini-item"><label>符合性判定</label><div class="value" id="judge2"></div></div>
+<div class="judge-mini-item"><label>规范性判定</label><div class="value" id="judge3"></div></div>
+</div>
+<div class="judge-mini-total" id="resTotal"></div>
+</div>
+</div>
+
+<script>
+// 从sessionStorage获取编辑数据
+var editingRecord = null;
+var editingIndex = null;
+
+document.addEventListener("DOMContentLoaded", function(){
+    try {
+        editingRecord = JSON.parse(sessionStorage.getItem("editingRecord"));
+        editingIndex = parseInt(sessionStorage.getItem("editingIndex"));
+    } catch(e) {
+        console.error(e);
+    }
+    
+    if(!editingRecord){
+        alert("未找到要编辑的记录");
+        window.close();
+        return;
+    }
+    
+    // 填充表单数据
+    document.getElementById("org").value = editingRecord.org || "";
+    document.getElementById("orgInput").value = editingRecord.org || "";
+    document.getElementById("year").value = editingRecord.year || "";
+    document.getElementById("quarter").value = editingRecord.quarter || "";
+    document.getElementById("project").value = editingRecord.project || "居民";
+    document.getElementById("name").value = editingRecord.name || "";
+    document.getElementById("idcard").value = editingRecord.idcard || "";
+    document.getElementById("tel").value = editingRecord.tel || "";
+    document.getElementById("age").value = editingRecord.age || "";
+    document.getElementById("remark").value = editingRecord.remark || "";
+    
+    // 性别
+    if(editingRecord.sex){
+        var sexRadio = document.querySelector('input[name="sex"][value="'+editingRecord.sex+'"]');
+        if(sexRadio) sexRadio.checked = true;
+    }
+    
+    // 应答情况
+    if(editingRecord.replyCode){
+        var replyRadio = document.querySelector('input[name="reply"][value="'+editingRecord.replyCode+'"]');
+        if(replyRadio) replyRadio.checked = true;
+    }
+    
+    // 访谈记录与健康档案比对（matchErrs）
+    if(editingRecord.matchErrs && Array.isArray(editingRecord.matchErrs)){
+        editingRecord.matchErrs.forEach(function(val){
+            var cb = document.querySelector('.matchErr[value="'+val+'"]');
+            if(cb) cb.checked = true;
+        });
+    }
+    
+    // 档案填写规范性核查（normErrs）
+    if(editingRecord.normErrs && Array.isArray(editingRecord.normErrs)){
+        editingRecord.normErrs.forEach(function(val){
+            var cb = document.querySelector('.normErr[value="'+val+'"]');
+            if(cb) cb.checked = true;
+        });
+    }
+    
+    // 死亡档案未终止
+    document.getElementById("deathNotEnd").checked = editingRecord.deathNotEnd || false;
+    
+    // 绑定事件监听
+    bindEvents();
+    
+    // 初始化计算
+    calcAll();
+});
+
+// 绑定事件监听
+function bindEvents(){
+    document.querySelectorAll('input[name="reply"]').forEach(function(el){
+        el.addEventListener("change", calcAll);
+    });
+    document.querySelectorAll('.matchErr').forEach(function(el){
+        el.addEventListener("change", calcAll);
+    });
+    document.querySelectorAll('.normErr').forEach(function(el){
+        el.addEventListener("change", calcAll);
+    });
+    document.getElementById("deathNotEnd").addEventListener("change", calcAll);
+}
+
+// 计算所有判定
+function calcAll(){
+    var replyVal = document.querySelector('input[name="reply"]:checked')?.value || "";
+    var matchErrs = Array.from(document.querySelectorAll('.matchErr:checked')).map(function(el){ return el.value; });
+    var normErrs = Array.from(document.querySelectorAll('.normErr:checked')).map(function(el){ return el.value; });
+    var deathNotEnd = document.getElementById("deathNotEnd").checked;
+    
+    // 判定1：应答情况
+    var replyText = "";
+    if(!replyVal){
+        document.getElementById("res1").innerHTML = "";
+        document.getElementById("judge1").textContent = "";
+    }else{
+        var replyMap = {
+            "1":"①本人应答",
+            "2":"②应答人为家属、亲戚等，了解情况",
+            "3":"③应答人为家属、亲戚等，不了解核查对象具体情况",
+            "4":"④无法接通",
+            "5":"⑤拒绝调查",
+            "6":"⑥本人应答，记不清情况",
+            "7":"⑦空号",
+            "8":"⑧错号",
+            "9":"⑨电话为村医、村干号码"
+        };
+        replyText = replyMap[replyVal] || replyVal;
+        var isValid = replyVal === "1" || replyVal === "2";
+        var isInvalid = ["3","4","6"].includes(replyVal);
+        var isPhoneErr = ["5","7","8","9"].includes(replyVal);
+        
+        var res1Html = "★ 应答情况：" + replyText;
+        if(isValid) res1Html += ' <span style="color:#27ae60;">【有效应答】</span>';
+        if(isInvalid) res1Html += ' <span style="color:#e74c3c;">【失访】</span>';
+        if(isPhoneErr) res1Html += ' <span style="color:#e74c3c;">【电话异常】</span>';
+        
+        document.getElementById("res1").innerHTML = res1Html;
+        document.getElementById("judge1").textContent = isValid ? "有效" : (isInvalid ? "失访" : (isPhoneErr ? "电话异常" : ""));
+    }
+    
+    // 判定2：访谈记录与健康档案比对
+    if(!replyVal){
+        document.getElementById("res2").innerHTML = "";
+        document.getElementById("judge2").textContent = "";
+        document.getElementById("matchBlock").style.display = "none";
+    }else{
+        var isValid = replyVal === "1" || replyVal === "2";
+        document.getElementById("matchBlock").style.display = isValid ? "block" : "none";
+        
+        if(isValid){
+            if(matchErrs.length === 0){
+                document.getElementById("res2").innerHTML = '<span style="color:#27ae60;">★ 符合性判定：访谈记录与健康档案相符</span>';
+                document.getElementById("judge2").textContent = "符合";
+            }else{
+                var errNames = matchErrs.map(function(v){
+                    var m = {"name":"姓名","sex":"性别","idcard":"身份证"};
+                    return m[v] || v;
+                });
+                document.getElementById("res2").innerHTML = '<span style="color:#e74c3c;">★ 符合性判定：' + errNames.join("、") + '不相符</span>';
+                document.getElementById("judge2").textContent = "不符合";
+            }
+        }else{
+            document.getElementById("res2").innerHTML = '<span style="color:#999;">无效应答，无需判定</span>';
+            document.getElementById("judge2").textContent = "";
+        }
+    }
+    
+    // 判定3：档案填写规范性核查
+    if(!replyVal){
+        document.getElementById("res3").innerHTML = "";
+        document.getElementById("judge3").textContent = "";
+        document.getElementById("normBlock").style.display = "none";
+    }else{
+        var isValid = replyVal === "1" || replyVal === "2";
+        document.getElementById("normBlock").style.display = isValid ? "block" : "none";
+        
+        if(isValid){
+            var normErrNames = normErrs.map(function(v){
+                var n = {
+                    "cover_unit":"封面建档单位","cover_addr":"封面户籍地址","info_addr":"现住址",
+                    "info_nation":"民族","info_edu":"文化程度","info_job":"职业",
+                    "info_marriage":"婚姻状况","info_allergy":"药物过敏史","info_expose":"暴露史",
+                    "info_history":"既往史","info_family":"家族史","info_genetic":"遗传史","info_disability":"残疾情况"
+                };
+                return n[v] || v;
+            });
+            
+            var normMsgs = [];
+            if(normErrNames.length > 0) normMsgs.push(normErrNames.join("、") + "错");
+            if(deathNotEnd) normMsgs.push("死亡档案未终止");
+            
+            if(normMsgs.length === 0){
+                document.getElementById("res3").innerHTML = '<span style="color:#27ae60;">★ 规范性判定：档案填写规范</span>';
+                document.getElementById("judge3").textContent = "规范";
+            }else{
+                document.getElementById("res3").innerHTML = '<span style="color:#e74c3c;">★ 规范性判定：' + normMsgs.join("；") + '</span>';
+                document.getElementById("judge3").textContent = "不规范";
+            }
+        }else{
+            document.getElementById("res3").innerHTML = '<span style="color:#999;">无效应答，无需判定</span>';
+            document.getElementById("judge3").textContent = "";
+        }
+    }
+    
+    // 总判定
+    calcTotal(replyVal, matchErrs, normErrs, deathNotEnd);
+}
+
+function calcTotal(replyVal, matchErrs, normErrs, deathNotEnd){
+    if(!replyVal){
+        document.getElementById("resTotal").innerHTML = "";
+        return;
+    }
+    
+    var isValid = replyVal === "1" || replyVal === "2";
+    
+    if(!isValid){
+        var invalidTypes = {
+            "3":"不了解核查对象具体情况","4":"无法接通",
+            "5":"拒绝调查","6":"记不清情况",
+            "7":"空号","8":"错号","9":"电话为村医、村干号码"
+        };
+        document.getElementById("resTotal").innerHTML = '<span style="color:#e74c3c;">★ 档案判定：' + (invalidTypes[replyVal] || "无效应答") + '</span>';
+        return;
+    }
+    
+    var match = matchErrs.length === 0 ? "——" : "不符合";
+    var norm = normErrs.length === 0 && !deathNotEnd ? "——" : "不规范";
+    
+    if(match === "不符合" || norm === "不规范"){
+        document.getElementById("resTotal").innerHTML = '<span class="red">★ 档案判定：不规范档案</span>';
+        return;
+    }
+    
+    if(norm === "——" || norm === "待判定"){
+        document.getElementById("resTotal").innerHTML = '<span class="orange">★ 档案判定：待完善</span>';
+        return;
+    }
+    
+    if(norm.includes("不规范")){
+        document.getElementById("resTotal").innerHTML = '<span class="red">★ 档案判定：不规范档案</span>';
+    }else{
+        document.getElementById("resTotal").innerHTML = '<span class="green">★ 档案判定：规范档案</span>';
+    }
+}
+
+// 保存编辑
+function saveEditRecord(){
+    calcAll();
+    
+    var replyVal = document.querySelector('input[name="reply"]:checked')?.value || "";
+    var matchErrs = Array.from(document.querySelectorAll('.matchErr:checked')).map(function(el){ return el.value; });
+    var normErrs = Array.from(document.querySelectorAll('.normErr:checked')).map(function(el){ return el.value; });
+    var deathNotEnd = document.getElementById("deathNotEnd").checked;
+    
+    var data = {
+        org: document.getElementById("org").value,
+        year: document.getElementById("year").value || new Date().getFullYear().toString(),
+        quarter: document.getElementById("quarter").value || "",
+        project: document.getElementById("project").value,
+        name: document.getElementById("name").value,
+        sex: document.querySelector('input[name="sex"]:checked')?.value || "",
+        idcard: document.getElementById("idcard").value,
+        tel: document.getElementById("tel").value,
+        age: document.getElementById("age").value,
+        replyCode: replyVal,
+        matchErrs: matchErrs,
+        normErrs: normErrs,
+        deathNotEnd: deathNotEnd,
+        remark: document.getElementById("remark").value || "",
+        judgeReply: document.getElementById("res1").innerText,
+        judgeMatch: document.getElementById("res2").innerText,
+        judgeNorm: document.getElementById("res3").innerText,
+        judgeTotal: document.getElementById("resTotal").innerText,
+        saveTime: formatDate(new Date())
+    };
+    
+    // 验证必填项
+    if(!data.org || !data.year || !data.name){
+        alert("核查单位、年度、姓名为必填项！");
+        return;
+    }
+    
+    // 从localStorage获取recordList并更新
+    var recordList = JSON.parse(localStorage.getItem("residentCheckRecords") || "[]");
+    if(editingIndex !== null && editingIndex < recordList.length){
+        recordList[editingIndex] = data;
+        localStorage.setItem("residentCheckRecords", JSON.stringify(recordList));
+        
+        // 标记已保存
+        sessionStorage.setItem("justSaved", "1");
+        
+        alert("保存成功！");
+        window.close();
+    }else{
+        alert("记录索引无效");
+    }
+}
+
+// 删除记录
+function deleteEditRecord(){
+    if(!confirm("确定要删除此记录吗？")) return;
+    
+    var recordList = JSON.parse(localStorage.getItem("residentCheckRecords") || "[]");
+    if(editingIndex !== null && editingIndex < recordList.length){
+        recordList.splice(editingIndex, 1);
+        localStorage.setItem("residentCheckRecords", JSON.stringify(recordList));
+        
+        sessionStorage.setItem("justSaved", "1");
+        alert("删除成功！");
+        window.close();
+    }
+}
+
+// 格式化日期
+function formatDate(date){
+    var pad = function(n){ return n < 10 ? '0' + n : n; };
+    return date.getFullYear() + '-' + pad(date.getMonth()+1) + '-' + pad(date.getDate()) + ' ' + pad(date.getHours()) + ':' + pad(date.getMinutes()) + ':' + pad(date.getSeconds());
+}
+
+// 单位搜索下拉
+document.addEventListener("DOMContentLoaded", function(){
+    var orgInput = document.getElementById("orgInput");
+    var orgDropdown = document.getElementById("orgDropdown");
+    var orgHidden = document.getElementById("org");
+    
+    orgInput.addEventListener("click", function(e){
+        e.stopPropagation();
+        orgDropdown.classList.add("show");
+    });
+    
+    orgInput.addEventListener("input", function(){
+        var keyword = this.value.toLowerCase();
+        document.querySelectorAll(".search-select-option").forEach(function(opt){
+            var text = opt.textContent.toLowerCase();
+            opt.style.display = text.includes(keyword) ? "" : "none";
+        });
+    });
+    
+    document.querySelectorAll(".search-select-option").forEach(function(opt){
+        opt.addEventListener("click", function(){
+            var value = this.getAttribute("data-value");
+            var text = this.textContent;
+            orgHidden.value = value;
+            orgInput.value = text === "请选择单位" ? "" : text;
+            orgDropdown.classList.remove("show");
+        });
+    });
+    
+    document.addEventListener("click", function(e){
+        if(!document.getElementById("orgSelect").contains(e.target)){
+            orgDropdown.classList.remove("show");
+        }
+    });
+});
+</script>
+</body>
+</html>
