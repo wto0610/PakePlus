@@ -1,0 +1,655 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>单位明细 - 健康核查后台</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;font-size:14px;}
+body{padding:0;max-width:1600px;margin:0 auto;background:#f5f7fa;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Microsoft YaHei",sans-serif;}
+.container{padding:20px;}
+.header{background:linear-gradient(135deg,#2c3e50 0%,#34495e 100%);color:#fff;padding:20px 24px;border-radius:12px;margin-bottom:20px;box-shadow:0 4px 12px rgba(44,62,80,0.3);display:flex;justify-content:space-between;align-items:center;}
+.header h1{margin:0;font-size:22px;}
+.breadcrumb{font-size:13px;opacity:0.85;margin-top:6px;}
+.breadcrumb a{color:#fff;text-decoration:none;margin:0 6px;}
+.back-btn{background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:8px 18px;border-radius:6px;font-size:13px;cursor:pointer;text-decoration:none;}
+.back-btn:hover{background:rgba(255,255,255,0.35);}
+.filter-bar{display:flex;gap:15px;flex-wrap:wrap;align-items:center;padding:15px;background:#fff;border-radius:8px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+.filter-bar label{font-weight:500;color:#555;}
+.filter-bar select{padding:8px 12px;border:1px solid #ddd;border-radius:6px;min-width:140px;}
+.filter-bar input{padding:8px 12px;border:1px solid #ddd;border-radius:6px;min-width:150px;}
+.btn{padding:9px 20px;border:none;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;}
+.btn-primary{background:#3498db;color:#fff;}
+.btn-primary:hover{background:#2980b9;}
+.btn-success{background:#27ae60;color:#fff;}
+.btn-success:hover{background:#219a52;}
+.btn-outline{background:#fff;color:#666;border:1px solid #ddd;}
+.btn-outline:hover{background:#f8f9fa;}
+/* 统计卡片 */
+.stats-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;}
+.stat-card{background:#fff;padding:15px 20px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.04);min-width:120px;text-align:center;border-top:3px solid #3498db;}
+.stat-card.highlight{border-top-color:#27ae60;}
+.stat-card.warning{border-top-color:#f39c12;}
+.stat-card.danger{border-top-color:#e74c3c;}
+.stat-card .value{font-size:26px;font-weight:700;color:#2c3e50;}
+.stat-card.highlight .value{color:#27ae60;}
+.stat-card.warning .value{color:#f39c12;}
+.stat-card.danger .value{color:#e74c3c;}
+.stat-card .label{font-size:12px;color:#666;margin-top:4px;}
+.stat-card .rate{font-size:14px;color:#999;margin-top:2px;}
+/* 单位信息卡片 */
+.unit-card{background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:20px;}
+.unit-header{display:flex;justify-content:space-between;align-items:center;padding-bottom:15px;border-bottom:2px solid #f0f0f0;margin-bottom:20px;}
+.unit-name{font-size:20px;font-weight:600;color:#2c3e50;}
+.unit-meta{font-size:13px;color:#666;}
+.unit-score{background:#e8f5e9;padding:10px 20px;border-radius:8px;border:2px solid #27ae60;}
+.unit-score .score-value{font-size:28px;font-weight:700;color:#27ae60;}
+.unit-score .score-label{font-size:12px;color:#666;}
+/* 项目标签 */
+.project-tabs{display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;}
+.project-tab{padding:8px 16px;background:#f0f0f0;border-radius:20px;cursor:pointer;font-size:13px;transition:all 0.2s;}
+.project-tab:hover{background:#e0e0e0;}
+.project-tab.active{background:#16a085;color:#fff;}
+/* 图表 */
+.chart-box{background:#f8fafc;border-radius:8px;padding:20px;margin-bottom:20px;}
+.bar-chart{display:flex;align-items:flex-end;gap:15px;height:200px;padding:20px;}
+.bar-item{flex:1;display:flex;flex-direction:column;align-items:center;min-width:60px;}
+.bar{width:50px;border-radius:4px 4px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:4px;color:#fff;font-size:11px;font-weight:600;min-height:5px;}
+.bar-label{font-size:12px;color:#666;margin-top:8px;text-align:center;}
+/* 问题汇总 */
+.problem-box{background:#fff3cd;border-radius:8px;padding:15px;margin-bottom:20px;border-left:4px solid #f39c12;}
+.problem-box h4{margin:0 0 10px 0;color:#856404;font-size:14px;}
+.problem-list{font-size:13px;line-height:1.8;color:#856404;}
+.problem-item{display:inline-block;background:#fff;padding:4px 10px;border-radius:4px;margin:3px;border:1px solid #f39c12;}
+/* 表格 */
+.section-title{margin:20px 0 12px 0;color:#2c3e50;font-size:15px;border-left:4px solid #16a085;padding-left:10px;}
+.table-container{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{border:1px solid #ddd;padding:10px 8px;text-align:center;}
+th{background:#f8fafc;font-weight:600;color:#333;position:sticky;top:0;}
+td.left{text-align:left;}
+tr:hover{background:#f8f9fa;}
+tr.problem-row{background:#fff3cd;}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;}
+.badge-green{background:#e8f5e9;color:#27ae60;}
+.badge-red{background:#ffebee;color:#e74c3c;}
+.badge-blue{background:#e3f2fd;color:#1976d2;}
+.badge-orange{background:#fff3e0;color:#e65100;}
+.badge-gray{background:#f5f5f5;color:#666;}
+/* 分页 */
+.pagination{display:flex;gap:8px;justify-content:center;align-items:center;margin-top:15px;}
+.pagination button{padding:6px 12px;border:1px solid #ddd;background:#fff;border-radius:4px;cursor:pointer;}
+.pagination button.active{background:#3498db;color:#fff;border-color:#3498db;}
+.pagination button:hover{background:#f0f0f0;}
+.pagination span{font-size:13px;color:#666;}
+/* 对比分析 */
+.compare-box{background:#e3f2fd;border-radius:8px;padding:15px;margin-bottom:20px;border-left:4px solid #1976d2;}
+.compare-box h4{margin:0 0 10px 0;color:#1565c0;font-size:14px;}
+.compare-item{display:flex;align-items:center;gap:10px;margin:5px 0;font-size:13px;}
+.compare-item .label{color:#666;}
+.compare-item .unit-val{font-weight:600;color:#2c3e50;}
+.compare-item .avg-val{color:#1976d2;}
+.compare-item .diff{font-weight:600;}
+.compare-item .diff.up{color:#27ae60;}
+.compare-item .diff.down{color:#e74c3c;}
+.empty-tip{padding:30px;text-align:center;color:#999;background:#fff;border-radius:8px;}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <div>
+    <h1>📝 单位明细</h1>
+    <div class="breadcrumb"><a href="admin.html">后台首页</a> / 单位明细</div>
+  </div>
+  <a href="admin.html" class="back-btn">返回后台</a>
+</div>
+
+<div class="filter-bar">
+  <label>单位：</label>
+  <select id="detailOrg"><option value="">选择单位</option></select>
+  <label>年度：</label>
+  <select id="detailYear"><option value="">全部年度</option></select>
+  <label>季度：</label>
+  <select id="detailQuarter">
+    <option value="">全部季度</option>
+    <option value="Q1">一季度</option>
+    <option value="Q2">二季度</option>
+    <option value="Q3">三季度</option>
+    <option value="Q4">四季度</option>
+  </select>
+  <label>项目：</label>
+  <select id="detailProject">
+    <option value="">全部项目</option>
+    <option value="居民">居民</option>
+    <option value="老年人">老年人</option>
+    <option value="高血压">高血压</option>
+    <option value="糖尿病">糖尿病</option>
+    <option value="慢阻肺">慢阻肺</option>
+  </select>
+  <label>搜索：</label>
+  <input type="text" id="searchKeyword" placeholder="姓名/身份证">
+  <button class="btn btn-primary" onclick="loadUnitDetail()">查询明细</button>
+  <button class="btn btn-success" onclick="exportUnitDetail()">导出Excel</button>
+</div>
+
+<div id="unitDetailContent">
+  <div class="empty-tip">请选择单位并点击查询明细</div>
+</div>
+
+</div>
+
+<script>
+const projects = {
+  '居民': { key: 'residentCheckRecords', hasControl: false },
+  '老年人': { key: 'elderlyCheckRecords', hasControl: false },
+  '高血压': { key: 'hypertensionCheckRecords', hasControl: true },
+  '糖尿病': { key: 'diabetesCheckRecords', hasControl: true },
+  '慢阻肺': { key: 'copdCheckRecords', hasControl: false }
+};
+
+let currentUnitDetail = {};
+let currentPage = 1;
+const pageSize = 20;
+
+function getRecords(project){
+  try {
+    return JSON.parse(localStorage.getItem(projects[project].key) || '[]');
+  } catch(e) { return []; }
+}
+
+function formatQuarter(q){
+  const map = {Q1:'一季度',Q2:'二季度',Q3:'三季度',Q4:'四季度'};
+  return map[q] || q || '';
+}
+
+function loadOrgOptions(){
+  const orgs = new Set();
+  Object.keys(projects).forEach(p => {
+    getRecords(p).forEach(r => { if(r.org) orgs.add(r.org); });
+  });
+  const sorted = [...orgs].sort();
+  const sel = document.getElementById('detailOrg');
+  sel.innerHTML = '<option value="">选择单位</option>';
+  sorted.forEach(o => sel.innerHTML += '<option value="' + o + '">' + o + '</option>');
+}
+
+function loadYearOptions(){
+  const years = new Set();
+  Object.keys(projects).forEach(p => {
+    getRecords(p).forEach(r => { if(r.year) years.add(String(r.year)); });
+  });
+  const sorted = [...years].sort().reverse();
+  const sel = document.getElementById('detailYear');
+  sel.innerHTML = '<option value="">全部年度</option>';
+  sorted.forEach(y => sel.innerHTML += '<option value="' + y + '">' + y + '</option>');
+}
+
+function calcStats(records, projectName){
+  const stats = {
+    total: records.length,
+    valid: 0, invalid: 0, lost: 0, telError: 0,
+    match: 0, unmatch: 0,
+    standard: 0, unstandard: 0,
+    fake: 0, controlOk: 0,
+    problems: []
+  };
+
+  records.forEach(r => {
+    const reply = r.replyCode || r.reply || '';
+    if(reply === '1' || reply === '2'){
+      stats.valid++;
+      const matchResult = r.matchResult || r.judgeMatch || '';
+      const fake = r.fake || r.fakeCode || '0';
+      const isUnmatch = matchResult.includes('不符合') || fake !== '0';
+
+      if(isUnmatch){
+        stats.unmatch++;
+        stats.unstandard++;
+        if(fake !== '0') stats.fake++;
+        // 收集问题
+        if(fake === '1') stats.problems.push('死亡仍有服务记录');
+        else if(fake === '2') stats.problems.push('异地服务记录');
+        else if(fake === '3') stats.problems.push('复制往年记录');
+        else if(matchResult) stats.problems.push(matchResult.split('——')[0]);
+      } else {
+        stats.match++;
+        const normResult = r.normResult || r.judgeNorm || '';
+        if(normResult.includes('不规范')){
+          stats.unstandard++;
+          stats.problems.push(normResult.split('——')[0]);
+        } else {
+          stats.standard++;
+        }
+      }
+
+      if(projects[projectName] && projects[projectName].hasControl){
+        const control = r.controlSatisfied || r.judgeControl || '';
+        if(control === '满意') stats.controlOk++;
+      }
+    } else {
+      stats.invalid++;
+      if(['3','4','5','6'].includes(reply)){
+        stats.lost++;
+        if(reply === '3') stats.problems.push('家属不了解情况');
+        else if(reply === '4') stats.problems.push('无法接通');
+        else if(reply === '5') stats.problems.push('拒绝调查');
+        else if(reply === '6') stats.problems.push('本人记不清');
+      } else if(['7','8','9'].includes(reply)){
+        stats.telError++;
+        if(reply === '7') stats.problems.push('电话空号');
+        else if(reply === '8') stats.problems.push('电话错号');
+        else if(reply === '9') stats.problems.push('村医号码');
+      }
+    }
+  });
+
+  stats.validRate = stats.total > 0 ? (stats.valid / stats.total * 100) : 0;
+  stats.lostRate = stats.total > 0 ? (stats.lost / stats.total * 100) : 0;
+  stats.telRate = stats.total > 0 ? (stats.telError / stats.total * 100) : 0;
+  stats.matchRate = stats.valid > 0 ? (stats.match / stats.valid * 100) : 0;
+  stats.standardRate = stats.valid > 0 ? (stats.standard / stats.valid * 100) : 0;
+  stats.controlRate = stats.valid > 0 ? (stats.controlOk / stats.valid * 100) : 0;
+
+  // 统计问题频率
+  const problemCounts = {};
+  stats.problems.forEach(p => {
+    const key = p.trim();
+    if(key) problemCounts[key] = (problemCounts[key] || 0) + 1;
+  });
+  stats.problemList = Object.entries(problemCounts).sort((a,b) => b[1]-a[1]).slice(0,10);
+
+  return stats;
+}
+
+function calcUnitScore(stats, projectName){
+  const rules = {
+    base: 100,
+    lostDeduct: 2,
+    telDeduct: 1,
+    unmatchDeduct: 3,
+    standardThreshold: 90,
+    standardBonus: 10,
+    controlThreshold: 60,
+    controlBonus: 10
+  };
+
+  let score = rules.base;
+  score -= stats.lost * rules.lostDeduct;
+  score -= stats.telError * rules.telDeduct;
+  score -= stats.unmatch * rules.unmatchDeduct;
+
+  if(stats.validRate < rules.standardThreshold){
+    score -= rules.standardBonus;
+  }
+
+  if(projects[projectName] && projects[projectName].hasControl){
+    if(stats.controlRate < rules.controlThreshold){
+      score -= rules.controlBonus;
+    }
+  }
+
+  return Math.max(0, Math.round(score * 10) / 10);
+}
+
+function calcCountyAvg(){
+  const countyStats = {};
+  Object.keys(projects).forEach(p => {
+    const records = getRecords(p);
+    countyStats[p] = calcStats(records, p);
+  });
+  return countyStats;
+}
+
+function loadUnitDetail(){
+  const org = document.getElementById('detailOrg').value;
+  const year = document.getElementById('detailYear').value;
+  const quarter = document.getElementById('detailQuarter').value;
+  const project = document.getElementById('detailProject').value;
+  const keyword = document.getElementById('searchKeyword').value.trim();
+
+  if(!org){ alert('请选择单位'); return; }
+
+  // 获取该单位所有记录
+  let allRecords = [];
+  Object.keys(projects).forEach(p => {
+    if(project && p !== project) return;
+    getRecords(p).forEach(r => {
+      if(r.org === org){
+        r.projectName = p;
+        allRecords.push(r);
+      }
+    });
+  });
+
+  // 筛选
+  if(year) allRecords = allRecords.filter(r => String(r.year) === year);
+  if(quarter) allRecords = allRecords.filter(r => r.quarter === quarter);
+  if(keyword){
+    allRecords = allRecords.filter(r => 
+      (r.name && r.name.includes(keyword)) || 
+      (r.idcard && r.idcard.includes(keyword))
+    );
+  }
+
+  currentUnitDetail = {org, records: allRecords, year, quarter, project};
+
+  // 计算各项目统计
+  const projectStats = {};
+  Object.keys(projects).forEach(p => {
+    if(project && p !== project) return;
+    const records = allRecords.filter(r => r.projectName === p);
+    projectStats[p] = calcStats(records, p);
+  });
+
+  // 计算全县平均
+  const countyAvg = calcCountyAvg();
+
+  // 总体统计
+  let totalStats = {total:0, valid:0, lost:0, telError:0, match:0, standard:0, fake:0, controlOk:0, problems:[]};
+  Object.keys(projectStats).forEach(p => {
+    totalStats.total += projectStats[p].total;
+    totalStats.valid += projectStats[p].valid;
+    totalStats.lost += projectStats[p].lost;
+    totalStats.telError += projectStats[p].telError;
+    totalStats.match += projectStats[p].match;
+    totalStats.standard += projectStats[p].standard;
+    totalStats.fake += projectStats[p].fake;
+    totalStats.controlOk += projectStats[p].controlOk;
+    totalStats.problems = totalStats.problems.concat(projectStats[p].problems);
+  });
+  totalStats.validRate = totalStats.total > 0 ? (totalStats.valid / totalStats.total * 100) : 0;
+  totalStats.matchRate = totalStats.valid > 0 ? (totalStats.match / totalStats.valid * 100) : 0;
+  totalStats.standardRate = totalStats.valid > 0 ? (totalStats.standard / totalStats.valid * 100) : 0;
+
+  // 计算单位评分
+  const unitScore = calcUnitScore(totalStats, project || 'all');
+
+  // 渲染页面
+  let html = '';
+
+  // 单位信息头部
+  html += '<div class="unit-card">';
+  html += '<div class="unit-header">';
+  html += '<div class="unit-name">🏥 ' + org + '</div>';
+  html += '<div class="unit-meta">查询条件：' + (year||'全部年度') + ' / ' + (quarter?formatQuarter(quarter):'全部季度') + (project?' / '+project:'') + '</div>';
+  html += '<div class="unit-score"><div class="score-value">' + unitScore + '</div><div class="score-label">单位得分</div></div>';
+  html += '</div>';
+
+  // 统计卡片
+  html += '<div class="stats-row">';
+  html += '<div class="stat-card"><div class="value">' + totalStats.total + '</div><div class="label">核查总数</div></div>';
+  html += '<div class="stat-card highlight"><div class="value">' + totalStats.valid + '</div><div class="label">有效应答</div><div class="rate">' + totalStats.validRate.toFixed(1) + '%</div></div>';
+  html += '<div class="stat-card warning"><div class="value">' + totalStats.lost + '</div><div class="label">失访</div><div class="rate">' + (totalStats.total>0?(totalStats.lost/totalStats.total*100).toFixed(1):0) + '%</div></div>';
+  html += '<div class="stat-card warning"><div class="value">' + totalStats.telError + '</div><div class="label">电话异常</div><div class="rate">' + (totalStats.total>0?(totalStats.telError/totalStats.total*100).toFixed(1):0) + '%</div></div>';
+  html += '<div class="stat-card highlight"><div class="value">' + totalStats.match + '</div><div class="label">符合</div><div class="rate">' + totalStats.matchRate.toFixed(1) + '%</div></div>';
+  html += '<div class="stat-card highlight"><div class="value">' + totalStats.standard + '</div><div class="label">规范</div><div class="rate">' + totalStats.standardRate.toFixed(1) + '%</div></div>';
+  html += '<div class="stat-card danger"><div class="value">' + totalStats.fake + '</div><div class="label">涉嫌造假</div></div>';
+  html += '</div>';
+
+  // 与全县对比
+  html += '<div class="compare-box">';
+  html += '<h4>📊 与全县平均水平对比</h4>';
+  const countyTotal = {total:0, valid:0, match:0, standard:0};
+  Object.keys(countyAvg).forEach(p => {
+    if(project && p !== project) return;
+    countyTotal.total += countyAvg[p].total;
+    countyTotal.valid += countyAvg[p].valid;
+    countyTotal.match += countyAvg[p].match;
+    countyTotal.standard += countyAvg[p].standard;
+  });
+  const countyValidRate = countyTotal.total > 0 ? (countyTotal.valid / countyTotal.total * 100) : 0;
+  const countyMatchRate = countyTotal.valid > 0 ? (countyTotal.match / countyTotal.valid * 100) : 0;
+  const countyStandardRate = countyTotal.valid > 0 ? (countyTotal.standard / countyTotal.valid * 100) : 0;
+
+  html += '<div class="compare-item"><span class="label">有效应答率：</span><span class="unit-val">' + totalStats.validRate.toFixed(1) + '%</span> vs <span class="avg-val">全县' + countyValidRate.toFixed(1) + '%</span><span class="diff ' + (totalStats.validRate >= countyValidRate ? 'up' : 'down') + '">' + (totalStats.validRate >= countyValidRate ? '↑' : '↓') + Math.abs(totalStats.validRate - countyValidRate).toFixed(1) + '%</span></div>';
+  html += '<div class="compare-item"><span class="label">符合率：</span><span class="unit-val">' + totalStats.matchRate.toFixed(1) + '%</span> vs <span class="avg-val">全县' + countyMatchRate.toFixed(1) + '%</span><span class="diff ' + (totalStats.matchRate >= countyMatchRate ? 'up' : 'down') + '">' + (totalStats.matchRate >= countyMatchRate ? '↑' : '↓') + Math.abs(totalStats.matchRate - countyMatchRate).toFixed(1) + '%</span></div>';
+  html += '<div class="compare-item"><span class="label">规范率：</span><span class="unit-val">' + totalStats.standardRate.toFixed(1) + '%</span> vs <span class="avg-val">全县' + countyStandardRate.toFixed(1) + '%</span><span class="diff ' + (totalStats.standardRate >= countyStandardRate ? 'up' : 'down') + '">' + (totalStats.standardRate >= countyStandardRate ? '↑' : '↓') + Math.abs(totalStats.standardRate - countyStandardRate).toFixed(1) + '%</span></div>';
+  html += '</div>';
+
+  // 问题汇总
+  if(totalStats.problems.length > 0){
+    const problemCounts = {};
+    totalStats.problems.forEach(p => {
+      const key = p.trim();
+      if(key) problemCounts[key] = (problemCounts[key] || 0) + 1;
+    });
+    const problemList = Object.entries(problemCounts).sort((a,b) => b[1]-a[1]).slice(0,10);
+
+    html += '<div class="problem-box">';
+    html += '<h4>⚠️ 主要问题汇总（共' + totalStats.problems.length + '个问题）</h4>';
+    html += '<div class="problem-list">';
+    problemList.forEach(([p, c]) => {
+      html += '<span class="problem-item">' + p + ' (' + c + '次)</span>';
+    });
+    html += '</div>';
+    html += '</div>';
+  }
+
+  // 各项目统计图表
+  html += '<div class="section-title">各项目统计对比</div>';
+  html += '<div class="chart-box">';
+  html += '<div class="bar-chart">';
+  const maxTotal = Math.max(...Object.values(projectStats).map(s => s.total), 1);
+  Object.keys(projectStats).forEach(p => {
+    const s = projectStats[p];
+    html += '<div class="bar-item">';
+    html += '<div class="bar" style="height:' + (s.total/maxTotal*160) + 'px;background:#3498db;">' + s.total + '</div>';
+    html += '<div class="bar-label">' + p + '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '<div style="display:flex;gap:15px;justify-content:center;margin-top:10px;font-size:12px;color:#666;">';
+  html += '<span>核查数量对比</span>';
+  html += '</div>';
+  html += '</div>';
+
+  // 各项目详细表格
+  html += '<div class="section-title">各项目详细统计</div>';
+  html += '<div class="table-container"><table><thead><tr>';
+  html += '<th>项目</th><th>核查数</th><th>有效数</th><th>有效应答率</th><th>失访数</th><th>电话异常</th><th>符合数</th><th>符合率</th><th>规范数</th><th>规范率</th><th>涉嫌造假</th>';
+  if(project === '高血压' || project === '糖尿病' || !project){
+    html += '<th>控制满意</th><th>控制率</th>';
+  }
+  html += '</tr></thead><tbody>';
+  Object.keys(projectStats).forEach(p => {
+    const s = projectStats[p];
+    html += '<tr>';
+    html += '<td>' + p + '</td>';
+    html += '<td>' + s.total + '</td>';
+    html += '<td>' + s.valid + '</td>';
+    html += '<td>' + s.validRate.toFixed(1) + '%</td>';
+    html += '<td>' + s.lost + '</td>';
+    html += '<td>' + s.telError + '</td>';
+    html += '<td>' + s.match + '</td>';
+    html += '<td>' + s.matchRate.toFixed(1) + '%</td>';
+    html += '<td>' + s.standard + '</td>';
+    html += '<td>' + s.standardRate.toFixed(1) + '%</td>';
+    html += '<td>' + s.fake + '</td>';
+    if(project === '高血压' || project === '糖尿病' || !project){
+      if(projects[p].hasControl){
+        html += '<td>' + s.controlOk + '</td>';
+        html += '<td>' + s.controlRate.toFixed(1) + '%</td>';
+      } else {
+        html += '<td>-</td><td>-</td>';
+      }
+    }
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // 核查记录列表
+  html += '<div class="section-title">核查记录列表（共' + allRecords.length + '条）</div>';
+  html += '<div class="table-container"><table><thead><tr>';
+  html += '<th>序号</th><th>项目</th><th>姓名</th><th>性别</th><th>年龄</th><th>身份证</th><th>电话</th><th>年度</th><th>季度</th><th>应答情况</th><th>有效性</th><th>符合性</th><th>规范性</th><th>造假</th><th>时间</th>';
+  html += '</tr></thead><tbody id="recordTableBody">';
+  html += '</tbody></table></div>';
+
+  // 分页
+  html += '<div class="pagination" id="pagination"></div>';
+
+  html += '</div>';
+
+  document.getElementById('unitDetailContent').innerHTML = html;
+
+  // 渲染记录列表
+  currentPage = 1;
+  renderRecordTable();
+}
+
+function renderRecordTable(){
+  const tbody = document.getElementById('recordTableBody');
+  const pagination = document.getElementById('pagination');
+  const records = currentUnitDetail.records;
+
+  const start = (currentPage - 1) * pageSize;
+  const end = start + pageSize;
+  const pageRecords = records.slice(start, end);
+
+  let html = '';
+  if(pageRecords.length === 0){
+    html = '<tr><td colspan="15" class="empty-tip">无记录</td></tr>';
+  } else {
+    pageRecords.forEach((r, i) => {
+      const reply = r.replyCode || r.reply || '';
+      const matchResult = r.matchResult || r.judgeMatch || '';
+      const normResult = r.normResult || r.judgeNorm || '';
+      const fake = r.fake || r.fakeCode || '0';
+      const hasProblem = matchResult.includes('不符合') || normResult.includes('不规范') || fake !== '0' || ['3','4','5','6','7','8','9'].includes(reply);
+
+      html += '<tr' + (hasProblem ? ' class="problem-row"' : '') + '>';
+      html += '<td>' + (start + i + 1) + '</td>';
+      html += '<td>' + r.projectName + '</td>';
+      html += '<td class="left">' + (r.name||'-') + '</td>';
+      html += '<td>' + (r.sex||'-') + '</td>';
+      html += '<td>' + (r.age||'-') + '</td>';
+      html += '<td>' + (r.idcard||'-') + '</td>';
+      html += '<td>' + (r.tel||'-') + '</td>';
+      html += '<td>' + (r.year||'-') + '</td>';
+      html += '<td>' + formatQuarter(r.quarter) + '</td>';
+
+      // 应答情况
+      const replyMap = {
+        '1':'本人应答','2':'家属了解','3':'家属不了解','4':'无法接通',
+        '5':'拒绝调查','6':'记不清','7':'空号','8':'错号','9':'村医号码'
+      };
+      html += '<td>' + (replyMap[reply]||'-') + '</td>';
+
+      // 有效性
+      if(reply === '1' || reply === '2'){
+        html += '<td><span class="badge badge-green">有效</span></td>';
+      } else if(['3','4','5','6'].includes(reply)){
+        html += '<td><span class="badge badge-orange">失访</span></td>';
+      } else if(['7','8','9'].includes(reply)){
+        html += '<td><span class="badge badge-gray">电话异常</span></td>';
+      } else {
+        html += '<td>-</td>';
+      }
+
+      // 符合性
+      if(matchResult.includes('符合')){
+        html += '<td><span class="badge badge-green">符合</span></td>';
+      } else if(matchResult.includes('不符合')){
+        html += '<td><span class="badge badge-red">不符合</span></td>';
+      } else {
+        html += '<td>-</td>';
+      }
+
+      // 规范性
+      if(normResult.includes('规范')){
+        html += '<td><span class="badge badge-green">规范</span></td>';
+      } else if(normResult.includes('不规范')){
+        html += '<td><span class="badge badge-red">不规范</span></td>';
+      } else {
+        html += '<td>-</td>';
+      }
+
+      // 造假
+      if(fake !== '0'){
+        html += '<td><span class="badge badge-red">涉嫌</span></td>';
+      } else {
+        html += '<td>-</td>';
+      }
+
+      html += '<td>' + (r.createTime||r.saveTime||'-') + '</td>';
+      html += '</tr>';
+    });
+  }
+  tbody.innerHTML = html;
+
+  // 渲染分页
+  const totalPages = Math.ceil(records.length / pageSize);
+  let pageHtml = '';
+  pageHtml += '<span>共' + records.length + '条，每页' + pageSize + '条</span>';
+  if(totalPages > 1){
+    if(currentPage > 1){
+      pageHtml += '<button onclick="changePage(1)">首页</button>';
+      pageHtml += '<button onclick="changePage(' + (currentPage-1) + ')">上一页</button>';
+    }
+    for(let i = 1; i <= totalPages && i <= 5; i++){
+      pageHtml += '<button' + (i === currentPage ? ' class="active"' : '') + ' onclick="changePage(' + i + ')">' + i + '</button>';
+    }
+    if(totalPages > 5){
+      pageHtml += '<button onclick="changePage(' + totalPages + ')">末页</button>';
+    }
+    if(currentPage < totalPages){
+      pageHtml += '<button onclick="changePage(' + (currentPage+1) + ')">下一页</button>';
+    }
+  }
+  pagination.innerHTML = pageHtml;
+}
+
+function changePage(page){
+  currentPage = page;
+  renderRecordTable();
+}
+
+function exportUnitDetail(){
+  if(!currentUnitDetail.records || currentUnitDetail.records.length === 0){
+    alert('请先查询明细');
+    return;
+  }
+
+  const replyMap = {
+    '1':'本人应答','2':'家属了解','3':'家属不了解','4':'无法接通',
+    '5':'拒绝调查','6':'记不清','7':'空号','8':'错号','9':'村医号码'
+  };
+
+  const data = currentUnitDetail.records.map((r,i) => ({
+    '序号': i+1,
+    '单位': r.org,
+    '项目': r.projectName,
+    '姓名': r.name,
+    '性别': r.sex,
+    '年龄': r.age,
+    '身份证': r.idcard,
+    '电话': r.tel,
+    '年度': r.year,
+    '季度': formatQuarter(r.quarter),
+    '应答情况': replyMap[r.replyCode||r.reply||''] || '-',
+    '有效性': (r.replyCode||r.reply||'').match(/[12]/) ? '有效' : (r.replyCode||r.reply||'').match(/[3456]/) ? '失访' : (r.replyCode||r.reply||'').match(/[789]/) ? '电话异常' : '-',
+    '符合性': r.matchResult||r.judgeMatch||'-',
+    '规范性': r.normResult||r.judgeNorm||'-',
+    '涉嫌造假': r.fake||r.fakeCode||'0' !== '0' ? '是' : '否',
+    '备注': r.remark||'-',
+    '时间': r.createTime||r.saveTime||'-'
+  }));
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), '单位明细');
+  
+  let fileName = currentUnitDetail.org + '_明细';
+  if(currentUnitDetail.year) fileName += '_' + currentUnitDetail.year;
+  if(currentUnitDetail.quarter) fileName += '_' + formatQuarter(currentUnitDetail.quarter);
+  fileName += '_' + new Date().toLocaleDateString().replace(/\//g,'-') + '.xlsx';
+  
+  XLSX.writeFile(wb, fileName);
+}
+
+loadOrgOptions();
+loadYearOptions();
+</script>
+</body>
+</html>
