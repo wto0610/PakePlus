@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>核查个案 - 健康核查后台</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;font-size:14px;}
+body{padding:0;max-width:1600px;margin:0 auto;background:#f5f7fa;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Microsoft YaHei",sans-serif;}
+.container{padding:20px;}
+.header{background:linear-gradient(135deg,#2c3e50 0%,#34495e 100%);color:#fff;padding:20px 24px;border-radius:12px;margin-bottom:20px;box-shadow:0 4px 12px rgba(44,62,80,0.3);display:flex;justify-content:space-between;align-items:center;}
+.header h1{margin:0;font-size:22px;}
+.breadcrumb{font-size:13px;opacity:0.85;margin-top:6px;}
+.breadcrumb a{color:#fff;text-decoration:none;margin:0 6px;}
+.back-btn{background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:8px 18px;border-radius:6px;font-size:13px;cursor:pointer;text-decoration:none;}
+.back-btn:hover{background:rgba(255,255,255,0.35);}
+.filter-bar{display:flex;gap:15px;flex-wrap:wrap;align-items:center;padding:15px;background:#fff;border-radius:8px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
+.filter-bar label{font-weight:500;color:#555;}
+.filter-bar select,.filter-bar input{padding:8px 12px;border:1px solid #ddd;border-radius:6px;min-width:140px;}
+.btn{padding:9px 20px;border:none;border-radius:6px;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s;}
+.btn-primary{background:#3498db;color:#fff;}
+.btn-primary:hover{background:#2980b9;}
+.btn-success{background:#2ecc71;color:#fff;}
+.btn-success:hover{background:#27ae60;}
+.btn-danger{background:#e74c3c;color:#fff;}
+.btn-danger:hover{background:#c0392b;}
+.btn-outline{background:#fff;color:#666;border:1px solid #ddd;}
+.btn-outline:hover{background:#f8f9fa;}
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:15px;}
+.detail-card{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:20px;margin-bottom:15px;cursor:pointer;transition:all 0.2s;}
+.detail-card:hover{background:#f8f9fa;border-color:#3498db;transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.08);}
+.detail-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding-bottom:10px;margin-bottom:15px;}
+.detail-title{font-size:16px;font-weight:600;color:#333;}
+.detail-info{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.detail-row{display:flex;gap:8px;font-size:13px;}
+.detail-row .label{color:#666;min-width:100px;font-weight:500;}
+.detail-row .value{color:#333;font-weight:500;word-break:break-all;}
+.tag{padding:3px 8px;border-radius:3px;font-size:11px;}
+.tag-green{background:#e8f5e9;color:#2e7d32;}
+.tag-red{background:#ffebee;color:#c62828;}
+.tag-orange{background:#fff3e0;color:#e65100;}
+.tag-gray{background:#f5f5f5;color:#666;}
+.empty-tip{padding:50px;text-align:center;color:#999;background:#fff;border-radius:8px;}
+.record-count{color:#666;font-size:13px;margin-left:auto;}
+#fileInput{display:none;}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <div>
+    <h1>📁 核查个案</h1>
+    <div class="breadcrumb"><a href="admin.html">后台首页</a> / 核查个案</div>
+  </div>
+  <a href="admin.html" class="back-btn">返回后台</a>
+</div>
+
+<div class="filter-bar">
+  <label>搜索姓名：</label>
+  <input type="text" id="caseSearch" placeholder="输入姓名搜索" onkeyup="if(event.key==='Enter')searchCases()">
+  <label>项目：</label>
+  <select id="caseProject">
+    <option value="">全部项目</option>
+    <option value="居民">居民</option>
+    <option value="老年人">老年人</option>
+    <option value="高血压">高血压</option>
+    <option value="糖尿病">糖尿病</option>
+    <option value="慢阻肺">慢阻肺</option>
+  </select>
+  <label>单位：</label>
+  <select id="caseOrg">
+    <option value="">全部单位</option>
+  </select>
+  <label>年度：</label>
+  <select id="caseYear">
+    <option value="">全部年度</option>
+  </select>
+  <label>身份证：</label>
+  <input type="text" id="caseIdcard" placeholder="输入身份证号" onkeyup="if(event.key==='Enter')searchCases()">
+  <button class="btn btn-primary" onclick="searchCases()">搜索</button>
+  <button class="btn btn-outline" onclick="resetSearch()">重置</button>
+</div>
+
+<div class="toolbar">
+  <button class="btn btn-success" onclick="document.getElementById('fileInput').click()">📥 导入数据</button>
+  <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="importExcel()">
+  <button class="btn btn-success" onclick="exportAllExcel()">📤 导出全部</button>
+  <button class="btn btn-primary" onclick="exportFilteredExcel()">📤 导出筛选</button>
+  <span class="record-count" id="recordCount">共 0 条记录</span>
+</div>
+
+<div id="caseList"></div>
+
+</div>
+
+<script>
+const projects = {
+  '居民': 'residentCheckRecords',
+  '老年人': 'elderlyCheckRecords',
+  '高血压': 'hypertensionCheckRecords',
+  '糖尿病': 'diabetesCheckRecords',
+  '慢阻肺': 'copdCheckRecords'
+};
+
+const editPages = {
+  '居民': 'question_edit.html',
+  '老年人': 'elderly_edit.html',
+  '高血压': 'hypertension_edit.html',
+  '糖尿病': 'hypertension_edit.html',
+  '慢阻肺': 'hypertension_edit.html'
+};
+
+const replyCodeMap = {
+  "1":"本人应答","2":"家属了解情况","3":"家属不了解情况",
+  "4":"无法接通","5":"拒绝调查","6":"空号","7":"错号",
+  "8":"村医/村干号码","9":"本人应答记不清"
+};
+
+function getRecords(project){
+  return JSON.parse(localStorage.getItem(projects[project]) || '[]');
+}
+
+function getAllRecords(){
+  let all = [];
+  Object.keys(projects).forEach(p => {
+    getRecords(p).forEach(r => all.push({...r, projectName: p, storageKey: projects[p]}));
+  });
+  return all;
+}
+
+function getValidResult(r){
+  if(r.validResult) return r.validResult;
+  if(r.judgeReply) {
+    if(r.judgeReply.includes("有效")) return "有效";
+    if(r.judgeReply.includes("失访")) return "失访";
+    if(r.judgeReply.includes("电话异常")) return "电话异常";
+    return r.judgeReply;
+  }
+  return '待判定';
+}
+
+function getMatchResult(r){
+  if(r.matchResult) return r.matchResult;
+  if(r.judgeMatch) return r.judgeMatch;
+  return '待判定';
+}
+
+function getNormResult(r){
+  if(r.normResult) return r.normResult;
+  if(r.judgeNorm) return r.judgeNorm;
+  if(r.judgeExam) return r.judgeExam;
+  return '待判定';
+}
+
+function formatQuarter(q){
+  const map = {Q1:'一季度',Q2:'二季度',Q3:'三季度',Q4:'四季度'};
+  return map[q] || q || '';
+}
+
+function maskIdcard(id){
+  if(!id || id.length < 8) return id || '';
+  return id.substring(0,4) + '**********' + id.substring(id.length-4);
+}
+
+function populateOrgAndYearOptions(){
+  const all = getAllRecords();
+  const orgs = [...new Set(all.map(r => r.org).filter(o => o))].sort();
+  const years = [...new Set(all.map(r => r.year).filter(y => y))].sort().reverse();
+  
+  const orgSelect = document.getElementById('caseOrg');
+  orgSelect.innerHTML = '<option value="">全部单位</option>' + orgs.map(o => `<option value="${o}">${o}</option>`).join('');
+  
+  const yearSelect = document.getElementById('caseYear');
+  yearSelect.innerHTML = '<option value="">全部年度</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
+}
+
+function searchCases(){
+  const search = document.getElementById('caseSearch').value.trim();
+  const project = document.getElementById('caseProject').value;
+  const org = document.getElementById('caseOrg').value;
+  const year = document.getElementById('caseYear').value;
+  const idcard = document.getElementById('caseIdcard').value.trim();
+  
+  let all = getAllRecords();
+  if(search) all = all.filter(r => r.name && r.name.includes(search));
+  if(project) all = all.filter(r => r.projectName === project);
+  if(org) all = all.filter(r => r.org === org);
+  if(year) all = all.filter(r => r.year === year);
+  if(idcard) all = all.filter(r => r.idcard && r.idcard.includes(idcard));
+  
+  all = all.sort((a,b) => new Date(b.createTime||b.saveTime||0) - new Date(a.createTime||a.saveTime||0));
+  
+  document.getElementById('recordCount').textContent = '共 ' + all.length + ' 条记录';
+  
+  const container = document.getElementById('caseList');
+  if(all.length === 0){
+    container.innerHTML = '<div class="empty-tip">暂无匹配记录</div>';
+    return;
+  }
+  
+  container.innerHTML = all.map((r, idx) => {
+    const validTag = getValidResult(r).includes('有效') ? 'tag-green' : (getValidResult(r).includes('失访') ? 'tag-orange' : 'tag-red');
+    return '<div class="detail-card">' +
+      '<div class="detail-header">' +
+        '<div class="detail-title">👤 ' + r.name + ' - ' + r.projectName + '</div>' +
+        '<div style="display:flex;gap:8px;align-items:center;">' +
+          '<span class="tag ' + validTag + '">' + getValidResult(r) + '</span>' +
+          '<button class="btn btn-outline" style="padding:4px 10px;font-size:12px;" onclick="viewRecord(' + idx + ')">查看</button>' +
+          '<button class="btn btn-primary" style="padding:4px 10px;font-size:12px;" onclick="editRecord(' + idx + ')">编辑</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="detail-info">' +
+        '<div class="detail-row"><span class="label">单位：</span><span class="value">' + (r.org||'') + '</span></div>' +
+        '<div class="detail-row"><span class="label">年度/季度：</span><span class="value">' + (r.year||'') + ' ' + formatQuarter(r.quarter) + '</span></div>' +
+        '<div class="detail-row"><span class="label">性别/年龄：</span><span class="value">' + (r.sex||'') + ' / ' + (r.age||'') + '</span></div>' +
+        '<div class="detail-row"><span class="label">身份证：</span><span class="value">' + maskIdcard(r.idcard) + '</span></div>' +
+        '<div class="detail-row"><span class="label">电话：</span><span class="value">' + (r.tel||'') + '</span></div>' +
+        '<div class="detail-row"><span class="label">应答情况：</span><span class="value">' + (replyCodeMap[r.replyCode]||r.replyCode||'') + '</span></div>' +
+        '<div class="detail-row"><span class="label">符合性：</span><span class="value">' + getMatchResult(r) + '</span></div>' +
+        '<div class="detail-row"><span class="label">规范性：</span><span class="value">' + getNormResult(r) + '</span></div>' +
+        '<div class="detail-row"><span class="label">保存时间：</span><span class="value">' + (r.createTime||r.saveTime||'') + '</span></div>' +
+      '</div></div>';
+  }).join('');
+}
+
+function viewRecord(idx){
+  const all = getAllRecords();
+  if(idx < 0 || idx >= all.length) return;
+  const r = all[idx];
+  const projectRecords = getRecords(r.projectName);
+  const localIdx = projectRecords.findIndex(pr => pr.name === r.name && pr.year === r.year && pr.quarter === r.quarter);
+  if(localIdx >= 0){
+    sessionStorage.setItem('editingRecord', JSON.stringify(projectRecords[localIdx]));
+    sessionStorage.setItem('editingIndex', localIdx.toString());
+    sessionStorage.setItem('viewMode', '1');
+    const editPage = editPages[r.projectName] || 'elderly_edit.html';
+    window.open(editPage, '_blank');
+  }
+}
+
+function editRecord(idx){
+  const all = getAllRecords();
+  if(idx < 0 || idx >= all.length) return;
+  const r = all[idx];
+  const projectRecords = getRecords(r.projectName);
+  const localIdx = projectRecords.findIndex(pr => pr.name === r.name && pr.year === r.year && pr.quarter === r.quarter);
+  if(localIdx >= 0){
+    sessionStorage.setItem('editingRecord', JSON.stringify(projectRecords[localIdx]));
+    sessionStorage.setItem('editingIndex', localIdx.toString());
+    sessionStorage.removeItem('viewMode');
+    const editPage = editPages[r.projectName] || 'elderly_edit.html';
+    window.open(editPage, '_blank');
+  }
+}
+
+function resetSearch(){
+  document.getElementById('caseSearch').value = '';
+  document.getElementById('caseProject').value = '';
+  document.getElementById('caseOrg').value = '';
+  document.getElementById('caseYear').value = '';
+  document.getElementById('caseIdcard').value = '';
+  searchCases();
+}
+
+function exportAllExcel(){
+  const all = getAllRecords();
+  if(all.length === 0){
+    alert('暂无记录可导出');
+    return;
+  }
+  exportExcelWithData(all, '全部个案');
+}
+
+function exportFilteredExcel(){
+  const search = document.getElementById('caseSearch').value.trim();
+  const project = document.getElementById('caseProject').value;
+  const org = document.getElementById('caseOrg').value;
+  const year = document.getElementById('caseYear').value;
+  const idcard = document.getElementById('caseIdcard').value.trim();
+  
+  let all = getAllRecords();
+  if(search) all = all.filter(r => r.name && r.name.includes(search));
+  if(project) all = all.filter(r => r.projectName === project);
+  if(org) all = all.filter(r => r.org === org);
+  if(year) all = all.filter(r => r.year === year);
+  if(idcard) all = all.filter(r => r.idcard && r.idcard.includes(idcard));
+  
+  if(all.length === 0){
+    alert('没有符合条件的记录可导出');
+    return;
+  }
+  
+  exportExcelWithData(all, '筛选个案');
+}
+
+function exportExcelWithData(dataList, nameSuffix){
+  const headers = ['核查单位','项目','年度','季度','姓名','性别','年龄','身份证号','联系电话','应答编码','应答情况','有效性','符合性','规范性','造假编码','备注','保存时间'];
+  const data = dataList.map(item => [
+    item.org || '', item.projectName || '', item.year || '', formatQuarter(item.quarter),
+    item.name || '', item.sex || '', item.age || '', item.idcard || '', item.tel || '',
+    item.replyCode || '', replyCodeMap[item.replyCode] || item.replyCode || '',
+    getValidResult(item), getMatchResult(item), getNormResult(item),
+    item.fakeCode || item.fake || '0', item.remark || '', item.createTime || item.saveTime || ''
+  ]);
+  
+  const sheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, sheet, '核查个案数据');
+  var filename = `核查个案_${nameSuffix}_${new Date().toLocaleDateString().replace(/\//g,'-')}`;
+  window.exportWithSaveDialog(workbook, filename, 'xlsx');
+}
+
+function importExcel(){
+  const file = document.getElementById('fileInput').files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, {type: 'array'});
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet, {header: 1});
+      if(json.length < 2){
+        alert('Excel文件中没有数据');
+        return;
+      }
+      const headers = json[0];
+      const dataRows = json.slice(1);
+      let importedCount = 0;
+      let errorCount = 0;
+      
+      dataRows.forEach(row => {
+        try {
+          const record = {};
+          headers.forEach((header, idx) => { record[header] = row[idx] !== undefined ? String(row[idx]) : ''; });
+          if(!record['姓名'] || !record['项目'] || !record['年度']){
+            errorCount++;
+            return;
+          }
+          const projectName = record['项目'];
+          const storageKey = projects[projectName];
+          if(!storageKey){
+            errorCount++;
+            return;
+          }
+          const projectRecords = getRecords(projectName);
+          const newRecord = {
+            org: record['核查单位'] || '', project: projectName, year: record['年度'] || '',
+            quarter: record['季度'] || '', name: record['姓名'] || '', sex: record['性别'] || '',
+            age: record['年龄'] || '', idcard: record['身份证号'] || '', tel: record['联系电话'] || '',
+            replyCode: record['应答编码'] || '', remark: record['备注'] || '',
+            createTime: new Date().toLocaleString()
+          };
+          projectRecords.push(newRecord);
+          localStorage.setItem(storageKey, JSON.stringify(projectRecords));
+          importedCount++;
+        } catch(e) { errorCount++; }
+      });
+      
+      alert(`导入完成！成功导入 ${importedCount} 条记录，失败 ${errorCount} 条记录`);
+      populateOrgAndYearOptions();
+      searchCases();
+    } catch(e) { alert('导入失败：' + e.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+window.onload = function(){
+  populateOrgAndYearOptions();
+  searchCases();
+  window.addEventListener('focus', function(){
+    if(sessionStorage.getItem('justSaved')){
+      sessionStorage.removeItem('justSaved');
+      searchCases();
+    }
+  });
+};
+</script>
+<script src="export_helper.js"></script>
+</body>
+</html>
