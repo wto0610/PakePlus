@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>健康核查数据后台管理系统</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Microsoft YaHei",sans-serif;}
+body{background:#f5f7fa;padding:20px;min-height:100vh;}
+.header{background:linear-gradient(135deg,#2c3e50 0%,#34495e 100%);color:#fff;padding:24px 32px;border-radius:12px;margin-bottom:32px;box-shadow:0 4px 12px rgba(44,62,80,0.3);display:flex;justify-content:space-between;align-items:center;}
+.header h1{font-size:24px;}
+.header-sub{font-size:13px;opacity:0.85;margin-top:6px;}
+.back-btn{background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:10px 20px;border-radius:6px;font-size:14px;cursor:pointer;text-decoration:none;transition:all 0.2s;}
+.back-btn:hover{background:rgba(255,255,255,0.35);}
+/* 统计概览 */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;max-width:1200px;margin:0 auto 30px;}
+.stat-card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-top:4px solid #3498db;}
+.stat-card.green{border-top-color:#2ecc71;}
+.stat-card.red{border-top-color:#e74c3c;}
+.stat-card.orange{border-top-color:#f39c12;}
+.stat-card.purple{border-top-color:#9b59b6;}
+.stat-card h4{font-size:13px;color:#666;margin-bottom:8px;}
+.stat-card .number{font-size:30px;font-weight:700;color:#2c3e50;}
+/* 功能卡片 */
+.section-title{text-align:center;margin:30px 0 20px;color:#2c3e50;font-size:18px;}
+.card-container{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:25px;max-width:1200px;margin:0 auto;}
+.card{background:#fff;border-radius:12px;padding:30px 20px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.08);transition:all 0.3s ease;cursor:pointer;}
+.card:hover{transform:translateY(-6px);box-shadow:0 8px 20px rgba(0,0,0,0.12);}
+.card.report{border-left:5px solid #3498db;}
+.card.problem{border-left:5px solid #e74c3c;}
+.card.case{border-left:5px solid #2ecc71;}
+.card.quarter{border-left:5px solid #f39c12;}
+.card.doc{border-left:5px solid #9b59b6;}
+.card.score{border-left:5px solid #e67e22;}
+.card.detail{border-left:5px solid #16a085;}
+.icon{font-size:42px;margin-bottom:15px;}
+.card h3{font-size:18px;color:#2c3e50;margin-bottom:8px;}
+.card .desc{font-size:12px;color:#999;margin-bottom:18px;min-height:30px;}
+.card button{padding:10px 25px;border:none;border-radius:6px;color:#fff;font-size:14px;cursor:pointer;transition:all 0.2s;}
+.card.report button{background:#3498db;}
+.card.problem button{background:#e74c3c;}
+.card.case button{background:#2ecc71;}
+.card.quarter button{background:#f39c12;}
+.card.doc button{background:#9b59b6;}
+.card.score button{background:#e67e22;}
+.card.detail button{background:#16a085;}
+.card.data button{background:#3498db;}
+.card button:hover{opacity:0.9;transform:scale(1.05);}
+.import-area{margin-top:15px;padding:15px;border:2px dashed #ddd;border-radius:6px;cursor:pointer;transition:all 0.2s;}
+.import-area:hover{border-color:#3498db;background:#f8fbff;}
+@media(max-width:768px){
+  .header{flex-direction:column;gap:12px;text-align:center;}
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>健康核查数据后台管理系统</h1>
+    <div class="header-sub">数据汇总 · 问题台账 · 报表分析 · 评估评分</div>
+  </div>
+  <a href="index.html" class="back-btn">返回首页</a>
+</div>
+
+<!-- 概览统计 -->
+<div class="stats-grid">
+  <div class="stat-card"><h4>居民档案</h4><div class="number" id="cnt-resident">0</div></div>
+  <div class="stat-card green"><h4>老年人核查</h4><div class="number" id="cnt-elderly">0</div></div>
+  <div class="stat-card red"><h4>高血压核查</h4><div class="number" id="cnt-hypertension">0</div></div>
+  <div class="stat-card orange"><h4>糖尿病核查</h4><div class="number" id="cnt-diabetes">0</div></div>
+  <div class="stat-card purple"><h4>慢阻肺核查</h4><div class="number" id="cnt-copd">0</div></div>
+  <div class="stat-card"><h4>合计</h4><div class="number" id="cnt-total" style="color:#2c3e50;">0</div></div>
+</div>
+
+<div class="section-title">功能导航</div>
+
+<div class="card-container">
+  <div class="card report" onclick="location.href='statistics.html'">
+    <div class="icon">📊</div>
+    <h3>报表统计</h3>
+    <div class="desc">按单位、年度、季度生成核查报表</div>
+    <button>进入</button>
+  </div>
+  <div class="card problem" onclick="location.href='problem-log.html'">
+    <div class="icon">📋</div>
+    <h3>问题台账</h3>
+    <div class="desc">查询不符合/不规范/造假记录</div>
+    <button>进入</button>
+  </div>
+  <div class="card case" onclick="location.href='case-check.html'">
+    <div class="icon">📁</div>
+    <h3>核查个案</h3>
+    <div class="desc">按姓名/项目搜索个体核查详情</div>
+    <button>进入</button>
+  </div>
+  <div class="card quarter" onclick="location.href='quarter-compare.html'">
+    <div class="icon">📈</div>
+    <h3>季度对比</h3>
+    <div class="desc">跨季度数据对比与可视化</div>
+    <button>进入</button>
+  </div>
+  <div class="card doc" onclick="location.href='report.html'">
+    <div class="icon">📄</div>
+    <h3>报告生成</h3>
+    <div class="desc">生成季度/年度工作报告</div>
+    <button>进入</button>
+  </div>
+  <div class="card score" onclick="location.href='unit-score.html'">
+    <div class="icon">⭐</div>
+    <h3>单位评分</h3>
+    <div class="desc">多维度对各核查单位综合评分</div>
+    <button>进入</button>
+  </div>
+  <div class="card detail" onclick="location.href='unit-detail.html'">
+    <div class="icon">📝</div>
+    <h3>单位明细</h3>
+    <div class="desc">查看单一单位完整核查明细</div>
+    <button>进入</button>
+  </div>
+  <div class="card problem" onclick="location.href='problem-list.html'">
+    <div class="icon">⚠️</div>
+    <h3>存在问题一览</h3>
+    <div class="desc">汇总各单位各项目存在问题</div>
+    <button>进入</button>
+  </div>
+  <div class="card data">
+    <div class="icon">💾</div>
+    <h3>数据导入导出</h3>
+    <div class="desc">原始数据的导入和导出，便于多电脑间数据迁移</div>
+    <button onclick="showDataTransfer()">进入</button>
+  </div>
+</div>
+
+<div id="data-transfer-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);justify-content:center;align-items:center;z-index:1000;">
+  <div style="background:#fff;border-radius:12px;width:90%;max-width:500px;padding:30px;box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;">
+      <h2 style="font-size:20px;color:#2c3e50;">数据导入导出</h2>
+      <button onclick="hideDataTransfer()" style="width:32px;height:32px;border:none;background:#eee;border-radius:50%;cursor:pointer;font-size:18px;">×</button>
+    </div>
+    <div style="margin-bottom:25px;padding:20px;background:#f5f7fa;border-radius:8px;">
+      <h4 style="margin-bottom:15px;color:#2c3e50;">📤 导出数据</h4>
+      <button onclick="exportData()" style="width:100%;padding:12px;background:#3498db;color:#fff;border:none;border-radius:6px;font-size:15px;cursor:pointer;">
+        导出全部数据
+      </button>
+      <p style="margin-top:10px;font-size:12px;color:#666;">导出为 JSON 文件，包含所有项目的核查记录</p>
+    </div>
+    <div style="padding:20px;background:#f5f7fa;border-radius:8px;">
+      <h4 style="margin-bottom:15px;color:#2c3e50;">📥 导入数据</h4>
+      <div class="import-area" onclick="document.getElementById('import-file').click()">
+        <div style="font-size:14px;color:#666;">点击或拖拽文件到此处</div>
+        <div style="font-size:12px;color:#999;margin-top:5px;">支持 .json 格式文件</div>
+      </div>
+      <input type="file" id="import-file" accept=".json" style="display:none;" onchange="handleFileSelect(event)">
+      <div id="import-progress" style="margin-top:15px;font-size:14px;color:#2ecc71;display:none;">正在导入...</div>
+      <div id="import-result" style="margin-top:15px;font-size:14px;color:#2ecc71;display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const projects = {
+  'resident': 'residentCheckRecords',
+  'elderly': 'elderlyCheckRecords',
+  'hypertension': 'hypertensionCheckRecords',
+  'diabetes': 'diabetesCheckRecords',
+  'copd': 'copdCheckRecords'
+};
+
+let totalAll = 0;
+Object.keys(projects).forEach(p => {
+  const cnt = (JSON.parse(localStorage.getItem(projects[p]) || '[]')).length;
+  document.getElementById('cnt-' + p).textContent = cnt;
+  totalAll += cnt;
+});
+document.getElementById('cnt-total').textContent = totalAll;
+
+function showDataTransfer() {
+  document.getElementById('data-transfer-modal').style.display = 'flex';
+}
+
+function hideDataTransfer() {
+  document.getElementById('data-transfer-modal').style.display = 'none';
+}
+
+function exportData() {
+  const allData = {};
+  Object.values(projects).forEach(key => {
+    allData[key] = JSON.parse(localStorage.getItem(key) || '[]');
+  });
+  const dataStr = JSON.stringify(allData, null, 2);
+  const now = new Date();
+  const timestamp = now.getFullYear() + ('0' + (now.getMonth() + 1)).slice(-2) + ('0' + now.getDate()).slice(-2) + '_' +
+                   ('0' + now.getHours()).slice(-2) + ('0' + now.getMinutes()).slice(-2) + ('0' + now.getSeconds()).slice(-2);
+  window.saveTextWithDialog(dataStr, `健康核查数据_${timestamp}`, 'json');
+}
+
+function handleFileSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      importData(data);
+    } catch (error) {
+      alert('文件格式错误，请确保上传的是有效的 JSON 文件');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function importData(data) {
+  const progressEl = document.getElementById('import-progress');
+  const resultEl = document.getElementById('import-result');
+  
+  progressEl.style.display = 'block';
+  resultEl.style.display = 'none';
+  
+  try {
+    let successCount = 0;
+    let totalRecords = 0;
+    Object.values(projects).forEach(key => {
+      if (data[key]) {
+        const existing = JSON.parse(localStorage.getItem(key) || '[]');
+        const newRecords = data[key];
+        existing.push(...newRecords);
+        localStorage.setItem(key, JSON.stringify(existing));
+        successCount++;
+        totalRecords += newRecords.length;
+      }
+    });
+    
+    progressEl.style.display = 'none';
+    
+    if (successCount > 0) {
+      resultEl.textContent = `成功导入 ${totalRecords} 条记录，覆盖 ${successCount} 个项目`;
+      resultEl.style.color = '#2ecc71';
+      resultEl.style.display = 'block';
+      setTimeout(() => {
+        hideDataTransfer();
+        resultEl.style.display = 'none';
+        location.reload();
+      }, 2000);
+    } else {
+      resultEl.textContent = '导入失败：未找到有效数据';
+      resultEl.style.color = '#e74c3c';
+      resultEl.style.display = 'block';
+    }
+  } catch (error) {
+    console.error('导入数据失败:', error);
+    progressEl.style.display = 'none';
+    resultEl.textContent = '导入数据失败：' + error.message;
+    resultEl.style.color = '#e74c3c';
+    resultEl.style.display = 'block';
+  }
+}
+</script>
+<script src="export_helper.js"></script>
+
+</body>
+</html>
